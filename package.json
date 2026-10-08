@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "push": "bash autopush.sh",
+    "push:watch": "bash autopush.sh --watch"
   },
   "dependencies": {
     "@google/genai": "^2.28.0",
