@@ -11,7 +11,8 @@ import {
   Pause,
   Square,
   Clock,
-  DownloadCloud
+  DownloadCloud,
+  LogOut
 } from 'lucide-react';
 import { formatSeconds } from '../lib/utils';
 
@@ -37,7 +38,9 @@ export function Header({ onOpenAiBrain }: HeaderProps) {
     syncStatus,
     syncMessage,
     notifications,
-    markNotificationRead
+    markNotificationRead,
+    currentUser,
+    logoutUser
   } = useAppStore();
 
   const [showNotifMenu, setShowNotifMenu] = useState(false);
@@ -250,6 +253,28 @@ export function Header({ onOpenAiBrain }: HeaderProps) {
               </div>
             </div>
           )}
+        </div>
+
+        {/* User Profile & Keluar Button */}
+        <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">
+          <img
+            src={currentUser.avatar}
+            alt={currentUser.name}
+            className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
+            title={`${currentUser.name} (${currentUser.email})`}
+          />
+          <button
+            onClick={() => {
+              if (confirm(`Apakah Anda yakin ingin keluar dari akun ${currentUser.name}?`)) {
+                logoutUser();
+              }
+            }}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-red-50 text-slate-500 hover:text-[#ee3425] text-xs font-semibold transition cursor-pointer"
+            title="Keluar / Logout"
+          >
+            <LogOut className="w-3.5 h-3.5 text-[#ee3425]" />
+            <span className="hidden sm:inline">Keluar</span>
+          </button>
         </div>
       </div>
     </header>

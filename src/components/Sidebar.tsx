@@ -208,35 +208,36 @@ export function Sidebar({ onOpenCreateTask }: SidebarProps) {
         </div>
       )}
 
-      {/* Current User Card */}
-      <div className="p-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <img
-            src={currentUser.avatar}
-            alt={currentUser.name}
-            className="w-8 h-8 rounded-full object-cover border border-slate-200 shrink-0"
-          />
-          <div className="min-w-0">
-            <p className="text-xs font-semibold text-slate-900 truncate">{currentUser.name}</p>
-            <p className="text-[10px] text-slate-500 truncate">{currentUser.email}</p>
+      {/* Menu Keluar / Logout */}
+      <div className="p-2.5 border-t border-slate-200 bg-slate-50">
+        <button
+          onClick={() => {
+            if (confirm(`Apakah Anda yakin ingin keluar dari akun ${currentUser.name}?`)) {
+              logoutUser();
+            }
+          }}
+          className="w-full flex items-center justify-between p-2 rounded-lg bg-white hover:bg-red-50 border border-slate-200 hover:border-red-200 text-slate-700 hover:text-[#ee3425] transition cursor-pointer group shadow-2xs"
+          title={`Keluar (${currentUser.email})`}
+        >
+          <div className="flex items-center gap-2.5 min-w-0">
+            <img
+              src={currentUser.avatar}
+              alt={currentUser.name}
+              className="w-7 h-7 rounded-full object-cover border border-slate-200 shrink-0"
+            />
+            <div className="min-w-0 text-left">
+              <p className="text-xs font-semibold text-slate-800 group-hover:text-[#ee3425] truncate">
+                Keluar
+              </p>
+              <p className="text-[10px] text-slate-400 truncate">
+                {currentUser.name}
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <span className="text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-medium">
-            {currentUser.role}
-          </span>
-          <button
-            onClick={() => {
-              if (confirm(`Keluar dari akun ${currentUser.name}?`)) {
-                logoutUser();
-              }
-            }}
-            title="Keluar / Logout"
-            className="p-1 rounded-md text-slate-400 hover:text-[#ee3425] hover:bg-red-50 transition cursor-pointer"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-          </button>
-        </div>
+          <div className="flex items-center gap-1 shrink-0 text-[#ee3425] text-xs font-medium pl-1">
+            <LogOut className="w-4 h-4 transition-transform group-hover:translate-x-0.5" />
+          </div>
+        </button>
       </div>
     </aside>
   );
