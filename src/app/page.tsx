@@ -40,7 +40,11 @@ function AppContent() {
     }
 
     // Hydrate user auth session
-    const savedAuth = localStorage.getItem('SYNCRO_AUTH_USER');
+    const isRemembered = localStorage.getItem('SYNCRO_REMEMBER') === 'true';
+    const savedAuth = isRemembered 
+      ? localStorage.getItem('SYNCRO_AUTH_USER') 
+      : (typeof window !== 'undefined' ? sessionStorage.getItem('SYNCRO_AUTH_USER') : null);
+
     if (savedAuth) {
       try {
         const user = JSON.parse(savedAuth);

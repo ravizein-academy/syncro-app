@@ -336,6 +336,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   logoutUser: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('SYNCRO_AUTH_USER');
+      localStorage.removeItem('SYNCRO_REMEMBER');
+      sessionStorage.removeItem('SYNCRO_AUTH_USER');
     }
     set({ isAuthenticated: false });
   },
