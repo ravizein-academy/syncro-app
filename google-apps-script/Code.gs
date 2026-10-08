@@ -121,6 +121,10 @@ function doPost(e) {
         result = seedDemoData(ss);
         break;
 
+      case 'registerUser':
+        result = registerUser(ss, payload.data);
+        break;
+
       default:
         return responseJson({ status: 'error', message: 'Unknown action: ' + action });
     }
@@ -250,6 +254,41 @@ function logTime(ss, data) {
 
   sheet.appendRow(row);
   return { id: id, ...data, createdAt: now };
+}
+
+/**
+ * Register or update office user in Users sheet
+ */
+function registerUser(ss, data) {
+  const sheet = ss.getSheetByName(SHEET_NAMES.USERS);
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const emailColIdx = headers.indexOf('email');
+
+  for (let r = 1; r < values.length; r++) {
+    if (values[r][emailColIdx] && String(values[r][emailColIdx]).toLowerCase() === String(data.email).toLowerCase()) {
+      return { 
+        id: values[r][headers.indexOf('id')], 
+        name: values[r][headers.indexOf('name')], 
+        email: data.email, 
+        role: values[r][headers.indexOf('role')], 
+        team: values[r][headers.indexOf('team')], 
+        avatar: values[r][headers.indexOf('avatar')] 
+      };
+    }
+  }
+
+  const id = data.id || ('user_' + Utilities.getUuid().substring(0, 8));
+  const newRow = [
+    id,
+    data.name || 'Anggota Tim',
+    data.email,
+    data.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(data.name || 'User') + '&backgroundColor=ee3425'),
+    data.role || 'Member',
+    data.team || 'Engineering & Operations'
+  ];
+  sheet.appendRow(newRow);
+  return { id: id, ...data };
 }
 
 /**
