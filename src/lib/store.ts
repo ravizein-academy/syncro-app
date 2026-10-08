@@ -71,6 +71,9 @@ interface AppState {
   loginUser: (user: User) => void;
   logoutUser: () => void;
   updateUserCapacity: (userId: string, hours: number) => void;
+  isInviteModalOpen: boolean;
+  setInviteModalOpen: (open: boolean) => void;
+  inviteUser: (userData: { name: string; email: string; role: import('../types').UserRole; team: string }) => Promise<User>;
 
   // Notification Actions
   markNotificationRead: (id: string) => void;
@@ -104,6 +107,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedDate: todayStr,
 
   activeTimer: null,
+  isInviteModalOpen: false,
 
   googleScriptUrl: process.env.NEXT_PUBLIC_APPS_SCRIPT_URL || '',
   geminiApiKey: process.env.NEXT_PUBLIC_GEMINI_API_KEY || '',
@@ -340,6 +344,50 @@ export const useAppStore = create<AppState>((set, get) => ({
       sessionStorage.removeItem('SYNCRO_AUTH_USER');
     }
     set({ isAuthenticated: false });
+  },
+
+  setInviteModalOpen: (open) => set({ isInviteModalOpen: open }),
+
+  inviteUser: async (data) => {
+    const newUser: User = {
+      id: `user_${Date.now().toString(36)}`,
+      name: data.name,
+      email: data.email,
+      role: data.role,
+      team: data.team,
+      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(data.name)}&backgroundColor=ee3425`,
+      weeklyCapacityHours: 40
+    };
+
+    set((state) => ({
+      users: [...state.users, newUser],
+      notifications: [
+        {
+          id: `notif_${Date.now()}`,
+          title: 'Undangan Rekan Kerja Terkirim',
+          message: `${newUser.name} (${newUser.email}) berhasil ditambahkan ke tim ${newUser.team}.`,
+          type: 'system',
+          timestamp: 'Baru saja',
+          read: false
+        },
+        ...state.notifications
+      ]
+    }));
+
+    const url = get().googleScriptUrl;
+    if (url) {
+      try {
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'registerUser', data: newUser })
+        });
+      } catch (err) {
+        console.error('Failed to sync new invited user to Google Sheets', err);
+      }
+    }
+
+    return newUser;
   },
 
   updateUserCapacity: (userId, hours) => {

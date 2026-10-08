@@ -13,6 +13,7 @@ import { SettingsView } from '../components/SettingsView';
 import { ChannelsView } from '../components/ChannelsView';
 import { TaskFormView } from '../components/TaskFormView';
 import { LoginView } from '../components/LoginView';
+import { InviteModal } from '../components/InviteModal';
 
 function AppContent() {
   const {
@@ -162,6 +163,9 @@ function AppContent() {
           )}
         </main>
       </div>
+
+      {/* Modal Undang Rekan Kerja */}
+      <InviteModal />
     </div>
   );
 }

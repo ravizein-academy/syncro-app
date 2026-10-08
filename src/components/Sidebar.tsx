@@ -19,7 +19,8 @@ import {
   Terminal,
   FolderOpen,
   Home,
-  LogOut
+  LogOut,
+  UserPlus
 } from 'lucide-react';
 import { ActiveTab } from '../types';
 
@@ -40,7 +41,8 @@ export function Sidebar({ onOpenCreateTask }: SidebarProps) {
     activeTimer,
     syncStatus,
     setSelectedTaskId,
-    logoutUser
+    logoutUser,
+    setInviteModalOpen
   } = useAppStore();
 
   const unreadNotifs = notifications.filter((n) => !n.read).length;
@@ -207,6 +209,17 @@ export function Sidebar({ onOpenCreateTask }: SidebarProps) {
           </button>
         </div>
       )}
+
+      {/* Menu Undang Rekan Kerja */}
+      <div className="px-2.5 pb-2">
+        <button
+          onClick={() => setInviteModalOpen(true)}
+          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-red-50/80 hover:bg-red-100/90 text-[#ee3425] border border-red-200/80 font-semibold text-xs transition cursor-pointer shadow-2xs group"
+        >
+          <UserPlus className="w-4 h-4 text-[#ee3425] group-hover:scale-110 transition-transform" />
+          <span>Undang Rekan Kerja</span>
+        </button>
+      </div>
 
       {/* Menu Keluar / Logout */}
       <div className="p-2.5 border-t border-slate-200 bg-slate-50">

@@ -12,7 +12,8 @@ import {
   Square,
   Clock,
   DownloadCloud,
-  LogOut
+  LogOut,
+  UserPlus
 } from 'lucide-react';
 import { formatSeconds } from '../lib/utils';
 
@@ -40,7 +41,8 @@ export function Header({ onOpenAiBrain }: HeaderProps) {
     notifications,
     markNotificationRead,
     currentUser,
-    logoutUser
+    logoutUser,
+    setInviteModalOpen
   } = useAppStore();
 
   const [showNotifMenu, setShowNotifMenu] = useState(false);
@@ -254,6 +256,16 @@ export function Header({ onOpenAiBrain }: HeaderProps) {
             </div>
           )}
         </div>
+
+        {/* Tombol Undang Rekan Kerja */}
+        <button
+          onClick={() => setInviteModalOpen(true)}
+          className="flex items-center gap-1.5 bg-red-50 hover:bg-red-100 text-[#ee3425] border border-red-200/80 font-medium text-xs px-2.5 py-1.5 rounded-lg transition-all cursor-pointer shadow-xs"
+          title="Undang rekan kerja ke Syncro"
+        >
+          <UserPlus className="w-3.5 h-3.5 text-[#ee3425]" />
+          <span className="hidden md:inline font-semibold">Undang</span>
+        </button>
 
         {/* User Profile & Keluar Button */}
         <div className="flex items-center gap-1.5 pl-2 border-l border-slate-200">

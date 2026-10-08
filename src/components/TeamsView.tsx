@@ -7,11 +7,12 @@ import {
   CheckCircle2,
   AlertTriangle,
   TrendingUp,
-  Activity
+  Activity,
+  UserPlus
 } from 'lucide-react';
 
 export function TeamsView() {
-  const { users, tasks, updateUserCapacity } = useAppStore();
+  const { users, tasks, updateUserCapacity, setInviteModalOpen } = useAppStore();
   const [selectedDivision, setSelectedDivision] = useState<string>('all');
 
   const getUserWorkload = (userId: string) => {
@@ -45,20 +46,30 @@ export function TeamsView() {
             </p>
           </div>
 
-          {/* Division Filter */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 font-medium">Divisi:</span>
-            <select
-              value={selectedDivision}
-              onChange={(e) => setSelectedDivision(e.target.value)}
-              className="bg-white border border-slate-200 text-xs text-slate-800 rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#ee3425] shadow-2xs"
+          {/* Actions & Division Filter */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setInviteModalOpen(true)}
+              className="flex items-center gap-1.5 bg-[#ee3425] hover:bg-[#d6281a] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition shadow-xs cursor-pointer"
             >
-              <option value="all">Semua Divisi</option>
-              <option value="Product">Product & Architecture</option>
-              <option value="Engineering">Engineering</option>
-              <option value="Cyber">Cyber Security</option>
-              <option value="Design">Product Design</option>
-            </select>
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>+ Undang Anggota Tim</span>
+            </button>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 font-medium">Divisi:</span>
+              <select
+                value={selectedDivision}
+                onChange={(e) => setSelectedDivision(e.target.value)}
+                className="bg-white border border-slate-200 text-xs text-slate-800 rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#ee3425] shadow-2xs"
+              >
+                <option value="all">Semua Divisi</option>
+                <option value="Product">Product & Architecture</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Cyber">Cyber Security</option>
+                <option value="Design">Product Design</option>
+              </select>
+            </div>
           </div>
         </div>
 
