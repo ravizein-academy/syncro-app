@@ -11,10 +11,7 @@ import {
   Eye, 
   EyeOff, 
   AlertCircle,
-  Building2,
-  CheckCircle2,
-  Sparkles,
-  UserCheck
+  Building2
 } from 'lucide-react';
 
 export function LoginView() {
@@ -113,12 +110,6 @@ export function LoginView() {
       };
       performLogin(defaultUser);
     }
-  };
-
-  const handleQuickFill = (user: User) => {
-    setEmail(user.email);
-    setPassword('••••••••');
-    setErrorMsg('');
   };
 
   return (
@@ -297,32 +288,6 @@ export function LoginView() {
             </svg>
             <span>Lanjutkan dengan Akun Google Workspace</span>
           </button>
-
-          {/* Quick Account Fill (Chips) */}
-          {officeUsers.length > 0 && (
-            <div className="mt-5 pt-4 border-t border-slate-100">
-              <p className="text-[11px] font-semibold text-slate-500 mb-2">
-                Pilih Cepat Akun Kantor:
-              </p>
-              <div className="flex flex-wrap gap-1.5">
-                {officeUsers.map((u) => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => handleQuickFill(u)}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-[#ee3425] text-[11px] font-medium transition border border-transparent hover:border-red-200 cursor-pointer"
-                  >
-                    <img
-                      src={u.avatar}
-                      alt={u.name}
-                      className="w-4 h-4 rounded-full object-cover"
-                    />
-                    <span>{u.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Footer Card Security Note */}
           <div className="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
