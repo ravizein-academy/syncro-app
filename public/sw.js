@@ -1,5 +1,5 @@
 // Service Worker for Syncro PWA Offline Support
-const CACHE_NAME = 'syncro-cache-v1';
+const CACHE_NAME = 'syncro-cache-v2';
 const PRECACHE_URLS = [
   '/',
   '/manifest.json',
