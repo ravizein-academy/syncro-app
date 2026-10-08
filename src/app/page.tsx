@@ -12,6 +12,7 @@ import { AiView } from '../components/AiView';
 import { SettingsView } from '../components/SettingsView';
 import { ChannelsView } from '../components/ChannelsView';
 import { TaskFormView } from '../components/TaskFormView';
+import { LoginView } from '../components/LoginView';
 
 function AppContent() {
   const {
@@ -22,11 +23,13 @@ function AppContent() {
     setGoogleScriptUrl,
     setGeminiApiKey,
     syncWithGoogleSheets,
+    isAuthenticated,
+    loginUser,
   } = useAppStore();
 
   const [mounted, setMounted] = useState(false);
 
-  // Register PWA Service Worker on client mount
+  // Register PWA Service Worker on client mount & hydrate session
   useEffect(() => {
     setMounted(true);
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
@@ -34,6 +37,19 @@ function AppContent() {
         .register('/sw.js')
         .then(() => console.log('Syncro PWA Service Worker registered'))
         .catch((err) => console.log('Service Worker registration error:', err));
+    }
+
+    // Hydrate user auth session
+    const savedAuth = localStorage.getItem('SYNCRO_AUTH_USER');
+    if (savedAuth) {
+      try {
+        const user = JSON.parse(savedAuth);
+        if (user && user.email) {
+          loginUser(user);
+        }
+      } catch (err) {
+        console.error('Failed to parse saved auth', err);
+      }
     }
 
     // Hydrate settings
@@ -45,7 +61,7 @@ function AppContent() {
       syncWithGoogleSheets();
     }
     if (savedKey) setGeminiApiKey(savedKey);
-  }, [setGoogleScriptUrl, setGeminiApiKey, syncWithGoogleSheets]);
+  }, [setGoogleScriptUrl, setGeminiApiKey, syncWithGoogleSheets, loginUser]);
 
   if (!mounted) {
     return (
@@ -58,6 +74,11 @@ function AppContent() {
         </div>
       </div>
     );
+  }
+
+  // Gatekeeper: Show LoginView before accessing the application
+  if (!isAuthenticated) {
+    return <LoginView />;
   }
 
   const handleOpenCreateTask = () => {

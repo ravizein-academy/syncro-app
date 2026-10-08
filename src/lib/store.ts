@@ -18,6 +18,7 @@ interface AppState {
   timeLogs: TimeLog[];
   notifications: InboxNotification[];
   currentUser: User;
+  isAuthenticated: boolean;
 
   // UI States
   activeTab: ActiveTab;
@@ -67,6 +68,8 @@ interface AppState {
 
   // User Actions
   setCurrentUser: (user: User) => void;
+  loginUser: (user: User) => void;
+  logoutUser: () => void;
   updateUserCapacity: (userId: string, hours: number) => void;
 
   // Notification Actions
@@ -90,6 +93,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   timeLogs: [],
   notifications: INITIAL_NOTIFICATIONS,
   currentUser: INITIAL_USERS[0],
+  isAuthenticated: false,
 
   activeTab: 'home',
   activeSpaceId: 'space_all',
@@ -321,6 +325,20 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setCurrentUser: (user) => set({ currentUser: user }),
+
+  loginUser: (user) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('SYNCRO_AUTH_USER', JSON.stringify(user));
+    }
+    set({ currentUser: user, isAuthenticated: true });
+  },
+
+  logoutUser: () => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('SYNCRO_AUTH_USER');
+    }
+    set({ isAuthenticated: false });
+  },
 
   updateUserCapacity: (userId, hours) => {
     set((state) => ({

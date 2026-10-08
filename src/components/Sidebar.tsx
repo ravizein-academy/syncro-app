@@ -18,7 +18,8 @@ import {
   BookOpen,
   Terminal,
   FolderOpen,
-  Home
+  Home,
+  LogOut
 } from 'lucide-react';
 import { ActiveTab } from '../types';
 
@@ -38,7 +39,8 @@ export function Sidebar({ onOpenCreateTask }: SidebarProps) {
     currentUser,
     activeTimer,
     syncStatus,
-    setSelectedTaskId
+    setSelectedTaskId,
+    logoutUser
   } = useAppStore();
 
   const unreadNotifs = notifications.filter((n) => !n.read).length;
@@ -219,8 +221,21 @@ export function Sidebar({ onOpenCreateTask }: SidebarProps) {
             <p className="text-[10px] text-slate-500 truncate">{currentUser.email}</p>
           </div>
         </div>
-        <div className="text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-medium shrink-0">
-          {currentUser.role}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className="text-[10px] bg-white border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded font-medium">
+            {currentUser.role}
+          </span>
+          <button
+            onClick={() => {
+              if (confirm(`Keluar dari akun ${currentUser.name}?`)) {
+                logoutUser();
+              }
+            }}
+            title="Keluar / Logout"
+            className="p-1 rounded-md text-slate-400 hover:text-[#ee3425] hover:bg-red-50 transition cursor-pointer"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
         </div>
       </div>
     </aside>
