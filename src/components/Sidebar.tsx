@@ -145,6 +145,22 @@ export function Sidebar({ onOpenCreateTask }: SidebarProps) {
           );
         })}
 
+        {/* Menu Undang Rekan Kerja di Daftar Menu */}
+        <button
+          onClick={() => setInviteModalOpen(true)}
+          className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg font-medium transition cursor-pointer text-left text-slate-600 hover:bg-red-50/70 hover:text-[#ee3425] group"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="text-[#ee3425]">
+              <UserPlus className="w-4 h-4 group-hover:scale-110 transition-transform" />
+            </span>
+            <span>Undang Rekan Kerja</span>
+          </div>
+          <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-red-100/90 text-[#ee3425]">
+            + Invite
+          </span>
+        </button>
+
         {/* Spaces Section */}
         <div className="pt-4 pb-1.5 px-2.5 flex items-center justify-between text-[10px] font-bold tracking-wider text-slate-400 uppercase">
           <span>Spaces</span>
@@ -210,15 +226,25 @@ export function Sidebar({ onOpenCreateTask }: SidebarProps) {
         </div>
       )}
 
-      {/* Menu Undang Rekan Kerja */}
+      {/* Kartu Undang Rekan Kerja */}
       <div className="px-2.5 pb-2">
-        <button
-          onClick={() => setInviteModalOpen(true)}
-          className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-red-50/80 hover:bg-red-100/90 text-[#ee3425] border border-red-200/80 font-semibold text-xs transition cursor-pointer shadow-2xs group"
-        >
-          <UserPlus className="w-4 h-4 text-[#ee3425] group-hover:scale-110 transition-transform" />
-          <span>Undang Rekan Kerja</span>
-        </button>
+        <div className="p-2.5 rounded-xl bg-gradient-to-br from-red-50/90 to-orange-50/60 border border-red-200/70 shadow-2xs">
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="w-6 h-6 rounded-lg bg-[#ee3425] text-white flex items-center justify-center shrink-0 shadow-xs">
+              <UserPlus className="w-3.5 h-3.5" />
+            </div>
+            <span className="text-xs font-bold text-slate-900 truncate">Undang Rekan Kerja</span>
+          </div>
+          <p className="text-[10px] text-slate-500 mb-2 leading-relaxed">
+            Ajak rekan satu tim kantor untuk berkolaborasi di workspace.
+          </p>
+          <button
+            onClick={() => setInviteModalOpen(true)}
+            className="w-full py-1.5 px-2.5 rounded-lg bg-[#ee3425] hover:bg-[#d6281a] text-white text-[11px] font-semibold transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs active:scale-[0.98]"
+          >
+            <span>+ Undang Anggota Tim</span>
+          </button>
+        </div>
       </div>
 
       {/* Menu Keluar / Logout */}
