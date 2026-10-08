@@ -9,33 +9,6 @@ export const INITIAL_USERS: User[] = [
     role: 'Admin',
     team: 'Product & Architecture',
     weeklyCapacityHours: 40,
-  },
-  {
-    id: 'user_2',
-    name: 'Sarah Connor',
-    email: 'sarah@itsecacademy.com',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
-    role: 'Member',
-    team: 'Frontend Engineering',
-    weeklyCapacityHours: 35,
-  },
-  {
-    id: 'user_3',
-    name: 'Alex Rivera',
-    email: 'alex@itsecacademy.com',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
-    role: 'Member',
-    team: 'Cyber Security Operations',
-    weeklyCapacityHours: 40,
-  },
-  {
-    id: 'user_4',
-    name: 'Maya Putri',
-    email: 'maya@itsecacademy.com',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80',
-    role: 'Member',
-    team: 'Product Design',
-    weeklyCapacityHours: 30,
   }
 ];
 
@@ -77,13 +50,13 @@ export const INITIAL_TEAMS: Team[] = [
     id: 'team_soc',
     name: 'Security Operation Center',
     division: 'Cyber Security',
-    leaderId: 'user_3'
+    leaderId: 'user_1'
   },
   {
     id: 'team_academic',
     name: 'Academy Instructors',
     division: 'Education',
-    leaderId: 'user_2'
+    leaderId: 'user_1'
   }
 ];
 
@@ -132,14 +105,6 @@ export const INITIAL_TASKS: Task[] = [
         userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
         content: 'Deployment Google Apps Script selesai. Database Google Sheets sudah siap melayani request API.',
         createdAt: '09:20'
-      },
-      {
-        id: 'cmt-2',
-        userId: 'user_2',
-        userName: 'Sarah Connor',
-        userAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
-        content: 'Mantap mas Ravi! Respon doGet dan doPost berjalan sangat lancar di sisi PWA.',
-        createdAt: '09:35'
       }
     ],
     createdAt: new Date().toISOString(),
@@ -174,9 +139,9 @@ export const INITIAL_TASKS: Task[] = [
     comments: [
       {
         id: 'cmt-3',
-        userId: 'user_4',
-        userName: 'Maya Putri',
-        userAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80',
+        userId: 'user_1',
+        userName: 'Ravi Zein',
+        userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
         content: 'Tampilan tema ClickUp putih dan merah #ee3425 terlihat sangat bersih dan rapi!',
         createdAt: '10:45'
       }
@@ -193,7 +158,7 @@ export const INITIAL_TASKS: Task[] = [
     dueDate: todayStr,
     scheduledTime: '13:30',
     durationMinutes: 120,
-    assignedTo: 'user_3',
+    assignedTo: 'user_1',
     spaceId: 'space_soc',
     tags: ['Security', 'SOC'],
     subtasks: [
@@ -213,9 +178,9 @@ export const INITIAL_TASKS: Task[] = [
     comments: [
       {
         id: 'cmt-4',
-        userId: 'user_3',
-        userName: 'Alex Rivera',
-        userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
+        userId: 'user_1',
+        userName: 'Ravi Zein',
+        userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
         content: 'Sudah memverifikasi 35 domain phishing baru dan memperbarui rules firewall perimeter.',
         createdAt: '11:15'
       }
@@ -232,7 +197,7 @@ export const INITIAL_TASKS: Task[] = [
     dueDate: todayStr,
     scheduledTime: undefined,
     durationMinutes: 90,
-    assignedTo: 'user_2',
+    assignedTo: 'user_1',
     spaceId: 'space_sop',
     tags: ['Documentation', 'Infrastructure'],
     subtasks: [
@@ -249,16 +214,7 @@ export const INITIAL_TASKS: Task[] = [
         uploadedAt: 'Hari ini, 08:00'
       }
     ],
-    comments: [
-      {
-        id: 'cmt-5',
-        userId: 'user_2',
-        userName: 'Sarah Connor',
-        userAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
-        content: 'Draft SOP blueprint sudah bisa diakses di Google Docs terlampir.',
-        createdAt: '08:30'
-      }
-    ],
+    comments: [],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString()
   },
@@ -287,7 +243,7 @@ export const INITIAL_TASKS: Task[] = [
     dueDate: todayStr,
     scheduledTime: '16:00',
     durationMinutes: 60,
-    assignedTo: 'user_4',
+    assignedTo: 'user_1',
     spaceId: 'space_pwa',
     tags: ['Design', 'PWA'],
     subtasks: [],
@@ -330,21 +286,7 @@ export const INITIAL_MESSAGES: ChannelMessage[] = [
     id: 'msg-1',
     channelId: 'general',
     senderId: 'user_1',
-    content: 'Selamat pagi tim! PWA Syncro versi 1.0 sudah mulai dirilis dengan integrasi Google Sheets & Gemini AI.',
+    content: 'Selamat pagi! PWA Syncro versi 1.0 sudah siap digunakan untuk kolaborasi tim.',
     timestamp: '09:00'
-  },
-  {
-    id: 'msg-2',
-    channelId: 'general',
-    senderId: 'user_3',
-    content: 'Mantap mas Ravi! Saya akan sinkronkan laporan SOC ke modul Teams hari ini.',
-    timestamp: '09:15'
-  },
-  {
-    id: 'msg-3',
-    channelId: 'general',
-    senderId: 'user_2',
-    content: 'Siap, modul Planner dengan drag & drop time block sangat membantu jadwal training student.',
-    timestamp: '09:20'
   }
 ];

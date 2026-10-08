@@ -125,6 +125,10 @@ function doPost(e) {
         result = registerUser(ss, payload.data);
         break;
 
+      case 'deleteUser':
+        result = deleteUser(ss, payload.id);
+        break;
+
       default:
         return responseJson({ status: 'error', message: 'Unknown action: ' + action });
     }
@@ -292,6 +296,32 @@ function registerUser(ss, data) {
 }
 
 /**
+ * Delete a user by ID or email
+ */
+function deleteUser(ss, idOrEmail) {
+  const sheet = ss.getSheetByName(SHEET_NAMES.USERS);
+  const values = sheet.getDataRange().getValues();
+  if (values.length <= 1) return { deleted: false };
+
+  const headers = values[0];
+  const idColIdx = headers.indexOf('id');
+  const emailColIdx = headers.indexOf('email');
+
+  for (let r = values.length - 1; r >= 1; r--) {
+    const rowId = String(values[r][idColIdx] || '');
+    const rowEmail = String(values[r][emailColIdx] || '').toLowerCase();
+    const query = String(idOrEmail || '').toLowerCase();
+
+    if (rowId === idOrEmail || rowEmail === query) {
+      sheet.deleteRow(r + 1);
+      return { id: idOrEmail, deleted: true };
+    }
+  }
+
+  return { id: idOrEmail, deleted: false };
+}
+
+/**
  * Helper JSON response with CORS
  */
 function responseJson(obj) {
@@ -330,12 +360,10 @@ function seedDemoData(ss) {
   initDatabase();
   const today = new Date().toISOString().substring(0, 10);
 
-  // Users
+  // Users - HANYA RAVI ZEIN SEBAGAI OWNER / ADMIN
   const userSheet = ss.getSheetByName(SHEET_NAMES.USERS);
   if (userSheet.getLastRow() <= 1) {
     userSheet.appendRow(['user_1', 'Ravi Zein', 'ravizein@itsecacademy.com', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100', 'Admin', 'Product & Tech']);
-    userSheet.appendRow(['user_2', 'Sarah Connor', 'sarah@itsecacademy.com', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100', 'Member', 'Engineering']);
-    userSheet.appendRow(['user_3', 'Alex Rivera', 'alex@itsecacademy.com', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100', 'Member', 'Cyber Security']);
   }
 
   // Spaces

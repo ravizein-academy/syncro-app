@@ -71,6 +71,7 @@ interface AppState {
   loginUser: (user: User) => void;
   logoutUser: () => void;
   updateUserCapacity: (userId: string, hours: number) => void;
+  deleteUser: (userId: string) => Promise<void>;
   isInviteModalOpen: boolean;
   setInviteModalOpen: (open: boolean) => void;
   inviteUser: (userData: { name: string; email: string; role: import('../types').UserRole; team: string }) => Promise<User>;
@@ -396,6 +397,26 @@ export const useAppStore = create<AppState>((set, get) => ({
     }));
   },
 
+  deleteUser: async (userId) => {
+    const userToDelete = get().users.find((u) => u.id === userId);
+    set((state) => ({
+      users: state.users.filter((u) => u.id !== userId)
+    }));
+
+    const url = get().googleScriptUrl;
+    if (url && userToDelete) {
+      try {
+        await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'deleteUser', id: userId, email: userToDelete.email })
+        });
+      } catch (err) {
+        console.error('Failed to delete user from Google Sheets', err);
+      }
+    }
+  },
+
   markNotificationRead: (id) => {
     set((state) => ({
       notifications: state.notifications.map((n) => (n.id === id ? { ...n, read: true } : n))
@@ -436,9 +457,16 @@ export const useAppStore = create<AppState>((set, get) => ({
 
       if (json.status === 'success' && json.data) {
         const { tasks, users, teams, spaces, timeLogs } = json.data;
+        
+        // Filter out legacy dummy users
+        const dummyEmails = ['sarah@itsecacademy.com', 'alex@itsecacademy.com', 'maya@itsecacademy.com'];
+        const cleanUsers = Array.isArray(users)
+          ? users.filter((u: User) => !dummyEmails.includes((u.email || '').toLowerCase()))
+          : [];
+
         set({
           tasks: Array.isArray(tasks) && tasks.length > 0 ? tasks : get().tasks,
-          users: Array.isArray(users) && users.length > 0 ? users : get().users,
+          users: cleanUsers.length > 0 ? cleanUsers : get().users,
           teams: Array.isArray(teams) && teams.length > 0 ? teams : get().teams,
           spaces: Array.isArray(spaces) && spaces.length > 0 ? spaces : get().spaces,
           timeLogs: Array.isArray(timeLogs) ? timeLogs : get().timeLogs,

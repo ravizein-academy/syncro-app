@@ -8,11 +8,12 @@ import {
   AlertTriangle,
   TrendingUp,
   Activity,
-  UserPlus
+  UserPlus,
+  Trash2
 } from 'lucide-react';
 
 export function TeamsView() {
-  const { users, tasks, updateUserCapacity, setInviteModalOpen } = useAppStore();
+  const { users, tasks, updateUserCapacity, deleteUser, currentUser, setInviteModalOpen } = useAppStore();
   const [selectedDivision, setSelectedDivision] = useState<string>('all');
 
   const getUserWorkload = (userId: string) => {
@@ -181,17 +182,34 @@ export function TeamsView() {
                   {/* Footer details */}
                   <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
                     <span>{taskCount} Tugas Aktif</span>
-                    <button
-                      onClick={() => {
-                        const newCap = prompt('Ubah kapasitas jam mingguan:', String(maxHours));
-                        if (newCap && !isNaN(Number(newCap))) {
-                          updateUserCapacity(user.id, Number(newCap));
-                        }
-                      }}
-                      className="text-[11px] font-semibold text-[#ee3425] hover:underline cursor-pointer"
-                    >
-                      Ubah Kapasitas
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          const newCap = prompt('Ubah kapasitas jam mingguan:', String(maxHours));
+                          if (newCap && !isNaN(Number(newCap))) {
+                            updateUserCapacity(user.id, Number(newCap));
+                          }
+                        }}
+                        className="text-[11px] font-semibold text-[#ee3425] hover:underline cursor-pointer"
+                      >
+                        Ubah Kapasitas
+                      </button>
+
+                      {user.id !== 'user_1' && user.email !== 'ravizein@itsecacademy.com' && (
+                        <button
+                          onClick={() => {
+                            if (confirm(`Apakah Anda yakin ingin menghapus ${user.name} (${user.email}) dari tim?`)) {
+                              deleteUser(user.id);
+                            }
+                          }}
+                          className="text-[11px] font-medium text-slate-400 hover:text-red-600 transition flex items-center gap-1 cursor-pointer"
+                          title="Hapus user dari workspace"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>Hapus</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
