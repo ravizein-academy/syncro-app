@@ -7,10 +7,15 @@ export async function GET() {
   if (appsScriptUrl) {
     try {
       const res = await fetch(`${appsScriptUrl}?action=health`, {
-        next: { revalidate: 60 }
+        cache: 'no-store'
       });
       if (res.ok) {
-        appsScriptStatus = 'connected';
+        const json = await res.json().catch(() => null);
+        if (json && (json.status === 'success' || json.status === 'ok' || json?.data?.status === 'ok')) {
+          appsScriptStatus = 'connected';
+        } else {
+          appsScriptStatus = 'invalid-response';
+        }
       } else {
         appsScriptStatus = `error-${res.status}`;
       }
