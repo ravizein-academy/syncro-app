@@ -201,21 +201,15 @@ export function TopNavbar() {
           )}
         </Link>
 
-        {/* ClickUp-Style New Task Trigger & Modal */}
-        <Button 
-          size="sm" 
-          onClick={() => setOpenNewTask(true)}
-          className="h-8 gap-1.5 text-xs bg-[#EE3726] hover:bg-[#D32717] text-white font-semibold shadow-md shadow-[#EE3726]/20 rounded-lg"
-        >
-          <Plus size={14} />
-          <span>{t.newTask}</span>
-          <span className="hidden sm:inline-block text-[10px] bg-black/20 px-1 py-0.2 rounded font-mono">T</span>
-        </Button>
-
-        <CreateTaskModal
-          open={openNewTask}
-          onOpenChange={setOpenNewTask}
-        />
+        {/* Clean New Task Button (No Symbols) */}
+        <Link href="/tasks/new">
+          <Button 
+            size="sm" 
+            className="h-8 text-xs bg-[#EE3726] hover:bg-[#D32717] text-white font-bold shadow-md shadow-[#EE3726]/20 rounded-lg px-3.5"
+          >
+            <span>{t.newTask}</span>
+          </Button>
+        </Link>
       </div>
     </header>
   );

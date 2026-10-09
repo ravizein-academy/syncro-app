@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useStore, Task } from "@/store/useStore";
 import { 
   CheckCircle2, 
@@ -216,15 +217,15 @@ export default function TasksPage() {
               <span>{t.meMode}</span>
             </Button>
 
-            {/* CLICKUP NEW TASK BUTTON */}
-            <Button
-              size="sm"
-              onClick={() => openCreateModalFor("todo")}
-              className="h-9 px-4 text-xs font-bold gap-1.5 rounded-xl bg-[#EE3726] hover:bg-[#D32717] text-white shadow-md shadow-[#EE3726]/30 transition"
-            >
-              <Plus size={15} />
-              <span>{t.newTask}</span>
-            </Button>
+            {/* NEW TASK BUTTON (NO SYMBOLS) */}
+            <Link href="/tasks/new">
+              <Button
+                size="sm"
+                className="h-9 px-4 text-xs font-bold rounded-xl bg-[#EE3726] hover:bg-[#D32717] text-white shadow-md shadow-[#EE3726]/30 transition"
+              >
+                <span>{t.newTask}</span>
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -296,7 +297,6 @@ export default function TasksPage() {
           type="submit" 
           className="bg-[#EE3726] hover:bg-[#D32717] h-11 px-5 font-bold text-xs shadow-md shadow-[#EE3726]/20 rounded-xl text-white transition"
         >
-          <Plus size={15} className="mr-1.5" />
           {t.addButton}
         </Button>
       </form>
@@ -325,17 +325,12 @@ export default function TasksPage() {
                     </span>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openCreateModalFor(group.id as any);
-                    }}
-                    className="text-xs text-muted-foreground hover:text-[#EE3726] flex items-center gap-1 font-semibold px-2 py-0.5 rounded transition"
+                  <Link
+                    href="/tasks/new"
+                    className="text-xs text-muted-foreground hover:text-[#EE3726] font-semibold px-2 py-0.5 rounded transition"
                   >
-                    <Plus size={13} />
-                    <span>+ Task</span>
-                  </button>
+                    <span>Tambah Task</span>
+                  </Link>
                 </div>
 
                 {/* Tasks Table Column Header */}
@@ -400,26 +395,6 @@ export default function TasksPage() {
                                     {t.personalBadge}
                                   </span>
                                 )}
-
-                                {/* Subtasks pill if present */}
-                                {task.subtasks && task.subtasks.length > 0 && (
-                                  <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border">
-                                    <ListTodo size={11} className="text-[#EE3726]" />
-                                    <span>
-                                      {task.subtasks.filter((s) => s.done).length}/{task.subtasks.length}
-                                    </span>
-                                  </span>
-                                )}
-
-                                {/* Tags pills */}
-                                {task.tags?.map((tag) => (
-                                  <span
-                                    key={tag}
-                                    className="text-[9px] font-bold text-[#EE3726] bg-[#EE3726]/10 border border-[#EE3726]/20 px-1.5 py-0.2 rounded"
-                                  >
-                                    #{tag}
-                                  </span>
-                                ))}
                               </div>
                             </div>
 
@@ -483,15 +458,13 @@ export default function TasksPage() {
                       })
                     )}
 
-                    {/* ClickUp Inline Row: + Tambah Task */}
-                    <button
-                      type="button"
-                      onClick={() => openCreateModalFor(group.id as any)}
-                      className="w-full py-2 px-3 text-xs font-semibold text-muted-foreground hover:text-[#EE3726] hover:bg-secondary/40 rounded-xl border border-dashed border-border/70 flex items-center gap-2 transition"
+                    {/* Inline Row: Tambah Task (No Symbols) */}
+                    <Link
+                      href="/tasks/new"
+                      className="w-full py-2.5 px-3 text-xs font-semibold text-muted-foreground hover:text-[#EE3726] hover:bg-secondary/40 rounded-xl border border-dashed border-border/70 flex items-center justify-center transition"
                     >
-                      <Plus size={14} className="text-[#EE3726]" />
-                      <span>{language === 'en' ? `+ New task in ${group.label}` : `+ Tambah task di ${group.label}`}</span>
-                    </button>
+                      <span>{language === 'en' ? `New task in ${group.label}` : `Tambah task di ${group.label}`}</span>
+                    </Link>
                   </div>
                 )}
               </div>
@@ -519,15 +492,16 @@ export default function TasksPage() {
                     </span>
                     <span className="text-xs font-bold text-muted-foreground">{groupTasks.length}</span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => openCreateModalFor(group.id as any)}
-                    className="h-7 w-7 p-0 text-muted-foreground hover:text-[#EE3726] rounded-lg"
-                    title={`+ Tambah Task ${group.label}`}
-                  >
-                    <Plus size={15} />
-                  </Button>
+                  <Link href="/tasks/new">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-[#EE3726] rounded-lg"
+                      title={`Tambah Task ${group.label}`}
+                    >
+                      <span>Tambah</span>
+                    </Button>
+                  </Link>
                 </div>
 
                 {/* Cards in Column */}
@@ -619,15 +593,13 @@ export default function TasksPage() {
                     );
                   })}
 
-                  {/* Add task button in board column */}
-                  <button
-                    type="button"
-                    onClick={() => openCreateModalFor(group.id as any)}
-                    className="w-full py-2 text-xs font-semibold text-muted-foreground hover:text-[#EE3726] hover:bg-secondary/40 rounded-xl border border-dashed border-border/70 flex items-center justify-center gap-1.5 transition"
+                  {/* Add task button in board column (No Symbols) */}
+                  <Link
+                    href="/tasks/new"
+                    className="w-full py-2 text-xs font-semibold text-muted-foreground hover:text-[#EE3726] hover:bg-secondary/40 rounded-xl border border-dashed border-border/70 flex items-center justify-center transition"
                   >
-                    <Plus size={13} className="text-[#EE3726]" />
-                    <span>{language === 'en' ? '+ Add Task' : '+ Tambah Task'}</span>
-                  </button>
+                    <span>{language === 'en' ? 'Add Task' : 'Tambah Task'}</span>
+                  </Link>
                 </div>
               </div>
             );

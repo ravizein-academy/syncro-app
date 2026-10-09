@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useStore } from "@/store/useStore";
 import { 
   Calendar, 
@@ -9,66 +11,39 @@ import {
   Briefcase, 
   Sparkles, 
   Loader2,
-  Pin
+  Pin,
+  ArrowLeft
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { translations } from "@/lib/i18n";
 
-interface CreateTaskModalProps {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  trigger?: React.ReactNode;
-  defaultSpaceId?: string;
-  defaultStatus?: "todo" | "in-progress" | "done";
-  defaultPersonal?: boolean;
-  initialTitle?: string;
-}
-
-export function CreateTaskModal({
-  open: controlledOpen,
-  onOpenChange: setControlledOpen,
-  trigger,
-  defaultSpaceId,
-  defaultStatus = "todo",
-  defaultPersonal = false,
-  initialTitle = "",
-}: CreateTaskModalProps) {
+export default function NewTaskPage() {
+  const router = useRouter();
   const { spaces, users, addTask, language, addToLineup } = useStore();
   const t = translations[language || "id"];
 
-  const [internalOpen, setInternalOpen] = useState(false);
-  const isControlled = controlledOpen !== undefined;
-  const isOpen = isControlled ? controlledOpen : internalOpen;
-  const setOpen = isControlled ? setControlledOpen : setInternalOpen;
-
   // Form State
-  const [title, setTitle] = useState(initialTitle);
+  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [spaceId, setSpaceId] = useState<string>(defaultSpaceId || spaces[0]?.id || "");
-  const [status, setStatus] = useState<"todo" | "in-progress" | "done">(defaultStatus);
+  const [spaceId, setSpaceId] = useState<string>(spaces[0]?.id || "");
+  const [status, setStatus] = useState<"todo" | "in-progress" | "done">("todo");
   const [priority, setPriority] = useState<"urgent" | "high" | "normal" | "low">("high");
   const [assigneeId, setAssigneeId] = useState<string>("u1");
   const [dueDate, setDueDate] = useState<string>("");
-  const [isPersonal, setIsPersonal] = useState<boolean>(defaultPersonal);
+  const [isPersonal, setIsPersonal] = useState<boolean>(false);
   const [createAnother, setCreateAnother] = useState(false);
   const [pinToLineup, setPinToLineup] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   // AI Description Generator State
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
   useEffect(() => {
-    if (isOpen) {
-      if (initialTitle) setTitle(initialTitle);
-      if (defaultSpaceId) setSpaceId(defaultSpaceId);
-      if (defaultStatus) setStatus(defaultStatus);
-      if (defaultPersonal !== undefined) setIsPersonal(defaultPersonal);
-      
-      const d = new Date();
-      setDueDate(d.toISOString().split("T")[0]);
-    }
-  }, [isOpen, initialTitle, defaultSpaceId, defaultStatus, defaultPersonal]);
+    const d = new Date();
+    setDueDate(d.toISOString().split("T")[0]);
+  }, []);
 
   const handleApplyQuickDueDate = (type: "today" | "tomorrow" | "friday" | "nextWeek" | "clear") => {
     if (type === "clear") {
@@ -113,8 +88,8 @@ export function CreateTaskModal({
     }
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
     if (!title.trim()) return;
 
     const newTaskId = `t_${Date.now()}`;
@@ -140,39 +115,62 @@ export function CreateTaskModal({
     if (createAnother) {
       setTitle("");
       setDescription("");
+      setSuccessMessage(language === 'en' ? 'Task created! Ready for next task.' : 'Tugas berhasil dibuat! Siap untuk tugas berikutnya.');
+      setTimeout(() => setSuccessMessage(""), 3000);
     } else {
-      setTitle("");
-      setDescription("");
-      setOpen?.(false);
-    }
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-      e.preventDefault();
-      handleSubmit();
+      router.push("/tasks");
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setOpen}>
-      {trigger && <DialogTrigger render={trigger as any} />}
+    <div className="p-6 md:p-8 max-w-4xl mx-auto space-y-6 select-none transition-colors duration-200">
+      {/* Top Header & Breadcrumb */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Link 
+            href="/tasks" 
+            className="text-xs font-semibold text-muted-foreground hover:text-[#EE3726] flex items-center gap-1 transition"
+          >
+            <ArrowLeft size={14} />
+            <span>{language === 'en' ? 'Back to Tasks' : 'Kembali ke Daftar Tugas'}</span>
+          </Link>
+        </div>
 
-      <DialogContent 
-        className="bg-card border-border text-foreground sm:max-w-2xl p-0 overflow-hidden shadow-2xl rounded-2xl transition-colors duration-200"
-        onKeyDown={handleKeyDown}
-      >
-        <DialogHeader className="sr-only">
-          <DialogTitle>{t.modalNewTaskTitle}</DialogTitle>
-        </DialogHeader>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-[#EE3726] shadow-sm shadow-[#EE3726]/40" />
+              <span className="text-[11px] font-extrabold uppercase tracking-widest text-[#EE3726]">
+                ITSEC Workspace
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mt-1">
+              {language === 'en' ? 'Create New Task' : 'Buat Task Baru'}
+            </h1>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {language === 'en' 
+                ? 'Fill in task details and assign to team members' 
+                : 'Lengkapi rincian tugas dan tugaskan kepada anggota tim'}
+            </p>
+          </div>
+        </div>
+      </div>
 
-        {/* TOP DESTINATION BAR */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-border bg-secondary/50">
-          <div className="flex items-center gap-2 flex-wrap text-xs">
+      {successMessage && (
+        <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold transition">
+          {successMessage}
+        </div>
+      )}
+
+      {/* Main Dedicated Form Card */}
+      <Card className="bg-card border-border shadow-lg rounded-2xl overflow-hidden">
+        {/* Destination Bar */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border bg-secondary/40">
+          <div className="flex items-center gap-3 flex-wrap text-xs">
             {/* Space Selector */}
-            <div className="flex items-center gap-1.5 bg-card border border-border px-2.5 py-1 rounded-lg shadow-sm">
-              <span className="flex h-2 w-2 rounded-full bg-[#EE3726]" />
-              <Briefcase size={13} className="text-[#EE3726]" />
+            <div className="flex items-center gap-2 bg-card border border-border px-3 py-1.5 rounded-xl shadow-sm">
+              <Briefcase size={14} className="text-[#EE3726]" />
+              <span className="text-[11px] font-semibold text-muted-foreground">Space:</span>
               <select
                 value={isPersonal ? "personal" : spaceId}
                 onChange={(e) => {
@@ -200,12 +198,12 @@ export function CreateTaskModal({
               </select>
             </div>
 
-            {/* Status Pill */}
-            <div className="flex items-center gap-1">
+            {/* Status Selector */}
+            <div className="flex items-center gap-1.5">
               <select
                 value={status}
                 onChange={(e: any) => setStatus(e.target.value)}
-                className={`text-[11px] font-extrabold uppercase px-3 py-1 rounded-lg border focus:outline-none cursor-pointer transition shadow-sm ${
+                className={`text-[11px] font-extrabold uppercase px-3.5 py-1.5 rounded-xl border focus:outline-none cursor-pointer transition shadow-sm ${
                   status === "in-progress"
                     ? "bg-[#EE3726] text-white border-[#EE3726]"
                     : status === "done"
@@ -227,90 +225,95 @@ export function CreateTaskModal({
           </div>
         </div>
 
-        {/* FORM CONTENT */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-6">
           {/* TASK TITLE */}
-          <div>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-foreground">
+              {language === 'en' ? 'Task Name' : 'Nama Tugas'} <span className="text-[#EE3726]">*</span>
+            </label>
             <Input
               autoFocus
               required
-              placeholder={language === "en" ? "Task Name..." : "Nama tugas baru..."}
+              placeholder={language === 'en' ? 'Enter task name...' : 'Masukkan nama tugas...'}
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="text-base font-bold tracking-tight h-11 border-none shadow-none bg-transparent px-0 focus-visible:ring-0 placeholder:text-muted-foreground/60 text-foreground"
+              className="text-base font-bold tracking-tight h-12 bg-secondary/50 border-border focus-visible:ring-[#EE3726] rounded-xl px-4 text-foreground"
             />
           </div>
 
           {/* DESCRIPTION & GEMINI AI WRITER */}
-          <div className="space-y-1.5 bg-secondary/20 p-3 rounded-xl border border-border">
-            <div className="flex items-center justify-between border-b border-border pb-2 text-muted-foreground">
-              <span className="text-[11px] font-semibold text-muted-foreground">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold text-foreground">
                 {language === 'en' ? 'Description' : 'Deskripsi Tugas'}
-              </span>
+              </label>
 
               {/* Gemini AI Write Assistant */}
               <button
                 type="button"
                 onClick={handleGenerateAIDescription}
                 disabled={isGeneratingAI || !title.trim()}
-                className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#EE3726] bg-[#EE3726]/10 hover:bg-[#EE3726]/20 px-2.5 py-1 rounded-lg transition disabled:opacity-40"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#EE3726] bg-[#EE3726]/10 hover:bg-[#EE3726]/20 px-3 py-1 rounded-lg transition disabled:opacity-40"
               >
-                {isGeneratingAI ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                {isGeneratingAI ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
                 <span>{language === 'en' ? 'Gemini AI Writer' : 'Bantuan Gemini AI'}</span>
               </button>
             </div>
 
             <textarea
-              rows={4}
-              placeholder={language === "en" ? "Add description, notes, or details..." : "Tambah deskripsi tugas, catatan, atau rincian pekerjaan..."}
+              rows={5}
+              placeholder={language === 'en' 
+                ? 'Add detailed description, objectives, or instructions...' 
+                : 'Tambah rincian deskripsi tugas, tujuan, atau panduan pengerjaan...'}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none resize-none pt-2 leading-relaxed"
+              className="w-full bg-secondary/50 border border-border rounded-xl p-4 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-[#EE3726] resize-y leading-relaxed"
             />
           </div>
 
           {/* CUSTOM FIELDS (ASSIGNEE, DUE DATE, PRIORITY) */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-border">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2 border-t border-border">
             {/* 1. Assignee Field */}
-            <div className="p-2.5 rounded-xl border border-border bg-secondary/30 space-y-1 hover:border-[#EE3726]/40 transition">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <UserIcon size={11} className="text-[#EE3726]" /> Assignee
-              </span>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                <UserIcon size={12} className="text-[#EE3726]" /> Assignee
+              </label>
               <select
                 value={assigneeId}
                 onChange={(e) => setAssigneeId(e.target.value)}
-                className="w-full bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer truncate"
+                className="w-full bg-secondary/50 border border-border rounded-xl p-2.5 text-xs font-semibold text-foreground focus:outline-none focus:border-[#EE3726] cursor-pointer"
               >
                 {users.map((u) => (
                   <option key={u.id} value={u.id} className="bg-card text-foreground">
-                    {u.name}
+                    {u.name} ({u.role})
                   </option>
                 ))}
               </select>
             </div>
 
             {/* 2. Due Date Field */}
-            <div className="p-2.5 rounded-xl border border-border bg-secondary/30 space-y-1 hover:border-[#EE3726]/40 transition">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <Calendar size={11} className="text-[#EE3726]" /> Due Date
-              </span>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                <Calendar size={12} className="text-[#EE3726]" /> Due Date
+              </label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer"
+                className="w-full bg-secondary/50 border border-border rounded-xl p-2.5 text-xs font-semibold text-foreground focus:outline-none focus:border-[#EE3726] cursor-pointer"
               />
             </div>
 
             {/* 3. Priority Field */}
-            <div className="p-2.5 rounded-xl border border-border bg-secondary/30 space-y-1 hover:border-[#EE3726]/40 transition">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase flex items-center gap-1">
-                <Flag size={11} className="text-[#EE3726]" /> Prioritas
-              </span>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-muted-foreground uppercase flex items-center gap-1.5">
+                <Flag size={12} className="text-[#EE3726]" /> Prioritas
+              </label>
               <select
                 value={priority}
                 onChange={(e: any) => setPriority(e.target.value)}
-                className="w-full bg-transparent text-xs font-semibold text-foreground focus:outline-none cursor-pointer"
+                className="w-full bg-secondary/50 border border-border rounded-xl p-2.5 text-xs font-semibold text-foreground focus:outline-none focus:border-[#EE3726] cursor-pointer"
               >
                 <option value="urgent" className="bg-card text-foreground">Urgent</option>
                 <option value="high" className="bg-card text-foreground">High</option>
@@ -320,34 +323,34 @@ export function CreateTaskModal({
             </div>
           </div>
 
-          {/* QUICK PRESETS FOR DATE */}
-          <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-muted-foreground px-1">
+          {/* Quick Presets for Due Date */}
+          <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
             <span>Batas waktu cepat:</span>
             <button
               type="button"
               onClick={() => handleApplyQuickDueDate("today")}
-              className="px-2 py-0.5 rounded-md bg-secondary hover:bg-accent text-foreground transition text-[10px]"
+              className="px-2.5 py-1 rounded-lg bg-secondary hover:bg-accent text-foreground transition text-xs"
             >
               Hari Ini
             </button>
             <button
               type="button"
               onClick={() => handleApplyQuickDueDate("tomorrow")}
-              className="px-2 py-0.5 rounded-md bg-secondary hover:bg-accent text-foreground transition text-[10px]"
+              className="px-2.5 py-1 rounded-lg bg-secondary hover:bg-accent text-foreground transition text-xs"
             >
               Besok
             </button>
             <button
               type="button"
               onClick={() => handleApplyQuickDueDate("friday")}
-              className="px-2 py-0.5 rounded-md bg-secondary hover:bg-accent text-foreground transition text-[10px]"
+              className="px-2.5 py-1 rounded-lg bg-secondary hover:bg-accent text-foreground transition text-xs"
             >
               Jumat
             </button>
             <button
               type="button"
               onClick={() => handleApplyQuickDueDate("nextWeek")}
-              className="px-2 py-0.5 rounded-md bg-secondary hover:bg-accent text-foreground transition text-[10px]"
+              className="px-2.5 py-1 rounded-lg bg-secondary hover:bg-accent text-foreground transition text-xs"
             >
               Minggu Depan
             </button>
@@ -355,23 +358,22 @@ export function CreateTaskModal({
               <button
                 type="button"
                 onClick={() => handleApplyQuickDueDate("clear")}
-                className="px-1.5 py-0.5 rounded text-[10px] text-muted-foreground hover:text-[#EE3726]"
+                className="px-2 py-1 rounded-lg text-xs text-muted-foreground hover:text-[#EE3726]"
               >
                 Hapus
               </button>
             )}
           </div>
 
-          {/* FOOTER ACTIONS BAR */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-border">
-            {/* Quick Toggles */}
+          {/* Footer Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6 border-t border-border">
             <div className="flex items-center gap-4 flex-wrap">
               <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground select-none">
                 <input
                   type="checkbox"
                   checked={createAnother}
                   onChange={(e) => setCreateAnother(e.target.checked)}
-                  className="rounded border-border text-[#EE3726] focus:ring-[#EE3726] h-3.5 w-3.5 accent-[#EE3726]"
+                  className="rounded border-border text-[#EE3726] focus:ring-[#EE3726] h-4 w-4 accent-[#EE3726]"
                 />
                 <span>{language === 'en' ? 'Create another' : 'Buat tugas lainnya'}</span>
               </label>
@@ -381,35 +383,33 @@ export function CreateTaskModal({
                   type="checkbox"
                   checked={pinToLineup}
                   onChange={(e) => setPinToLineup(e.target.checked)}
-                  className="rounded border-border text-[#EE3726] focus:ring-[#EE3726] h-3.5 w-3.5 accent-[#EE3726]"
+                  className="rounded border-border text-[#EE3726] focus:ring-[#EE3726] h-4 w-4 accent-[#EE3726]"
                 />
-                <Pin size={11} className="text-[#EE3726]" />
+                <Pin size={12} className="text-[#EE3726]" />
                 <span>{language === 'en' ? 'Pin to Lineup' : 'Sematkan ke Lineup'}</span>
               </label>
             </div>
 
             {/* Clean Buttons (No Symbols) */}
-            <div className="flex items-center gap-2 justify-end">
+            <div className="flex items-center gap-3 justify-end">
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                onClick={() => setOpen?.(false)}
-                className="text-xs"
+                onClick={() => router.push("/tasks")}
+                className="text-xs px-4"
               >
                 {t.modalCancel}
               </Button>
               <Button
                 type="submit"
-                size="sm"
-                className="bg-[#EE3726] hover:bg-[#D32717] text-white text-xs font-bold px-5 shadow-md shadow-[#EE3726]/30 rounded-lg transition"
+                className="bg-[#EE3726] hover:bg-[#D32717] text-white text-xs font-bold px-6 h-10 shadow-md shadow-[#EE3726]/30 rounded-xl transition"
               >
                 {language === 'en' ? 'Create Task' : 'Buat Task'}
               </Button>
             </div>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </Card>
+    </div>
   );
 }

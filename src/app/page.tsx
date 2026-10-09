@@ -202,17 +202,14 @@ export default function Home() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            size="sm"
-            onClick={() => {
-              setCreateTaskInitialTitle("");
-              setCreateTaskOpen(true);
-            }}
-            className="h-8 gap-1.5 text-xs bg-[#EE3726] hover:bg-[#D32717] text-white font-bold rounded-lg shadow-sm shadow-[#EE3726]/20 transition"
-          >
-            <Plus size={14} />
-            <span>{t.newTask}</span>
-          </Button>
+          <Link href="/tasks/new">
+            <Button
+              size="sm"
+              className="h-8 text-xs bg-[#EE3726] hover:bg-[#D32717] text-white font-bold rounded-lg shadow-sm shadow-[#EE3726]/20 transition px-3.5"
+            >
+              <span>{t.newTask}</span>
+            </Button>
+          </Link>
 
           <Button
             variant="outline"
@@ -559,8 +556,8 @@ export default function Home() {
                       <Maximize2 size={13} />
                     </button>
                   </div>
-                  <Button type="submit" size="sm" className="h-9 px-3.5 bg-[#EE3726] hover:bg-[#D32717] text-white text-xs font-semibold rounded-lg">
-                    <Plus size={13} />
+                  <Button type="submit" size="sm" className="h-9 px-4 bg-[#EE3726] hover:bg-[#D32717] text-white text-xs font-semibold rounded-lg">
+                    {t.addButton}
                   </Button>
                 </form>
 
