@@ -33,9 +33,6 @@ export default function NewTaskPage() {
   const [assigneeId, setAssigneeId] = useState<string>("u1");
   const [dueDate, setDueDate] = useState<string>("");
   const [isPersonal, setIsPersonal] = useState<boolean>(false);
-  const [createAnother, setCreateAnother] = useState(false);
-  const [pinToLineup, setPinToLineup] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
 
   // AI Description Generator State
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -108,18 +105,7 @@ export default function NewTaskPage() {
       isPersonal: isPersonal,
     });
 
-    if (pinToLineup) {
-      addToLineup(newTaskId);
-    }
-
-    if (createAnother) {
-      setTitle("");
-      setDescription("");
-      setSuccessMessage(language === 'en' ? 'Task created! Ready for next task.' : 'Tugas berhasil dibuat! Siap untuk tugas berikutnya.');
-      setTimeout(() => setSuccessMessage(""), 3000);
-    } else {
-      router.push("/tasks");
-    }
+    router.push("/tasks");
   };
 
   return (
@@ -155,12 +141,6 @@ export default function NewTaskPage() {
           </div>
         </div>
       </div>
-
-      {successMessage && (
-        <div className="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold transition">
-          {successMessage}
-        </div>
-      )}
 
       {/* Main Dedicated Form Card */}
       <Card className="bg-card border-border shadow-lg rounded-2xl overflow-hidden">
@@ -366,47 +346,21 @@ export default function NewTaskPage() {
           </div>
 
           {/* Footer Controls */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6 border-t border-border">
-            <div className="flex items-center gap-4 flex-wrap">
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground select-none">
-                <input
-                  type="checkbox"
-                  checked={createAnother}
-                  onChange={(e) => setCreateAnother(e.target.checked)}
-                  className="rounded border-border text-[#EE3726] focus:ring-[#EE3726] h-4 w-4 accent-[#EE3726]"
-                />
-                <span>{language === 'en' ? 'Create another' : 'Buat tugas lainnya'}</span>
-              </label>
-
-              <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none">
-                <input
-                  type="checkbox"
-                  checked={pinToLineup}
-                  onChange={(e) => setPinToLineup(e.target.checked)}
-                  className="rounded border-border text-[#EE3726] focus:ring-[#EE3726] h-4 w-4 accent-[#EE3726]"
-                />
-                <Pin size={12} className="text-[#EE3726]" />
-                <span>{language === 'en' ? 'Pin to Lineup' : 'Sematkan ke Lineup'}</span>
-              </label>
-            </div>
-
-            {/* Clean Buttons (No Symbols) */}
-            <div className="flex items-center gap-3 justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => router.push("/tasks")}
-                className="text-xs px-4"
-              >
-                {t.modalCancel}
-              </Button>
-              <Button
-                type="submit"
-                className="bg-[#EE3726] hover:bg-[#D32717] text-white text-xs font-bold px-6 h-10 shadow-md shadow-[#EE3726]/30 rounded-xl transition"
-              >
-                {language === 'en' ? 'Create Task' : 'Buat Task'}
-              </Button>
-            </div>
+          <div className="flex items-center justify-end gap-3 pt-6 border-t border-border">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => router.push("/tasks")}
+              className="text-xs px-4"
+            >
+              {t.modalCancel}
+            </Button>
+            <Button
+              type="submit"
+              className="bg-[#EE3726] hover:bg-[#D32717] text-white text-xs font-bold px-6 h-10 shadow-md shadow-[#EE3726]/30 rounded-xl transition"
+            >
+              {language === 'en' ? 'Create Task' : 'Buat Task'}
+            </Button>
           </div>
         </form>
       </Card>

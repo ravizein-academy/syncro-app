@@ -8,8 +8,7 @@ import {
   User as UserIcon, 
   Briefcase, 
   Sparkles, 
-  Loader2,
-  Pin
+  Loader2
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -52,8 +51,6 @@ export function CreateTaskModal({
   const [assigneeId, setAssigneeId] = useState<string>("u1");
   const [dueDate, setDueDate] = useState<string>("");
   const [isPersonal, setIsPersonal] = useState<boolean>(defaultPersonal);
-  const [createAnother, setCreateAnother] = useState(false);
-  const [pinToLineup, setPinToLineup] = useState(false);
 
   // AI Description Generator State
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -133,18 +130,9 @@ export function CreateTaskModal({
       isPersonal: isPersonal,
     });
 
-    if (pinToLineup) {
-      addToLineup(newTaskId);
-    }
-
-    if (createAnother) {
-      setTitle("");
-      setDescription("");
-    } else {
-      setTitle("");
-      setDescription("");
-      setOpen?.(false);
-    }
+    setTitle("");
+    setDescription("");
+    setOpen?.(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -363,50 +351,23 @@ export function CreateTaskModal({
           </div>
 
           {/* FOOTER ACTIONS BAR */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-4 border-t border-border">
-            {/* Quick Toggles */}
-            <div className="flex items-center gap-4 flex-wrap">
-              <label className="flex items-center gap-2 cursor-pointer text-xs text-muted-foreground select-none">
-                <input
-                  type="checkbox"
-                  checked={createAnother}
-                  onChange={(e) => setCreateAnother(e.target.checked)}
-                  className="rounded border-border text-[#EE3726] focus:ring-[#EE3726] h-3.5 w-3.5 accent-[#EE3726]"
-                />
-                <span>{language === 'en' ? 'Create another' : 'Buat tugas lainnya'}</span>
-              </label>
-
-              <label className="flex items-center gap-1.5 cursor-pointer text-xs text-muted-foreground hover:text-foreground select-none">
-                <input
-                  type="checkbox"
-                  checked={pinToLineup}
-                  onChange={(e) => setPinToLineup(e.target.checked)}
-                  className="rounded border-border text-[#EE3726] focus:ring-[#EE3726] h-3.5 w-3.5 accent-[#EE3726]"
-                />
-                <Pin size={11} className="text-[#EE3726]" />
-                <span>{language === 'en' ? 'Pin to Lineup' : 'Sematkan ke Lineup'}</span>
-              </label>
-            </div>
-
-            {/* Clean Buttons (No Symbols) */}
-            <div className="flex items-center gap-2 justify-end">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setOpen?.(false)}
-                className="text-xs"
-              >
-                {t.modalCancel}
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                className="bg-[#EE3726] hover:bg-[#D32717] text-white text-xs font-bold px-5 shadow-md shadow-[#EE3726]/30 rounded-lg transition"
-              >
-                {language === 'en' ? 'Create Task' : 'Buat Task'}
-              </Button>
-            </div>
+          <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setOpen?.(false)}
+              className="text-xs"
+            >
+              {t.modalCancel}
+            </Button>
+            <Button
+              type="submit"
+              size="sm"
+              className="bg-[#EE3726] hover:bg-[#D32717] text-white text-xs font-bold px-5 shadow-md shadow-[#EE3726]/30 rounded-lg transition"
+            >
+              {language === 'en' ? 'Create Task' : 'Buat Task'}
+            </Button>
           </div>
         </form>
       </DialogContent>
