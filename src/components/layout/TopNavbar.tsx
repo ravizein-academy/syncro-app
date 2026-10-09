@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/store/useStore";
 import { 
@@ -9,13 +8,11 @@ import {
   Search, 
   Sun, 
   Moon, 
-  LogOut,
   Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { translations } from "@/lib/i18n";
-import { LogoutModal } from "@/components/layout/LogoutModal";
 
 export function TopNavbar() {
   const { 
@@ -28,8 +25,6 @@ export function TopNavbar() {
   } = useStore();
 
   const t = translations[language || 'id'];
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
@@ -127,32 +122,7 @@ export function TopNavbar() {
             </span>
           )}
         </Link>
-
-        {/* Profile Section with Logout Button (Tombol Keluar) */}
-        <div className="border-l border-border pl-1.5 sm:pl-2.5 flex items-center">
-          <button
-            onClick={() => setShowLogoutModal(true)}
-            title={t.logout}
-            className="flex items-center gap-1.5 sm:gap-2 py-1 px-1.5 sm:px-2 rounded-xl hover:bg-secondary text-muted-foreground hover:text-[#EE3726] transition group border border-transparent hover:border-border"
-          >
-            <div className="relative shrink-0">
-              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center text-[10px] font-bold text-white shadow-sm ring-1 ring-[#EE3726]/30">
-                RZ
-              </div>
-              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-card" />
-            </div>
-            <span className="hidden md:inline text-xs font-semibold text-foreground group-hover:text-[#EE3726]">
-              {t.logout}
-            </span>
-            <LogOut size={13} className="text-muted-foreground group-hover:text-[#EE3726]" />
-          </button>
-        </div>
       </div>
-
-      <LogoutModal
-        open={showLogoutModal}
-        onOpenChange={setShowLogoutModal}
-      />
     </header>
   );
 }

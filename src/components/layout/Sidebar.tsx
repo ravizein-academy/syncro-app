@@ -14,7 +14,6 @@ import {
   Users,
   Sparkles,
   Layers,
-  ChevronDown,
   LogOut,
   X
 } from 'lucide-react';
@@ -49,21 +48,13 @@ export function Sidebar() {
 
   const sidebarContent = (
     <div className="flex h-full flex-col bg-card text-card-foreground select-none">
-      {/* Workspace Switcher ClickUp-Style */}
+      {/* Workspace Brand Header */}
       <div className="flex h-16 items-center justify-between px-4 border-b border-border bg-card">
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-rose-900/30 ring-1 ring-rose-400/40">
             S
           </div>
-          <div>
-            <div className="flex items-center gap-1">
-              <span className="text-sm font-bold tracking-tight text-foreground">{t.brandName}</span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#EE3726] bg-[#EE3726]/10 px-1.5 py-0.2 rounded border border-[#EE3726]/20">
-                PRO
-              </span>
-            </div>
-            <span className="text-[11px] text-muted-foreground block -mt-0.5">{t.brandTagline}</span>
-          </div>
+          <span className="text-base font-extrabold tracking-tight text-foreground">Syncro</span>
         </div>
 
         {/* Mobile Close Button */}
@@ -74,8 +65,6 @@ export function Sidebar() {
         >
           <X size={18} />
         </button>
-
-        <ChevronDown size={14} className="text-muted-foreground hidden lg:block" />
       </div>
       
       {/* Main Navigation */}
