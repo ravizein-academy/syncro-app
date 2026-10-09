@@ -166,6 +166,11 @@ interface AppState {
   login: (user?: User) => void;
   loginWithGoogle: (email?: string, name?: string) => void;
   logout: () => void;
+
+  // Cloud Sync Backend State
+  cloudSyncStatus: 'idle' | 'syncing' | 'synced' | 'error';
+  lastCloudSync: string | null;
+  setCloudSyncStatus: (status: 'idle' | 'syncing' | 'synced' | 'error', time?: string) => void;
 }
 
 const INITIAL_USERS: User[] = [
@@ -578,6 +583,15 @@ export const useStore = create<AppState>()(
         set({
           isAuthenticated: false,
           currentUser: null,
+        }),
+
+      // Cloud Sync Backend State
+      cloudSyncStatus: 'idle',
+      lastCloudSync: null,
+      setCloudSyncStatus: (status, time) =>
+        set({
+          cloudSyncStatus: status,
+          ...(time !== undefined ? { lastCloudSync: time } : {}),
         }),
     }),
     {

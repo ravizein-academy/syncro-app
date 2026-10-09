@@ -8,11 +8,16 @@ import {
   Search, 
   Sun, 
   Moon, 
-  Menu
+  Menu,
+  Cloud,
+  RefreshCw,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { translations } from "@/lib/i18n";
+import { fullCloudSync } from "@/lib/sync";
+import { useState } from "react";
 
 export function TopNavbar() {
   const { 
@@ -26,6 +31,23 @@ export function TopNavbar() {
 
   const t = translations[language || 'id'];
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'synced'>('idle');
+
+  const handleCloudSync = async () => {
+    if (syncState === 'syncing') return;
+    setSyncState('syncing');
+    try {
+      const result = await fullCloudSync();
+      if (result.success) {
+        setSyncState('synced');
+        setTimeout(() => setSyncState('idle'), 3500);
+      } else {
+        setSyncState('idle');
+      }
+    } catch {
+      setSyncState('idle');
+    }
+  };
 
   return (
     <header className="h-16 border-b border-border bg-card/95 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between z-20 sticky top-0 select-none transition-colors duration-200">
@@ -60,8 +82,38 @@ export function TopNavbar() {
         </div>
       </div>
 
-      {/* Right controls: Language Switcher, Theme Switcher, Gemini AI, Notifications, Profile Logout */}
+      {/* Right controls: Cloud Sync, Language Switcher, Theme Switcher, Gemini AI, Notifications */}
       <div className="flex items-center gap-1.5 sm:gap-2.5">
+        {/* Google Sheets Cloud Sync Status & Action */}
+        <button
+          onClick={handleCloudSync}
+          disabled={syncState === 'syncing'}
+          title="Sinkronisasi Cloud dengan Google Sheets Backend"
+          className={`h-8 px-2 sm:px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition shrink-0 ${
+            syncState === 'syncing'
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-500'
+              : syncState === 'synced'
+              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+              : 'bg-secondary border-border text-foreground hover:bg-accent'
+          }`}
+        >
+          {syncState === 'syncing' ? (
+            <>
+              <RefreshCw size={13} className="animate-spin text-amber-500" />
+              <span className="hidden md:inline">Syncing...</span>
+            </>
+          ) : syncState === 'synced' ? (
+            <>
+              <CheckCircle2 size={13} className="text-emerald-500" />
+              <span className="hidden md:inline">Synced</span>
+            </>
+          ) : (
+            <>
+              <Cloud size={13} className="text-[#EE3726]" />
+              <span className="hidden md:inline">Google Sync</span>
+            </>
+          )}
+        </button>
         {/* Language Switcher */}
         <div className="flex items-center bg-secondary border border-border rounded-lg p-0.5 text-xs font-bold">
           <button
