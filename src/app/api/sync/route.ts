@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 const APPS_SCRIPT_URL =
   process.env.NEXT_PUBLIC_APPS_SCRIPT_URL ||
   process.env.APPS_SCRIPT_URL ||
-  'https://script.google.com/macros/s/AKfycbyFGvuRi9i_wiDNCiX90sahScWQmfT6DCJtwtCKgI_5DEx7x2Rf31hozCUhyiDCYY9_Bg/exec';
+  'https://script.google.com/macros/s/AKfycbysCD7FNRG0gzuu3LKrqCGjtv2GwmcgIvHEXkrsNbc5gDKrs3H8kJEMtKGd2k450wl3/exec';
 
 export async function GET() {
   try {
