@@ -50,8 +50,8 @@ export default function LoginPage() {
   const { users, login, loginWithGoogle, language, setLanguage } = useStore();
   const t = translations[language || "id"];
 
-  const [email, setEmail] = useState("ravi@syncro.io");
-  const [password, setPassword] = useState("••••••••••••");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,10 +63,10 @@ export default function LoginPage() {
     setLoginMethod("google");
 
     setTimeout(() => {
-      loginWithGoogle("ravi@itsecacademy.com", "Ravi Zein");
+      loginWithGoogle("ravizein@itsecacademy.com", "Ravi Zein");
       setIsLoading(false);
       router.push("/");
-    }, 1100);
+    }, 800);
   };
 
   // Standard Email & Password Login
@@ -79,24 +79,25 @@ export default function LoginPage() {
 
     setTimeout(() => {
       const existingUser = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-      login(existingUser || users[0]);
+      if (existingUser) {
+        login(existingUser);
+      } else {
+        const namePart = email.split("@")[0] || "User";
+        const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+        const newUser: User = {
+          id: `u_${Date.now()}`,
+          name: formattedName,
+          email: email.trim(),
+          role: users.length === 0 ? "admin" : "member",
+          department: "Product & Tech",
+          capacityHours: 40,
+          avatar: formattedName.substring(0, 2).toUpperCase(),
+        };
+        login(newUser);
+      }
       setIsLoading(false);
       router.push("/");
-    }, 800);
-  };
-
-  // Quick Demo Account Selection
-  const handleSelectDemoAccount = (user: User) => {
-    setEmail(user.email);
-    setPassword("syncro2026");
-    setIsLoading(true);
-    setLoginMethod("email");
-
-    setTimeout(() => {
-      login(user);
-      setIsLoading(false);
-      router.push("/");
-    }, 600);
+    }, 700);
   };
 
   return (
@@ -277,35 +278,6 @@ export default function LoginPage() {
                 )}
               </Button>
             </form>
-
-            {/* 3. Quick Demo Team Access Selector */}
-            <div className="pt-2 border-t border-border space-y-2">
-              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block">
-                {t.quickDemoAccess}
-              </span>
-              <div className="grid grid-cols-2 gap-1.5">
-                {users.slice(0, 4).map((u) => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => handleSelectDemoAccount(u)}
-                    className="flex items-center gap-2 p-1.5 rounded-lg border border-border bg-secondary/40 hover:bg-secondary hover:border-[#EE3726]/40 transition text-left group"
-                  >
-                    <div className="h-6 w-6 rounded-full bg-[#EE3726]/15 text-[#EE3726] border border-[#EE3726]/30 flex items-center justify-center text-[10px] font-bold shrink-0">
-                      {u.avatar || u.name.slice(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-bold text-foreground truncate group-hover:text-[#EE3726] leading-tight">
-                        {u.name}
-                      </p>
-                      <p className="text-[9px] text-muted-foreground capitalize leading-tight">
-                        {u.role}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>

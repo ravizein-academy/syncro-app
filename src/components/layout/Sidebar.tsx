@@ -23,7 +23,7 @@ import { LogoutModal } from '@/components/layout/LogoutModal';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { spaces, language, isMobileSidebarOpen, setMobileSidebarOpen } = useStore();
+  const { currentUser, spaces, language, isMobileSidebarOpen, setMobileSidebarOpen } = useStore();
   const t = translations[language || 'id'];
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -132,13 +132,17 @@ export function Sidebar() {
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="relative shrink-0">
               <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center text-xs font-bold text-white shadow ring-1 ring-[#EE3726]/40">
-                RZ
+                {currentUser?.avatar || currentUser?.name?.slice(0, 2).toUpperCase() || "U"}
               </div>
               <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-card" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-foreground truncate">Ravi Zein</span>
-              <span className="text-[10px] text-muted-foreground truncate">{t.workspaceOwner}</span>
+              <span className="text-xs font-semibold text-foreground truncate">
+                {currentUser?.name || "User"}
+              </span>
+              <span className="text-[10px] text-muted-foreground truncate capitalize">
+                {currentUser?.role === 'admin' ? t.workspaceOwner : (currentUser?.role || t.workspaceOwner)}
+              </span>
             </div>
           </div>
 

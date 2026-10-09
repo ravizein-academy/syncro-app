@@ -142,11 +142,28 @@ export default function TeamsPage() {
       </div>
 
       {/* Member Cards Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {users.map((user) => {
-          const workloadHours = getUserWorkload(user.id);
-          const percentLoad = Math.min(100, Math.round((workloadHours / (user.capacityHours || 40)) * 100));
-          const isOverloaded = percentLoad > 85;
+      {users.length === 0 ? (
+        <div className="py-16 text-center border border-dashed border-border rounded-2xl bg-card/50 flex flex-col items-center justify-center space-y-3">
+          <div className="h-12 w-12 rounded-2xl bg-secondary flex items-center justify-center text-muted-foreground">
+            <Users size={24} />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-foreground">Belum Ada Anggota Tim</h3>
+            <p className="text-xs text-muted-foreground max-w-sm mt-1">
+              Daftarkan akun atau undang anggota tim pertama Anda untuk mulai berkolaborasi.
+            </p>
+          </div>
+          <Button onClick={() => setOpenInvite(true)} size="sm" className="bg-[#EE3726] hover:bg-[#D32717] text-white">
+            <Plus size={14} className="mr-1.5" />
+            {t.inviteMemberBtn}
+          </Button>
+        </div>
+      ) : (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {users.map((user) => {
+            const workloadHours = getUserWorkload(user.id);
+            const percentLoad = Math.min(100, Math.round((workloadHours / (user.capacityHours || 40)) * 100));
+            const isOverloaded = percentLoad > 85;
 
           return (
             <Card
@@ -207,6 +224,7 @@ export default function TeamsPage() {
           );
         })}
       </div>
+      )}
     </div>
   );
 }

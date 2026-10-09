@@ -1,12 +1,27 @@
 "use client";
 
-import React, { Suspense } from "react";
-import { usePathname } from "next/navigation";
+import React, { Suspense, useState, useEffect } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useStore } from "@/store/useStore";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNavbar } from "@/components/layout/TopNavbar";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const { isAuthenticated } = useStore();
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  React.useEffect(() => {
+    if (mounted && !isAuthenticated && pathname !== "/login") {
+      router.push("/login");
+    }
+  }, [mounted, isAuthenticated, pathname, router]);
+
   const isLoginPage = pathname === "/login";
 
   if (isLoginPage) {

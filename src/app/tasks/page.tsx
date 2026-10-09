@@ -52,6 +52,7 @@ export default function TasksPage() {
     lineupTaskIds,
     addToLineup,
     removeFromLineup,
+    currentUser,
     language 
   } = useStore();
 
@@ -133,7 +134,7 @@ export default function TasksPage() {
       status: statusVal,
       priority: priorityVal,
       spaceId: spaceVal,
-      assigneeId: meModeOnly ? "u1" : "u1",
+      assigneeId: currentUser?.id || users[0]?.id,
       dueDate: dueDateVal || todayStr,
       timeEstimate: 60,
       isPersonal: false,
@@ -156,8 +157,8 @@ export default function TasksPage() {
       // Show Closed Toggle
       if (!showClosedTasks && task.status === "done") return false;
 
-      // Me Mode (Assigned to Ravi Zein - u1)
-      if (meModeOnly && task.assigneeId !== "u1" && !task.isPersonal) return false;
+      // Me Mode (Assigned to current user)
+      if (meModeOnly && currentUser && task.assigneeId !== currentUser.id && !task.isPersonal) return false;
 
       // Priority Filter
       if (filterPriority !== "all" && task.priority !== filterPriority) return false;

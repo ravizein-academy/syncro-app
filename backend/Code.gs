@@ -89,6 +89,10 @@ function doGet(e) {
         result = setupInitialDatabase();
         break;
 
+      case 'clearAllData':
+        result = clearAllData();
+        break;
+
       default:
         return jsonResponse({
           status: 'error',
@@ -422,25 +426,25 @@ function setupInitialDatabase() {
     sheet.setFrozenRows(1);
   });
 
-  // Seed default Users if empty
-  const userSheet = ss.getSheetByName(SHEET_NAMES.USERS);
-  if (userSheet.getLastRow() <= 1) {
-    userSheet.appendRow(['user_1', 'Ravi Zein', 'ravizein@itsecacademy.com', 'admin', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100', 'Product & Tech', 40]);
-    userSheet.appendRow(['user_2', 'Sarah Connor', 'sarah@itsecacademy.com', 'member', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100', 'Engineering', 38]);
-    userSheet.appendRow(['user_3', 'Alex Rivera', 'alex@itsecacademy.com', 'member', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100', 'Cyber Security', 35]);
-    userSheet.appendRow(['user_4', 'Devin Vance', 'devin@itsecacademy.com', 'guest', 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100', 'Marketing', 20]);
-  }
-
-  // Seed default Spaces if empty
-  const spaceSheet = ss.getSheetByName(SHEET_NAMES.SPACES);
-  if (spaceSheet.getLastRow() <= 1) {
-    spaceSheet.appendRow(['sp_1', 'Product Development', '#EE3726', 'Ruang kerja tim produk']);
-    spaceSheet.appendRow(['sp_2', 'Operations & IT', '#2563eb', 'Infrastruktur dan operasional']);
-    spaceSheet.appendRow(['sp_3', 'Marketing & Sales', '#10b981', 'Kampanye pemasaran']);
-  }
-
   return {
     status: 'success',
-    message: 'Database schema and initial sheets successfully created!'
+    message: 'Database schema and initial sheets successfully created (clean without dummy data)!'
+  };
+}
+
+/**
+ * Clear All Dummy Data from all sheets (keeps header row)
+ */
+function clearAllData() {
+  const ss = getSpreadsheet();
+  Object.values(SHEET_NAMES).forEach(sheetName => {
+    const sheet = ss.getSheetByName(sheetName);
+    if (sheet && sheet.getLastRow() > 1) {
+      sheet.deleteRows(2, sheet.getLastRow() - 1);
+    }
+  });
+  return {
+    status: 'success',
+    message: 'Semua data dummy telah dihapus. Database bersih untuk pengujian baru!'
   };
 }
