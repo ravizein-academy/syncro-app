@@ -176,7 +176,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex-1 space-y-6 p-6 md:p-8 max-w-[1600px] mx-auto select-none transition-colors duration-200">
+    <div className="flex-1 space-y-4 sm:space-y-6 p-3 sm:p-5 md:p-8 max-w-[1600px] mx-auto select-none transition-colors duration-200">
       {/* ClickUp Home Banner & Top Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border pb-5">
         <div>
@@ -392,7 +392,7 @@ export default function Home() {
       )}
 
       {/* METRICS ROW CLICKUP STYLE */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         <Link href="/tasks">
           <Card className="bg-card border-border hover:border-[#EE3726]/50 transition cursor-pointer group shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1.5 p-4">

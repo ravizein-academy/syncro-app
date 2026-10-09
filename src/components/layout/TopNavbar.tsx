@@ -6,10 +6,11 @@ import { useStore } from "@/store/useStore";
 import { 
   Bell, 
   Sparkles, 
-  Search,
-  Sun,
-  Moon,
-  LogOut
+  Search, 
+  Sun, 
+  Moon, 
+  LogOut,
+  Menu
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +23,8 @@ export function TopNavbar() {
     theme,
     toggleTheme,
     language,
-    setLanguage
+    setLanguage,
+    toggleMobileSidebar
   } = useStore();
 
   const t = translations[language || 'id'];
@@ -31,25 +33,45 @@ export function TopNavbar() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <header className="h-16 border-b border-border bg-card/90 backdrop-blur-md px-6 flex items-center justify-between z-20 sticky top-0 select-none transition-colors duration-200">
-      {/* Search Input */}
-      <div className="flex items-center gap-3 w-72">
-        <div className="relative w-full">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder={t.searchPlaceholder} 
-            className="pl-9 h-9 bg-secondary border-border text-xs text-foreground placeholder:text-muted-foreground focus-visible:ring-[#EE3726] rounded-lg"
-          />
+    <header className="h-16 border-b border-border bg-card/95 backdrop-blur-md px-3 sm:px-6 flex items-center justify-between z-20 sticky top-0 select-none transition-colors duration-200">
+      {/* Left Section: Mobile Menu Toggle & Brand / Desktop Search */}
+      <div className="flex items-center gap-2 sm:gap-3">
+        {/* Mobile Hamburger Toggle Button */}
+        <button
+          onClick={toggleMobileSidebar}
+          className="lg:hidden p-2 -ml-1 rounded-xl text-foreground hover:bg-secondary border border-border/60 transition flex items-center justify-center"
+          aria-label="Buka Menu Navigasi"
+        >
+          <Menu size={19} className="text-foreground" />
+        </button>
+
+        {/* Mobile Brand Title */}
+        <div className="flex items-center gap-2 lg:hidden">
+          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center text-white font-black text-xs shadow-sm">
+            S
+          </div>
+          <span className="text-sm font-extrabold text-foreground tracking-tight">Syncro</span>
+        </div>
+
+        {/* Desktop Search Input */}
+        <div className="hidden md:flex items-center w-60 lg:w-72">
+          <div className="relative w-full">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input 
+              placeholder={t.searchPlaceholder} 
+              className="pl-9 h-9 bg-secondary border-border text-xs text-foreground placeholder:text-muted-foreground focus-visible:ring-[#EE3726] rounded-lg"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Right controls: Theme Switcher, Language Switcher, Gemini AI, Notifications, Profile Logout */}
-      <div className="flex items-center gap-2.5">
+      {/* Right controls: Language Switcher, Theme Switcher, Gemini AI, Notifications, Profile Logout */}
+      <div className="flex items-center gap-1.5 sm:gap-2.5">
         {/* Language Switcher */}
         <div className="flex items-center bg-secondary border border-border rounded-lg p-0.5 text-xs font-bold">
           <button
             onClick={() => setLanguage('id')}
-            className={`px-2 py-1 rounded transition text-[11px] ${
+            className={`px-1.5 sm:px-2 py-1 rounded transition text-[10px] sm:text-[11px] ${
               language === 'id' 
                 ? 'bg-[#EE3726] text-white shadow-sm' 
                 : 'text-muted-foreground hover:text-foreground'
@@ -60,7 +82,7 @@ export function TopNavbar() {
           </button>
           <button
             onClick={() => setLanguage('en')}
-            className={`px-2 py-1 rounded transition text-[11px] ${
+            className={`px-1.5 sm:px-2 py-1 rounded transition text-[10px] sm:text-[11px] ${
               language === 'en' 
                 ? 'bg-[#EE3726] text-white shadow-sm' 
                 : 'text-muted-foreground hover:text-foreground'
@@ -75,7 +97,7 @@ export function TopNavbar() {
         <button
           onClick={toggleTheme}
           title={theme === 'dark' ? t.lightMode : t.darkMode}
-          className="h-8 w-8 flex items-center justify-center rounded-lg border border-border bg-secondary text-foreground hover:bg-accent transition"
+          className="h-8 w-8 flex items-center justify-center rounded-lg border border-border bg-secondary text-foreground hover:bg-accent transition shrink-0"
         >
           {theme === 'dark' ? (
             <Sun size={15} className="text-amber-400" />
@@ -85,41 +107,41 @@ export function TopNavbar() {
         </button>
 
         {/* Gemini AI Shortcut */}
-        <Link href="/ai">
+        <Link href="/ai" className="shrink-0">
           <Button 
             variant="outline" 
             size="sm" 
-            className="h-8 gap-1.5 text-xs bg-[#EE3726]/10 border-[#EE3726]/30 text-[#EE3726] hover:bg-[#EE3726]/20 rounded-lg"
+            className="h-8 px-2 sm:px-3 gap-1 sm:gap-1.5 text-xs bg-[#EE3726]/10 border-[#EE3726]/30 text-[#EE3726] hover:bg-[#EE3726]/20 rounded-lg"
           >
-            <Sparkles size={14} className="text-[#EE3726]" />
+            <Sparkles size={13} className="text-[#EE3726]" />
             <span className="hidden sm:inline">Gemini AI</span>
           </Button>
         </Link>
 
         {/* Notifications Inbox */}
-        <Link href="/inbox" className="relative p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition">
-          <Bell size={18} />
+        <Link href="/inbox" className="relative p-1.5 sm:p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition shrink-0">
+          <Bell size={17} />
           {unreadCount > 0 && (
-            <span className="absolute top-1.5 right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#EE3726] text-[10px] font-extrabold text-white ring-2 ring-card">
+            <span className="absolute top-1 right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#EE3726] text-[9px] font-extrabold text-white ring-2 ring-card">
               {unreadCount}
             </span>
           )}
         </Link>
 
         {/* Profile Section with Logout Button (Tombol Keluar) */}
-        <div className="border-l border-border pl-2.5 flex items-center">
+        <div className="border-l border-border pl-1.5 sm:pl-2.5 flex items-center">
           <button
             onClick={() => setShowLogoutModal(true)}
             title={t.logout}
-            className="flex items-center gap-2 py-1 px-2 rounded-xl hover:bg-secondary text-muted-foreground hover:text-[#EE3726] transition group border border-transparent hover:border-border"
+            className="flex items-center gap-1.5 sm:gap-2 py-1 px-1.5 sm:px-2 rounded-xl hover:bg-secondary text-muted-foreground hover:text-[#EE3726] transition group border border-transparent hover:border-border"
           >
-            <div className="relative">
+            <div className="relative shrink-0">
               <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center text-[10px] font-bold text-white shadow-sm ring-1 ring-[#EE3726]/30">
                 RZ
               </div>
               <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-card" />
             </div>
-            <span className="hidden sm:inline text-xs font-semibold text-foreground group-hover:text-[#EE3726]">
+            <span className="hidden md:inline text-xs font-semibold text-foreground group-hover:text-[#EE3726]">
               {t.logout}
             </span>
             <LogOut size={13} className="text-muted-foreground group-hover:text-[#EE3726]" />

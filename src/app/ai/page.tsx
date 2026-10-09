@@ -115,16 +115,16 @@ export default function AIPage() {
   };
 
   return (
-    <div className="p-6 md:p-8 space-y-8 max-w-6xl mx-auto select-none transition-colors duration-200">
+    <div className="p-3 sm:p-5 md:p-8 space-y-6 max-w-6xl mx-auto select-none transition-colors duration-200">
       {/* Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-rose-500 shadow-sm" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">{t.aiTag}</span>
+            <span className="flex h-2 w-2 rounded-full bg-[#EE3726] shadow-sm" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#EE3726]">{t.aiTag}</span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3 mt-1">
-            <Sparkles className="text-rose-500" />
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3 mt-1">
+            <Sparkles className="text-[#EE3726]" />
             {t.aiTitle}
           </h1>
           <p className="text-xs text-muted-foreground mt-1">
@@ -133,11 +133,11 @@ export default function AIPage() {
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex bg-secondary border border-border p-1 rounded-xl shadow-inner">
+        <div className="flex bg-secondary border border-border p-1 rounded-xl shadow-inner overflow-x-auto max-w-full">
           <button
             onClick={() => setActiveTab("knowledge")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-              activeTab === "knowledge" ? "bg-rose-600 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition whitespace-nowrap ${
+              activeTab === "knowledge" ? "bg-[#EE3726] text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <BookOpen size={14} />
@@ -145,8 +145,8 @@ export default function AIPage() {
           </button>
           <button
             onClick={() => setActiveTab("standup")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-              activeTab === "standup" ? "bg-rose-600 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition whitespace-nowrap ${
+              activeTab === "standup" ? "bg-[#EE3726] text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <FileText size={14} />
@@ -154,8 +154,8 @@ export default function AIPage() {
           </button>
           <button
             onClick={() => setActiveTab("agent")}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-              activeTab === "agent" ? "bg-rose-600 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition whitespace-nowrap ${
+              activeTab === "agent" ? "bg-[#EE3726] text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
             }`}
           >
             <BrainCircuit size={14} />

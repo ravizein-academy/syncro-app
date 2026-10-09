@@ -75,7 +75,7 @@ export default function IntegrationsPage() {
   ];
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-6xl mx-auto select-none transition-colors duration-200">
+    <div className="p-3 sm:p-5 md:p-8 space-y-4 sm:space-y-6 max-w-6xl mx-auto select-none transition-colors duration-200">
       {/* Header */}
       <div>
         <div className="flex items-center gap-2">

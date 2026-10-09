@@ -94,6 +94,11 @@ interface AppState {
   toggleTheme: () => void;
   setLanguage: (lang: 'id' | 'en') => void;
 
+  // Mobile Navigation
+  isMobileSidebarOpen: boolean;
+  setMobileSidebarOpen: (open: boolean) => void;
+  toggleMobileSidebar: () => void;
+
   // ClickUp Home Features
   lineupTaskIds: string[];
   personalNotes: string;
@@ -238,6 +243,10 @@ export const useStore = create<AppState>()(
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       setLanguage: (language) => set({ language }),
+
+      isMobileSidebarOpen: false,
+      setMobileSidebarOpen: (isMobileSidebarOpen) => set({ isMobileSidebarOpen }),
+      toggleMobileSidebar: () => set((state) => ({ isMobileSidebarOpen: !state.isMobileSidebarOpen })),
 
       lineupTaskIds: ['t3', 't4'],
       personalNotes: "- Persiapkan demo Syncro PWA untuk tim ITSEC\n- Tinjau konfigurasi Google OAuth SSO\n- Evaluasi response rate Gemini AI",

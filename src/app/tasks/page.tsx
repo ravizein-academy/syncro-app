@@ -135,7 +135,7 @@ export default function TasksPage() {
   ];
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-[1600px] mx-auto select-none transition-colors duration-200">
+    <div className="p-3 sm:p-5 md:p-8 space-y-4 sm:space-y-6 max-w-[1600px] mx-auto select-none transition-colors duration-200">
       {/* ClickUp Header Breadcrumb & Views Bar */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -156,7 +156,7 @@ export default function TasksPage() {
 
           {/* Quick Filters Pill & New Task Button */}
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="flex bg-secondary border border-border p-1 rounded-xl shadow-inner">
+            <div className="flex bg-secondary border border-border p-1 rounded-xl shadow-inner overflow-x-auto max-w-full">
               <button
                 onClick={() => setActiveTab("assigned")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${

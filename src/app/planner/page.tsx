@@ -60,16 +60,16 @@ export default function PlannerPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] p-6 space-y-4 max-w-[1600px] mx-auto select-none transition-colors duration-200">
+    <div className="flex flex-col h-[calc(100vh-4rem)] p-3 sm:p-5 md:p-6 space-y-3 sm:space-y-4 max-w-[1600px] mx-auto select-none transition-colors duration-200">
       {/* Header with Calendar Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-rose-500 shadow-sm" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">{t.plannerTag}</span>
+            <span className="flex h-2 w-2 rounded-full bg-[#EE3726] shadow-sm" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#EE3726]">{t.plannerTag}</span>
           </div>
           <h1 className="text-2xl font-extrabold tracking-tight text-foreground flex items-center gap-2 mt-0.5">
-            <CalendarIcon className="text-rose-500" size={22} />
+            <CalendarIcon className="text-[#EE3726]" size={22} />
             {t.plannerTitle}
           </h1>
           <p className="text-xs text-muted-foreground">
@@ -78,11 +78,11 @@ export default function PlannerPage() {
         </div>
 
         {/* View Switcher: Day, Week, Month */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
           <div className="flex items-center gap-1 bg-secondary border border-border rounded-lg p-0.5 text-xs text-foreground">
-            <button className="p-1 hover:text-rose-600 transition"><ChevronLeft size={16} /></button>
+            <button className="p-1 hover:text-[#EE3726] transition"><ChevronLeft size={16} /></button>
             <span className="px-2 font-medium">{currentDateString}</span>
-            <button className="p-1 hover:text-rose-600 transition"><ChevronRight size={16} /></button>
+            <button className="p-1 hover:text-[#EE3726] transition"><ChevronRight size={16} /></button>
           </div>
 
           <div className="flex bg-secondary border border-border p-1 rounded-xl shadow-inner">
@@ -91,7 +91,7 @@ export default function PlannerPage() {
                 key={view}
                 onClick={() => setCalendarView(view)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold capitalize transition ${
-                  calendarView === view ? "bg-rose-600 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
+                  calendarView === view ? "bg-[#EE3726] text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {view === 'day' ? t.viewDay : view === 'week' ? t.viewWeek : t.viewMonth}
@@ -103,22 +103,22 @@ export default function PlannerPage() {
 
       {calendarView !== "day" ? (
         <div className="flex-1 flex flex-col items-center justify-center bg-card border border-border rounded-2xl p-8 text-center shadow-sm">
-          <CalendarIcon size={48} className="text-rose-500 mb-3 opacity-80" />
+          <CalendarIcon size={48} className="text-[#EE3726] mb-3 opacity-80" />
           <h2 className="text-lg font-bold text-foreground capitalize">{viewDayText(calendarView, t)}</h2>
           <p className="text-xs text-muted-foreground max-w-md mt-1 mb-4">
             {language === 'en' 
               ? "Switch to Day mode to interact with drag-and-drop time-blocking for today's agenda."
               : "Beralih ke mode Harian untuk melakukan interaksi time blocking drag-and-drop tugas secara presisi."}
           </p>
-          <Button onClick={() => setCalendarView("day")} className="bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold rounded-lg shadow-sm">
+          <Button onClick={() => setCalendarView("day")} className="bg-[#EE3726] hover:bg-[#D32717] text-white text-xs font-semibold rounded-lg shadow-sm">
             {language === 'en' ? "Switch to Day View (Time Blocking)" : "Beralih ke Day View (Time Blocking)"}
           </Button>
         </div>
       ) : (
         <DragDropContext onDragEnd={onDragEnd}>
-          <div className="flex flex-1 gap-6 overflow-hidden min-h-0">
+          <div className="flex flex-col lg:flex-row flex-1 gap-4 lg:gap-6 overflow-hidden min-h-0">
             {/* Left Drawer: Unscheduled Tasks Panel */}
-            <div className="w-80 shrink-0 flex flex-col bg-card border border-border rounded-xl overflow-hidden shadow-sm">
+            <div className="w-full lg:w-80 max-h-48 sm:max-h-56 lg:max-h-none shrink-0 flex flex-col bg-card border border-border rounded-xl overflow-hidden shadow-sm">
               <div className="p-3.5 border-b border-border flex items-center justify-between bg-secondary/50">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-xs text-foreground">{t.unscheduledTasksTitle}</span>

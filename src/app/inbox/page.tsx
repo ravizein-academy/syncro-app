@@ -20,7 +20,7 @@ export default function InboxPage() {
   const filtered = notifications.filter((n) => (filter === "unread" ? !n.read : true));
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-5xl mx-auto select-none transition-colors duration-200">
+    <div className="p-3 sm:p-5 md:p-8 space-y-4 sm:space-y-6 max-w-5xl mx-auto select-none transition-colors duration-200">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
