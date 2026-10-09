@@ -92,6 +92,13 @@ interface AppState {
   toggleTheme: () => void;
   setLanguage: (lang: 'id' | 'en') => void;
 
+  // ClickUp Home Features
+  lineupTaskIds: string[];
+  personalNotes: string;
+  addToLineup: (taskId: string) => void;
+  removeFromLineup: (taskId: string) => void;
+  setPersonalNotes: (notes: string) => void;
+
   // Actions
   setTasks: (tasks: Task[]) => void;
   addTask: (task: Omit<Task, 'id' | 'createdAt'> & { id?: string }) => void;
@@ -229,6 +236,16 @@ export const useStore = create<AppState>()(
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
       setLanguage: (language) => set({ language }),
+
+      lineupTaskIds: ['t3', 't4'],
+      personalNotes: "- Persiapkan demo Syncro PWA untuk tim ITSEC\n- Tinjau konfigurasi Google OAuth SSO\n- Evaluasi response rate Gemini AI",
+      addToLineup: (taskId) => set((state) => ({
+        lineupTaskIds: state.lineupTaskIds.includes(taskId) ? state.lineupTaskIds : [...state.lineupTaskIds, taskId]
+      })),
+      removeFromLineup: (taskId) => set((state) => ({
+        lineupTaskIds: state.lineupTaskIds.filter((id) => id !== taskId)
+      })),
+      setPersonalNotes: (personalNotes) => set({ personalNotes }),
 
       setTasks: (tasks) => set({ tasks }),
       

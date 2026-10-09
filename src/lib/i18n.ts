@@ -58,6 +58,25 @@ export const translations = {
     viewSpaces: 'Kelola Spaces',
     activityFeed: 'Aktivitas Terbaru',
 
+    // ClickUp Home Widgets
+    lineupTitle: 'Lineup Utama Hari Ini',
+    lineupDesc: 'Daftar tugas paling kritis yang harus diselesaikan hari ini (Fitur khas ClickUp Lineup).',
+    addToLineup: 'Tambah ke Lineup',
+    removeFromLineup: 'Lepas dari Lineup',
+    emptyLineup: 'Belum ada tugas di Lineup hari ini.',
+    myWorkTitle: 'My Work (Daftar Tugas Saya)',
+    tabToDo: 'To Do',
+    tabOverdue: 'Overdue',
+    tabNext: 'Berikutnya',
+    tabUnscheduled: 'Belum Terjadwal',
+    notepadTitle: 'Quick Notepad & Memo',
+    notepadDesc: 'Tulis ide, to-do cepat, atau memo harian yang otomatis tersimpan.',
+    notepadPlaceholder: 'Tulis ide, memo, atau catatan cepat di sini...',
+    agendaTitle: 'Agenda & Time Blocking Hari Ini',
+    agendaDesc: 'Jadwal jam kerja yang sinkron dengan Planner dan Google Calendar.',
+    velocityTitle: 'Kapasitas & Pelacak Waktu Hari Ini',
+    velocityTarget: 'Target 8 Jam Kerja Harian',
+
     // Tasks Page
     taskMgmtTag: 'Manajemen Tugas',
     myTasksTitle: 'My Tasks',
@@ -217,6 +236,25 @@ export const translations = {
     activeSpacesSummary: 'Active Spaces Summary',
     viewSpaces: 'Manage Spaces',
     activityFeed: 'Recent Activity',
+
+    // ClickUp Home Widgets
+    lineupTitle: "Today's Lineup",
+    lineupDesc: 'Critical priority tasks you must accomplish today (Signature ClickUp Lineup).',
+    addToLineup: 'Add to Lineup',
+    removeFromLineup: 'Remove from Lineup',
+    emptyLineup: 'No tasks in Lineup today.',
+    myWorkTitle: 'My Work',
+    tabToDo: 'To Do',
+    tabOverdue: 'Overdue',
+    tabNext: 'Next',
+    tabUnscheduled: 'Unscheduled',
+    notepadTitle: 'Quick Notepad & Scratchpad',
+    notepadDesc: 'Jot down ideas, quick to-dos, or notes that auto-save instantly.',
+    notepadPlaceholder: 'Write ideas, memos, or scratchpad notes here...',
+    agendaTitle: "Today's Agenda & Time Blocking",
+    agendaDesc: 'Hourly schedule synced with Planner and Google Calendar.',
+    velocityTitle: 'Daily Capacity & Time Tracker',
+    velocityTarget: '8 Hours Daily Target',
 
     // Tasks Page
     taskMgmtTag: 'Task Management',
