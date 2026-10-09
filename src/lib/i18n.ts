@@ -39,6 +39,21 @@ export const translations = {
     logoutConfirmTitle: 'Konfirmasi Keluar',
     logoutConfirmDesc: 'Apakah Anda yakin ingin keluar dari sesi akun ini?',
 
+    // Login & Auth
+    loginTitle: 'Masuk ke Syncro Workspace',
+    loginSubtitle: 'Pusat manajemen tugas cerdas terintegrasi Google Ecosystem',
+    googleSignInBtn: 'Lanjutkan dengan Google Workspace',
+    orEmailDivider: 'atau masuk dengan email kerja',
+    emailLabel: 'Email Kerja',
+    emailPlaceholder: 'nama@syncro.io atau akun Google Anda',
+    passwordLabel: 'Kata Sandi',
+    passwordPlaceholder: '••••••••••••',
+    rememberMe: 'Ingat sesi saya',
+    forgotPassword: 'Lupa kata sandi?',
+    loginSubmitBtn: 'Masuk ke Workspace',
+    quickDemoAccess: 'Akses Instan Akun Tim (Demo):',
+    authSecurityNote: 'Terlindungi oleh Google OAuth 2.0 & Enkripsi Sesi ITSEC',
+
     // Dashboard
     heroBadge: 'ClickUp Red Workspace',
     heroWelcome: 'Selamat Datang, Ravi Zein 👋',
@@ -231,6 +246,21 @@ export const translations = {
     logout: 'Log out',
     logoutConfirmTitle: 'Confirm Log Out',
     logoutConfirmDesc: 'Are you sure you want to log out of this account session?',
+
+    // Login & Auth
+    loginTitle: 'Sign in to Syncro Workspace',
+    loginSubtitle: 'Smart task management hub integrated with Google Ecosystem',
+    googleSignInBtn: 'Continue with Google Workspace',
+    orEmailDivider: 'or sign in with work email',
+    emailLabel: 'Work Email',
+    emailPlaceholder: 'name@syncro.io or your Google account',
+    passwordLabel: 'Password',
+    passwordPlaceholder: '••••••••••••',
+    rememberMe: 'Remember my session',
+    forgotPassword: 'Forgot password?',
+    loginSubmitBtn: 'Sign In to Workspace',
+    quickDemoAccess: 'Instant Team Access (Demo):',
+    authSecurityNote: 'Protected by Google OAuth 2.0 & ITSEC Session Encryption',
 
     // Dashboard
     heroBadge: 'ClickUp Red Workspace',

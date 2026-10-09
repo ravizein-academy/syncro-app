@@ -159,6 +159,13 @@ interface AppState {
 
   // Integration Actions
   toggleIntegration: (key: keyof AppState['integrations']) => void;
+
+  // Auth State & Actions (PRD: Google OAuth 2.0 & Team Login)
+  currentUser: User | null;
+  isAuthenticated: boolean;
+  login: (user?: User) => void;
+  loginWithGoogle: (email?: string, name?: string) => void;
+  logout: () => void;
 }
 
 const INITIAL_USERS: User[] = [
@@ -355,6 +362,10 @@ export const useStore = create<AppState>()(
         gmail: false,
       },
 
+      // Auth State
+      currentUser: INITIAL_USERS[0],
+      isAuthenticated: true,
+
       theme: 'light',
       language: 'id',
       setTheme: (theme) => set({ theme }),
@@ -538,6 +549,36 @@ export const useStore = create<AppState>()(
             [key]: !state.integrations[key],
           },
         })),
+
+      login: (user) =>
+        set({
+          isAuthenticated: true,
+          currentUser: user || INITIAL_USERS[0],
+        }),
+
+      loginWithGoogle: (email = 'ravi@itsecacademy.com', name = 'Ravi Zein') => {
+        const found = get().users.find((u) => u.email === email);
+        const userObj: User = found || {
+          id: 'u1',
+          name,
+          email,
+          role: 'admin',
+          department: 'Engineering',
+          capacityHours: 40,
+          avatar: 'RZ',
+        };
+        set({
+          isAuthenticated: true,
+          currentUser: userObj,
+          integrations: { ...get().integrations, googleAuth: true },
+        });
+      },
+
+      logout: () =>
+        set({
+          isAuthenticated: false,
+          currentUser: null,
+        }),
     }),
     {
       name: 'syncro-storage-v2',

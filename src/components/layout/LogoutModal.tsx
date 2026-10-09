@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { LogOut, User as UserIcon, CheckCircle2 } from "lucide-react";
@@ -13,16 +14,19 @@ interface LogoutModalProps {
 }
 
 export function LogoutModal({ open, onOpenChange }: LogoutModalProps) {
-  const { language } = useStore();
+  const router = useRouter();
+  const { language, logout } = useStore();
   const t = translations[language || "id"];
   const [loggedOut, setLoggedOut] = useState(false);
 
   const handleLogout = () => {
     setLoggedOut(true);
     setTimeout(() => {
+      logout();
       setLoggedOut(false);
       onOpenChange(false);
-    }, 1500);
+      router.push("/login");
+    }, 900);
   };
 
   return (
