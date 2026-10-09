@@ -15,7 +15,7 @@ interface LogoutModalProps {
 
 export function LogoutModal({ open, onOpenChange }: LogoutModalProps) {
   const router = useRouter();
-  const { language, logout } = useStore();
+  const { language, logout, currentUser } = useStore();
   const t = translations[language || "id"];
   const [loggedOut, setLoggedOut] = useState(false);
 
@@ -47,8 +47,8 @@ export function LogoutModal({ open, onOpenChange }: LogoutModalProps) {
               {loggedOut
                 ? (language === 'en' ? 'Your active session has ended safely.' : 'Sesi akun Anda telah berhasil diakhiri dengan aman.')
                 : (language === 'en' 
-                    ? 'Are you sure you want to end your current session for Ravi Zein?' 
-                    : 'Apakah Anda yakin ingin mengakhiri sesi aktif untuk akun Ravi Zein?')}
+                    ? `Are you sure you want to end your current session for ${currentUser?.name || 'this account'}?` 
+                    : `Apakah Anda yakin ingin mengakhiri sesi aktif untuk akun ${currentUser?.name || 'ini'}?`)}
             </p>
           </div>
         </DialogHeader>
@@ -56,11 +56,11 @@ export function LogoutModal({ open, onOpenChange }: LogoutModalProps) {
         {!loggedOut && (
           <div className="mt-2 p-3 rounded-xl bg-secondary/50 border border-border flex items-center gap-3">
             <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center text-xs font-bold text-white shadow-sm ring-1 ring-[#EE3726]/30">
-              RZ
+              {currentUser?.avatar || currentUser?.name?.slice(0, 2).toUpperCase() || 'U'}
             </div>
             <div className="min-w-0">
-              <span className="text-xs font-bold text-foreground block truncate">Ravi Zein</span>
-              <span className="text-[11px] text-muted-foreground block truncate">ravi@syncro.io • Workspace Owner</span>
+              <span className="text-xs font-bold text-foreground block truncate">{currentUser?.name || 'User'}</span>
+              <span className="text-[11px] text-muted-foreground block truncate">{currentUser?.email || 'user@syncro.io'} • {currentUser?.role || 'Member'}</span>
             </div>
           </div>
         )}

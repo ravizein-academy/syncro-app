@@ -164,7 +164,7 @@ interface AppState {
   currentUser: User | null;
   isAuthenticated: boolean;
   login: (user?: User) => void;
-  loginWithGoogle: (email?: string, name?: string) => void;
+  loginWithGoogle: (email: string, name?: string, avatarUrl?: string) => void;
   logout: () => void;
 
   // Cloud Sync Backend State
@@ -399,23 +399,31 @@ export const useStore = create<AppState>()(
         }
       },
 
-      loginWithGoogle: (email = 'ravizein@itsecacademy.com', name = 'Ravi Zein') => {
-        const found = get().users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-        const initials = name
+      loginWithGoogle: (email: string, name?: string, avatarUrl?: string) => {
+        const cleanEmail = email.trim();
+        const found = get().users.find((u) => u.email.toLowerCase() === cleanEmail.toLowerCase());
+        const extractedName =
+          name?.trim() ||
+          cleanEmail
+            .split('@')[0]
+            .replace(/[._]/g, ' ')
+            .replace(/\b\w/g, (l) => l.toUpperCase());
+
+        const initials = extractedName
           .split(' ')
           .map((n) => n[0])
           .join('')
           .substring(0, 2)
-          .toUpperCase() || 'RZ';
+          .toUpperCase() || 'U';
 
         const userObj: User = found || {
           id: `u_${Date.now()}`,
-          name,
-          email,
+          name: extractedName,
+          email: cleanEmail,
           role: get().users.length === 0 ? 'admin' : 'member',
-          department: 'Product & Tech',
+          department: cleanEmail.toLowerCase().includes('itsec') ? 'Cyber Security' : 'Product & Tech',
           capacityHours: 40,
-          avatar: initials,
+          avatar: avatarUrl || initials,
         };
 
         set({

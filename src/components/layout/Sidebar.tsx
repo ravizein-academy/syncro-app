@@ -137,11 +137,11 @@ export function Sidebar() {
               <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-card" />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-foreground truncate">
+              <span className="text-xs font-semibold text-foreground truncate" title={currentUser?.name}>
                 {currentUser?.name || "User"}
               </span>
-              <span className="text-[10px] text-muted-foreground truncate capitalize">
-                {currentUser?.role === 'admin' ? t.workspaceOwner : (currentUser?.role || t.workspaceOwner)}
+              <span className="text-[10px] text-muted-foreground truncate" title={currentUser?.email || ""}>
+                {currentUser?.email || (currentUser?.role === 'admin' ? t.workspaceOwner : (currentUser?.role || t.workspaceOwner))}
               </span>
             </div>
           </div>

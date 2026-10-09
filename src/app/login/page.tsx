@@ -57,16 +57,31 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"google" | "email" | null>(null);
 
-  // Google OAuth 2.0 Single Sign-On (Sesuai PRD)
+  // Google Account Chooser Modal State
+  const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
+  const [customGoogleEmail, setCustomGoogleEmail] = useState("");
+  const [customGoogleName, setCustomGoogleName] = useState("");
+
+  // Google OAuth 2.0 Single Sign-On - Buka Pilihan Akun
   const handleGoogleSSO = () => {
+    // Tampilkan modal pemilih akun Google sehingga pengguna bisa memilih akun mana yang diinginkan
+    setIsGoogleModalOpen(true);
+  };
+
+  // Konfirmasi Akun Google Terpilih
+  const handleConfirmGoogleAccount = (targetEmail: string, targetName?: string) => {
+    const cleanEmail = targetEmail.trim();
+    if (!cleanEmail) return;
+
     setIsLoading(true);
     setLoginMethod("google");
+    setIsGoogleModalOpen(false);
 
     setTimeout(() => {
-      loginWithGoogle("ravizein@itsecacademy.com", "Ravi Zein");
+      loginWithGoogle(cleanEmail, targetName);
       setIsLoading(false);
       router.push("/");
-    }, 800);
+    }, 700);
   };
 
   // Standard Email & Password Login
@@ -292,6 +307,132 @@ export default function LoginPage() {
           Syncro PWA • Google Sheets REST Backend • Google AI Studio Gemini Engine
         </p>
       </div>
+
+      {/* Google Account Chooser Modal (PRD Section 4.5: Google SSO) */}
+      {isGoogleModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in-0 duration-200">
+          <div className="w-full max-w-sm bg-card border border-border rounded-2xl shadow-2xl overflow-hidden p-6 space-y-4">
+            {/* Google Header */}
+            <div className="text-center space-y-2">
+              <div className="mx-auto flex justify-center">
+                <GoogleGLogo size={32} />
+              </div>
+              <h2 className="text-lg font-bold text-foreground">
+                {language === 'en' ? 'Choose an account' : 'Pilih akun'}
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                {language === 'en'
+                  ? 'to continue to Syncro'
+                  : 'untuk melanjutkan ke Syncro'}
+              </p>
+            </div>
+
+            {/* List of previously logged in Google accounts if any */}
+            {users.length > 0 && (
+              <div className="space-y-1.5 border-y border-border py-2.5 max-h-48 overflow-y-auto">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1">
+                  {language === 'en' ? 'Choose from active accounts' : 'Pilih akun yang aktif'}
+                </p>
+                {users.map((u) => (
+                  <button
+                    key={u.id}
+                    type="button"
+                    onClick={() => handleConfirmGoogleAccount(u.email, u.name)}
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-secondary/80 border border-transparent hover:border-[#4285F4]/30 transition text-left group"
+                  >
+                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#4285F4] to-[#34A853] flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0">
+                      {u.avatar || u.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs font-bold text-foreground group-hover:text-[#4285F4] truncate">
+                        {u.name}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground truncate">
+                        {u.email}
+                      </p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Form to enter ANY Google / Google Workspace account */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleConfirmGoogleAccount(customGoogleEmail, customGoogleName);
+              }}
+              className="space-y-3 pt-1"
+            >
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-bold text-foreground block">
+                    {language === 'en' ? 'Google Account Email' : 'Email Akun Google Anda'}
+                  </label>
+                  {users.length > 0 && (
+                    <span className="text-[10px] text-muted-foreground">
+                      {language === 'en' ? 'or use another account' : 'atau gunakan akun lain'}
+                    </span>
+                  )}
+                </div>
+                <Input
+                  type="email"
+                  required
+                  placeholder="contoh: nama@gmail.com atau kerja@perusahaan.com"
+                  value={customGoogleEmail}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setCustomGoogleEmail(val);
+                    if (!customGoogleName) {
+                      const prefix = val.split('@')[0] || '';
+                      const inferred = prefix.replace(/[._]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+                      setCustomGoogleName(inferred);
+                    }
+                  }}
+                  className="h-9 text-xs bg-secondary/50 border-border rounded-xl focus-visible:ring-[#4285F4]"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-foreground block">
+                  {language === 'en' ? 'Display Name (Google Profile)' : 'Nama Tampilan (Profil Google)'}
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Nama Lengkap Anda"
+                  value={customGoogleName}
+                  onChange={(e) => setCustomGoogleName(e.target.value)}
+                  className="h-9 text-xs bg-secondary/50 border-border rounded-xl focus-visible:ring-[#4285F4]"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsGoogleModalOpen(false)}
+                  className="flex-1 h-9 text-xs"
+                >
+                  {t.modalCancel}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={!customGoogleEmail.trim()}
+                  className="flex-1 h-9 text-xs font-bold bg-[#4285F4] hover:bg-[#3367D6] text-white rounded-xl shadow-sm"
+                >
+                  {language === 'en' ? 'Continue' : 'Lanjutkan Masuk'}
+                </Button>
+              </div>
+            </form>
+
+            <p className="text-[10px] text-center text-muted-foreground/80 leading-relaxed">
+              {language === 'en'
+                ? 'To continue, Google will share your name and email address with Syncro.'
+                : 'Untuk melanjutkan, Google akan membagikan nama dan alamat email akun ini ke Syncro.'}
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
