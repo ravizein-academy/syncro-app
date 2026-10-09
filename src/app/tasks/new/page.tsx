@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useStore } from "@/store/useStore";
+import { useStore, TaskAttachment } from "@/store/useStore";
 import { 
   Calendar, 
   Flag, 
@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { translations } from "@/lib/i18n";
+import { TaskAttachments } from "@/components/tasks/TaskAttachments";
 
 export default function NewTaskPage() {
   const router = useRouter();
@@ -33,6 +34,7 @@ export default function NewTaskPage() {
   const [assigneeId, setAssigneeId] = useState<string>("u1");
   const [dueDate, setDueDate] = useState<string>("");
   const [isPersonal, setIsPersonal] = useState<boolean>(false);
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
 
   // AI Description Generator State
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -103,6 +105,7 @@ export default function NewTaskPage() {
       timeEstimate: 60,
       timeTracked: 0,
       isPersonal: isPersonal,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
 
     router.push("/tasks");
@@ -242,7 +245,7 @@ export default function NewTaskPage() {
             </div>
 
             <textarea
-              rows={5}
+              rows={4}
               placeholder={language === 'en' 
                 ? 'Add detailed description, objectives, or instructions...' 
                 : 'Tambah rincian deskripsi tugas, tujuan, atau panduan pengerjaan...'}
@@ -250,6 +253,15 @@ export default function NewTaskPage() {
               onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-secondary/50 border border-border rounded-xl p-4 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:border-[#EE3726] resize-y leading-relaxed"
             />
+
+            {/* Attachments Section: Image, Video, Audio, Link */}
+            <div className="pt-2">
+              <TaskAttachments
+                attachments={attachments}
+                onChange={setAttachments}
+                language={language}
+              />
+            </div>
           </div>
 
           {/* CUSTOM FIELDS (ASSIGNEE, DUE DATE, PRIORITY) */}

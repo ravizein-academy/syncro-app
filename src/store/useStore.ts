@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+export interface TaskAttachment {
+  id: string;
+  type: 'image' | 'video' | 'audio' | 'link';
+  url: string;
+  name: string;
+  size?: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -16,6 +24,7 @@ export interface Task {
   isPersonal?: boolean;
   tags?: string[];
   subtasks?: { id: string; title: string; done: boolean }[];
+  attachments?: TaskAttachment[];
   createdAt: string;
 }
 

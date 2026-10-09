@@ -28,7 +28,8 @@ import {
   Trash2,
   Eye,
   EyeOff,
-  Briefcase
+  Briefcase,
+  Paperclip
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -579,6 +580,14 @@ export default function TasksPage() {
                                 </span>
                               )}
 
+                              {/* Attachments counter */}
+                              {task.attachments && task.attachments.length > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border shrink-0">
+                                  <Paperclip size={10} className="text-[#EE3726]" />
+                                  <span>{task.attachments.length}</span>
+                                </span>
+                              )}
+
                               {/* Pin indicator */}
                               {isPinned && (
                                 <span title="Disematkan ke Lineup" className="shrink-0">
@@ -726,6 +735,12 @@ export default function TasksPage() {
                               <span className="inline-flex items-center gap-1 bg-secondary px-1.5 py-0.5 rounded border border-border">
                                 <ListTodo size={10} className="text-[#EE3726]" />
                                 <span>{task.subtasks.filter((s) => s.done).length}/{task.subtasks.length}</span>
+                              </span>
+                            )}
+                            {task.attachments && task.attachments.length > 0 && (
+                              <span className="inline-flex items-center gap-1 bg-secondary px-1.5 py-0.5 rounded border border-border">
+                                <Paperclip size={10} className="text-[#EE3726]" />
+                                <span>{task.attachments.length}</span>
                               </span>
                             )}
                           </div>

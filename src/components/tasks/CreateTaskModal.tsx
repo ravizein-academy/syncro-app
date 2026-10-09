@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useStore } from "@/store/useStore";
+import { useStore, TaskAttachment } from "@/store/useStore";
 import { 
   Calendar, 
   Flag, 
@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { translations } from "@/lib/i18n";
+import { TaskAttachments } from "@/components/tasks/TaskAttachments";
 
 interface CreateTaskModalProps {
   open?: boolean;
@@ -51,6 +52,7 @@ export function CreateTaskModal({
   const [assigneeId, setAssigneeId] = useState<string>("u1");
   const [dueDate, setDueDate] = useState<string>("");
   const [isPersonal, setIsPersonal] = useState<boolean>(defaultPersonal);
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
 
   // AI Description Generator State
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
@@ -61,6 +63,7 @@ export function CreateTaskModal({
       if (defaultSpaceId) setSpaceId(defaultSpaceId);
       if (defaultStatus) setStatus(defaultStatus);
       if (defaultPersonal !== undefined) setIsPersonal(defaultPersonal);
+      setAttachments([]);
       
       const d = new Date();
       setDueDate(d.toISOString().split("T")[0]);
@@ -128,10 +131,12 @@ export function CreateTaskModal({
       timeEstimate: 60,
       timeTracked: 0,
       isPersonal: isPersonal,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
 
     setTitle("");
     setDescription("");
+    setAttachments([]);
     setOpen?.(false);
   };
 
@@ -249,12 +254,21 @@ export function CreateTaskModal({
             </div>
 
             <textarea
-              rows={4}
+              rows={3}
               placeholder={language === "en" ? "Add description, notes, or details..." : "Tambah deskripsi tugas, catatan, atau rincian pekerjaan..."}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className="w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none resize-none pt-2 leading-relaxed"
             />
+
+            {/* Attachments Section: Image, Video, Audio, Link */}
+            <div className="pt-2 border-t border-border/60">
+              <TaskAttachments
+                attachments={attachments}
+                onChange={setAttachments}
+                language={language}
+              />
+            </div>
           </div>
 
           {/* CUSTOM FIELDS (ASSIGNEE, DUE DATE, PRIORITY) */}

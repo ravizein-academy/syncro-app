@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useStore, Task } from "@/store/useStore";
+import { useStore, Task, TaskAttachment } from "@/store/useStore";
 import { 
   Calendar, 
   Flag, 
@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { translations } from "@/lib/i18n";
+import { TaskAttachments } from "@/components/tasks/TaskAttachments";
 
 interface TaskDetailModalProps {
   task: Task | null;
@@ -42,6 +43,7 @@ export function TaskDetailModal({ task, open, onOpenChange }: TaskDetailModalPro
   const [spaceId, setSpaceId] = useState("");
   const [assigneeId, setAssigneeId] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [attachments, setAttachments] = useState<TaskAttachment[]>([]);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
 
@@ -54,6 +56,7 @@ export function TaskDetailModal({ task, open, onOpenChange }: TaskDetailModalPro
       setSpaceId(task.spaceId || spaces[0]?.id || "");
       setAssigneeId(task.assigneeId || "u1");
       setDueDate(task.dueDate || "");
+      setAttachments(task.attachments || []);
     }
   }, [task, spaces]);
 
@@ -72,6 +75,7 @@ export function TaskDetailModal({ task, open, onOpenChange }: TaskDetailModalPro
       spaceId,
       assigneeId,
       dueDate,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
     onOpenChange(false);
   };
@@ -324,6 +328,15 @@ export function TaskDetailModal({ task, open, onOpenChange }: TaskDetailModalPro
               placeholder={language === 'en' ? 'Add detailed specifications, checklist, or instructions...' : 'Tulis detail spesifikasi, petunjuk kerja, atau catatan...'}
               className="bg-secondary/40 border-border text-xs focus-visible:ring-[#EE3726] rounded-xl text-foreground"
             />
+
+            {/* Attachments Section: Image, Video, Audio, Link */}
+            <div className="pt-2">
+              <TaskAttachments
+                attachments={attachments}
+                onChange={setAttachments}
+                language={language}
+              />
+            </div>
           </div>
 
           {/* Subtasks / Checklist Section (ClickUp Signature) */}
