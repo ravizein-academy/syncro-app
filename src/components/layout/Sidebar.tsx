@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
@@ -13,15 +14,18 @@ import {
   Users,
   Sparkles,
   Layers,
-  ChevronDown
+  ChevronDown,
+  LogOut
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { translations } from '@/lib/i18n';
+import { LogoutModal } from '@/components/layout/LogoutModal';
 
 export function Sidebar() {
   const pathname = usePathname();
   const { spaces, language } = useStore();
   const t = translations[language || 'id'];
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const NAV_ITEMS = [
     { name: t.navDashboard, href: '/', icon: LayoutDashboard },
@@ -110,21 +114,38 @@ export function Sidebar() {
         </div>
       </nav>
       
-      {/* User Footer */}
-      <div className="border-t border-border p-3.5 bg-card">
-        <div className="flex items-center gap-2.5">
-          <div className="relative">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-rose-500 to-red-700 flex items-center justify-center text-xs font-bold text-white shadow ring-1 ring-rose-400/40">
-              RZ
+      {/* User Footer Profile Section with Logout Button */}
+      <div className="border-t border-border p-3 bg-card">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="relative shrink-0">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center text-xs font-bold text-white shadow ring-1 ring-[#EE3726]/40">
+                RZ
+              </div>
+              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-card" />
             </div>
-            <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-card" />
+            <div className="flex flex-col min-w-0">
+              <span className="text-xs font-semibold text-foreground truncate">Ravi Zein</span>
+              <span className="text-[10px] text-muted-foreground truncate">{t.workspaceOwner}</span>
+            </div>
           </div>
-          <div className="flex flex-col min-w-0">
-            <span className="text-xs font-semibold text-foreground truncate">Ravi Zein</span>
-            <span className="text-[10px] text-muted-foreground">{t.workspaceOwner}</span>
-          </div>
+
+          {/* Tombol Keluar */}
+          <button
+            onClick={() => setShowLogoutModal(true)}
+            title={t.logout}
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-semibold text-muted-foreground hover:text-[#EE3726] hover:bg-secondary transition shrink-0"
+          >
+            <LogOut size={13} />
+            <span>{t.logout}</span>
+          </button>
         </div>
       </div>
+
+      <LogoutModal
+        open={showLogoutModal}
+        onOpenChange={setShowLogoutModal}
+      />
     </aside>
   );
 }

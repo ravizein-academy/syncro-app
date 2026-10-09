@@ -13,12 +13,13 @@ import {
   Sparkles, 
   Search,
   Sun,
-  Moon
+  Moon,
+  LogOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { translations } from "@/lib/i18n";
-import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
+import { LogoutModal } from "@/components/layout/LogoutModal";
 
 export function TopNavbar() {
   const { 
@@ -38,23 +39,7 @@ export function TopNavbar() {
   } = useStore();
 
   const t = translations[language || 'id'];
-  const [openNewTask, setOpenNewTask] = useState(false);
-
-  // Global keyboard shortcut: 't' or 'c' to open Create Task modal (when not in an input)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const activeTag = (document.activeElement?.tagName || "").toLowerCase();
-      if (activeTag === "input" || activeTag === "textarea" || activeTag === "select") {
-        return;
-      }
-      if (e.key === "t" || e.key === "T" || e.key === "c" || e.key === "C") {
-        e.preventDefault();
-        setOpenNewTask(true);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     let interval: any = null;
@@ -201,16 +186,31 @@ export function TopNavbar() {
           )}
         </Link>
 
-        {/* Clean New Task Button (No Symbols) */}
-        <Link href="/tasks/new">
-          <Button 
-            size="sm" 
-            className="h-8 text-xs bg-[#EE3726] hover:bg-[#D32717] text-white font-bold shadow-md shadow-[#EE3726]/20 rounded-lg px-3.5"
+        {/* Profile Section with Logout Button (Tombol Keluar) */}
+        <div className="border-l border-border pl-2.5 flex items-center">
+          <button
+            onClick={() => setShowLogoutModal(true)}
+            title={t.logout}
+            className="flex items-center gap-2 py-1 px-2 rounded-xl hover:bg-secondary text-muted-foreground hover:text-[#EE3726] transition group border border-transparent hover:border-border"
           >
-            <span>{t.newTask}</span>
-          </Button>
-        </Link>
+            <div className="relative">
+              <div className="h-7 w-7 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center text-[10px] font-bold text-white shadow-sm ring-1 ring-[#EE3726]/30">
+                RZ
+              </div>
+              <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-1 ring-card" />
+            </div>
+            <span className="hidden sm:inline text-xs font-semibold text-foreground group-hover:text-[#EE3726]">
+              {t.logout}
+            </span>
+            <LogOut size={13} className="text-muted-foreground group-hover:text-[#EE3726]" />
+          </button>
+        </div>
       </div>
+
+      <LogoutModal
+        open={showLogoutModal}
+        onOpenChange={setShowLogoutModal}
+      />
     </header>
   );
 }

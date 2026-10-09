@@ -35,6 +35,9 @@ export const translations = {
     modalSubmitTask: 'Simpan Task',
     lightMode: 'Mode Terang',
     darkMode: 'Mode Gelap',
+    logout: 'Keluar',
+    logoutConfirmTitle: 'Konfirmasi Keluar',
+    logoutConfirmDesc: 'Apakah Anda yakin ingin keluar dari sesi akun ini?',
 
     // Dashboard
     heroBadge: 'ClickUp Red Workspace',
@@ -214,6 +217,9 @@ export const translations = {
     modalSubmitTask: 'Save Task',
     lightMode: 'Light Mode',
     darkMode: 'Dark Mode',
+    logout: 'Log out',
+    logoutConfirmTitle: 'Confirm Log Out',
+    logoutConfirmDesc: 'Are you sure you want to log out of this account session?',
 
     // Dashboard
     heroBadge: 'ClickUp Red Workspace',
