@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function DirectMessagesPage() {
-  const { dmThreads, sendDMMessage, language } = useStore();
+  const { dmThreads, sendDMMessage, language, currentUser } = useStore();
   const [selectedThreadId, setSelectedThreadId] = useState<string>(dmThreads[0]?.id || "");
   const [inputText, setInputText] = useState("");
 
@@ -18,8 +18,8 @@ export default function DirectMessagesPage() {
     if (!inputText.trim() || !currentThread) return;
 
     sendDMMessage(currentThread.id, {
-      senderId: "u1",
-      senderName: "Ravi Zein",
+      senderId: currentUser?.id || "u_curr",
+      senderName: currentUser?.name || "User",
       text: inputText,
     });
 
@@ -86,7 +86,7 @@ export default function DirectMessagesPage() {
           {/* Messages Stream */}
           <div className="flex-1 p-6 overflow-y-auto space-y-4">
             {currentThread.messages.map((msg) => {
-              const isMe = msg.senderName === "Ravi Zein";
+              const isMe = (currentUser && msg.senderId === currentUser.id) || (currentUser && msg.senderName === currentUser.name);
               return (
                 <div
                   key={msg.id}

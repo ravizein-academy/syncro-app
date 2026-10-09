@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { translations } from "@/lib/i18n";
 
 export default function IntegrationsPage() {
-  const { integrations, toggleIntegration, language } = useStore();
+  const { integrations, toggleIntegration, language, currentUser } = useStore();
   const t = translations[language || 'id'];
 
   const INTEGRATION_LIST = [
@@ -30,7 +30,7 @@ export default function IntegrationsPage() {
         : "Autentikasi satu klik menggunakan Google Workspace atau akun Gmail personal Anda.",
       icon: Lock,
       color: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20",
-      statusText: "ravi@itsecacademy.com",
+      statusText: currentUser?.email || (language === 'en' ? "Connected" : "Terhubung"),
     },
     {
       key: "googleCalendar" as const,

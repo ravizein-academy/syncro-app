@@ -40,6 +40,7 @@ export default function Home() {
     notifications, 
     spaces, 
     language,
+    currentUser,
     lineupTaskIds,
     personalNotes,
     addToLineup,
@@ -187,7 +188,7 @@ export default function Home() {
             </span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-foreground mt-1">
-            {t.heroWelcome}
+            {t.heroWelcome}, {currentUser?.name || (language === 'en' ? 'User' : 'Pengguna')} 👋
           </h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             {formattedDate || (language === 'en' ? "Today's Overview" : "Ringkasan Hari Ini")}

@@ -56,7 +56,7 @@ export const translations = {
 
     // Dashboard
     heroBadge: 'ClickUp Red Workspace',
-    heroWelcome: 'Selamat Datang, Ravi Zein 👋',
+    heroWelcome: 'Selamat Datang',
     heroDesc: 'Manajemen tugas presisi, penjadwalan time blocking kalender, dan kecerdasan Gemini AI dengan antarmuka ClickUp Red yang elegan.',
     openPlanner: 'Buka Planner',
     openAI: 'Gemini AI',
@@ -264,7 +264,7 @@ export const translations = {
 
     // Dashboard
     heroBadge: 'ClickUp Red Workspace',
-    heroWelcome: 'Welcome back, Ravi Zein 👋',
+    heroWelcome: 'Welcome back',
     heroDesc: 'Precision task management, calendar time-blocking scheduling, and Gemini AI intelligence wrapped in sleek ClickUp Red.',
     openPlanner: 'Open Planner',
     openAI: 'Gemini AI',
