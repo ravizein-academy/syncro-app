@@ -6,7 +6,6 @@ import { useStore, Task } from "@/store/useStore";
 import { 
   GripVertical, 
   Clock, 
-  Play, 
   Video, 
   Calendar as CalendarIcon, 
   ChevronLeft, 
@@ -30,9 +29,6 @@ export default function PlannerPage() {
   const { 
     tasks, 
     updateTask, 
-    startTimer, 
-    activeTimerTaskId, 
-    isTimerRunning,
     language 
   } = useStore();
 
@@ -214,8 +210,6 @@ export default function PlannerPage() {
                           }`}
                         >
                           {slotTasks.map((task, index) => {
-                            const isTimerOn = activeTimerTaskId === task.id && isTimerRunning;
-
                             return (
                               <Draggable key={task.id} draggableId={task.id} index={index}>
                                 {(provided, snapshot) => (
@@ -241,35 +235,22 @@ export default function PlannerPage() {
                                         </p>
                                         <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
                                           <Clock size={11} className="text-rose-500" />
-                                          {task.timeTracked || 0}m / {task.timeEstimate || 60}m
+                                          {task.timeEstimate || 60}m
                                         </span>
                                       </div>
                                     </div>
 
-                                    {/* Action Buttons: Meet 1-Click & Live Timer */}
+                                    {/* Action Buttons: Meet 1-Click */}
                                     <div className="flex items-center gap-2">
                                       <Button
                                         size="sm"
                                         variant="outline"
                                         onClick={() => handleGenerateMeet(task.title)}
-                                        className="h-7 px-2 text-[11px] gap-1 border-border text-rose-600 dark:text-rose-300 hover:bg-rose-500/10 rounded-lg"
+                                        className="h-7 px-2.5 text-[11px] gap-1.5 border-border text-rose-600 dark:text-rose-300 hover:bg-rose-500/10 rounded-lg"
                                         title={language === 'en' ? "Open Google Meet" : "Buka Google Meet untuk sesi ini"}
                                       >
                                         <Video size={12} className="text-rose-500" />
                                         <span>Meet</span>
-                                      </Button>
-
-                                      <Button
-                                        size="sm"
-                                        onClick={() => startTimer(task.id)}
-                                        className={`h-7 px-2 text-[11px] gap-1 rounded-lg ${
-                                          isTimerOn
-                                            ? "bg-rose-600 hover:bg-rose-500 text-white font-semibold"
-                                            : "bg-secondary hover:bg-accent text-foreground"
-                                        }`}
-                                      >
-                                        <Play size={11} className={isTimerOn ? "fill-white" : ""} />
-                                        <span>{isTimerOn ? "Tracking" : t.startNow}</span>
                                       </Button>
                                     </div>
                                   </div>

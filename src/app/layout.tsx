@@ -16,8 +16,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "Syncro | ClickUp-Style Task & Time Management",
-  description: "Progressive Web App for Task Management, Time Tracking, and Collaboration.",
+  title: "Syncro | Task Management & Productivity Hub",
+  description: "Progressive Web App for Smart Task Management, Planning, and Team Collaboration.",
   manifest: "/manifest.json",
 };
 

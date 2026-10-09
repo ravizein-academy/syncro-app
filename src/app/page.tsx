@@ -28,7 +28,6 @@ import {
   SlidersHorizontal,
   Flag,
   Tag,
-  Play,
   RotateCcw,
   Maximize2
 } from "lucide-react";
@@ -40,9 +39,6 @@ export default function Home() {
     tasks, 
     notifications, 
     spaces, 
-    startTimer, 
-    activeTimerTaskId, 
-    isTimerRunning, 
     language,
     lineupTaskIds,
     personalNotes,
@@ -130,10 +126,8 @@ export default function Home() {
     return true;
   });
 
-  // Velocity (Total tracked minutes vs 8h = 480 min)
-  const totalTrackedMinutes = tasks.reduce((acc, t) => acc + (t.timeTracked || 0), 0);
-  const targetMinutes = 480; // 8 hours
-  const velocityPercent = Math.min(100, Math.round((totalTrackedMinutes / targetMinutes) * 100));
+  // Task Completion Rate
+  const completionPercent = totalTasks > 0 ? Math.min(100, Math.round((completedTasks.length / totalTasks) * 100)) : 0;
 
   const handleToggleTaskStatus = (task: Task) => {
     updateTask(task.id, { status: task.status === "done" ? "todo" : "done" });
@@ -341,7 +335,6 @@ export default function Home() {
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {lineupTasks.map((task) => {
                   const space = spaces.find((s) => s.id === task.spaceId);
-                  const isTimerOn = activeTimerTaskId === task.id && isTimerRunning;
                   const isDone = task.status === "done";
 
                   return (
@@ -383,25 +376,11 @@ export default function Home() {
                               {space.name}
                             </span>
                           )}
-                          <span className="font-mono text-foreground font-semibold">
-                            {task.timeTracked || 0}m / {task.timeEstimate || 60}m
-                          </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between border-t border-border pt-2 text-xs">
+                      <div className="border-t border-border pt-2 text-xs">
                         <span className="text-[11px] text-muted-foreground">{task.dueDate || t.todayLabel}</span>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => startTimer(task.id)}
-                          className={`h-6 px-2 text-[10px] gap-1 rounded-md ${
-                            isTimerOn ? 'bg-[#EE3726]/15 text-[#EE3726] font-bold' : 'text-foreground hover:bg-accent'
-                          }`}
-                        >
-                          <Play size={10} className={isTimerOn ? 'fill-[#EE3726]' : ''} />
-                          <span>{isTimerOn ? 'Tracking' : t.startNow}</span>
-                        </Button>
                       </div>
                     </div>
                   );
@@ -569,7 +548,6 @@ export default function Home() {
                   myWorkTasks.slice(0, 6).map((task) => {
                     const isDone = task.status === "done";
                     const space = spaces.find((s) => s.id === task.spaceId);
-                    const isTimerOn = activeTimerTaskId === task.id && isTimerRunning;
 
                     return (
                       <div
@@ -602,23 +580,6 @@ export default function Home() {
                               <span>{task.dueDate || t.todayLabel}</span>
                             </div>
                           </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-[11px] font-mono text-muted-foreground hidden sm:inline">
-                            {task.timeTracked || 0}m
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => startTimer(task.id)}
-                            className={`h-6 px-2 text-[10px] gap-1 rounded-md ${
-                              isTimerOn ? 'bg-[#EE3726]/15 text-[#EE3726] font-bold' : 'text-foreground hover:bg-accent'
-                            }`}
-                          >
-                            <Play size={9} className={isTimerOn ? 'fill-[#EE3726]' : ''} />
-                            <span>{isTimerOn ? 'Live' : 'Track'}</span>
-                          </Button>
                         </div>
                       </div>
                     );
@@ -744,7 +705,7 @@ export default function Home() {
             </Card>
           )}
 
-          {/* WIDGET 5: DAILY CAPACITY & VELOCITY */}
+          {/* WIDGET 5: TASK COMPLETION RATE */}
           {visibleWidgets.velocity && (
             <Card className="bg-card border-border shadow-sm">
               <CardHeader className="p-4 pb-2 border-b border-border flex flex-row items-center justify-between">
@@ -766,20 +727,22 @@ export default function Home() {
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-baseline justify-between">
                   <div className="font-mono text-xl font-black text-foreground">
-                    {Math.round((totalTrackedMinutes / 60) * 10) / 10} <span className="text-xs text-muted-foreground font-normal">jam tercatat</span>
+                    {completedTasks.length} <span className="text-xs text-muted-foreground font-normal">/ {totalTasks} {language === 'en' ? 'completed' : 'selesai'}</span>
                   </div>
-                  <span className="text-xs font-bold text-[#EE3726]">{velocityPercent}%</span>
+                  <span className="text-xs font-bold text-[#EE3726]">{completionPercent}%</span>
                 </div>
 
                 <div className="w-full bg-secondary h-2.5 rounded-full overflow-hidden">
                   <div
                     className="h-full bg-gradient-to-r from-[#EE3726] to-[#BA1E10] rounded-full transition-all duration-500"
-                    style={{ width: `${velocityPercent}%` }}
+                    style={{ width: `${completionPercent}%` }}
                   />
                 </div>
 
                 <p className="text-[11px] text-muted-foreground">
-                  Target harian: <strong>8 jam (480 menit)</strong>. Klik tombol play timer pada tugas untuk menambah catatan durasi.
+                  {language === 'en'
+                    ? 'Overall task completion rate across active workspace.'
+                    : 'Tingkat persentase penyelesaian seluruh tugas dalam workspace.'}
                 </p>
               </CardContent>
             </Card>

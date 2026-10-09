@@ -13,12 +13,11 @@ interface LogoutModalProps {
 }
 
 export function LogoutModal({ open, onOpenChange }: LogoutModalProps) {
-  const { language, stopTimer } = useStore();
+  const { language } = useStore();
   const t = translations[language || "id"];
   const [loggedOut, setLoggedOut] = useState(false);
 
   const handleLogout = () => {
-    stopTimer();
     setLoggedOut(true);
     setTimeout(() => {
       setLoggedOut(false);

@@ -4,11 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/store/useStore";
 import { 
-  Play, 
-  Pause, 
-  Square, 
-  Clock, 
-  Plus, 
   Bell, 
   Sparkles, 
   Search,
@@ -23,14 +18,6 @@ import { LogoutModal } from "@/components/layout/LogoutModal";
 
 export function TopNavbar() {
   const { 
-    tasks, 
-    activeTimerTaskId, 
-    timerSeconds, 
-    isTimerRunning, 
-    pauseTimer, 
-    stopTimer, 
-    tickTimer, 
-    startTimer,
     notifications,
     theme,
     toggleTheme,
@@ -40,27 +27,6 @@ export function TopNavbar() {
 
   const t = translations[language || 'id'];
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-
-  useEffect(() => {
-    let interval: any = null;
-    if (isTimerRunning) {
-      interval = setInterval(() => {
-        tickTimer();
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [isTimerRunning, tickTimer]);
-
-  const activeTask = tasks.find((t) => t.id === activeTimerTaskId);
-
-  const formatTimer = (seconds: number) => {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    return `${hrs.toString().padStart(2, "0")}:${mins
-      .toString()
-      .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -77,53 +43,7 @@ export function TopNavbar() {
         </div>
       </div>
 
-      {/* Middle: Active Live Time Tracker (ITSEC Red Edition) */}
-      <div className="flex items-center gap-3">
-        {activeTask ? (
-          <div className="flex items-center gap-3 bg-secondary border border-[#EE3726]/40 px-3.5 py-1.5 rounded-full shadow-sm">
-            <span className="flex h-2 w-2 rounded-full bg-[#EE3726] animate-ping" />
-            <span className="text-xs font-semibold text-foreground max-w-[160px] truncate">
-              {activeTask.title}
-            </span>
-            <span className="font-mono text-xs font-bold text-[#EE3726] bg-[#EE3726]/10 px-2 py-0.5 rounded border border-[#EE3726]/30">
-              {formatTimer(timerSeconds)}
-            </span>
-            <div className="flex items-center gap-1 border-l border-border pl-2">
-              {isTimerRunning ? (
-                <button
-                  onClick={pauseTimer}
-                  title="Pause timer"
-                  className="p-1 hover:text-amber-500 text-muted-foreground transition"
-                >
-                  <Pause size={14} />
-                </button>
-              ) : (
-                <button
-                  onClick={() => startTimer(activeTask.id)}
-                  title="Resume timer"
-                  className="p-1 hover:text-[#EE3726] text-muted-foreground transition"
-                >
-                  <Play size={14} />
-                </button>
-              )}
-              <button
-                onClick={stopTimer}
-                title="Stop and save time"
-                className="p-1 hover:text-[#EE3726] text-muted-foreground transition"
-              >
-                <Square size={14} />
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="hidden md:flex items-center gap-2 text-xs text-muted-foreground bg-secondary px-3.5 py-1.5 rounded-full border border-border">
-            <Clock size={13} className="text-[#EE3726]" />
-            <span>{t.timerIdle}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Right controls: Theme Switcher, Language Switcher, Gemini AI, Notifications, ClickUp New Task */}
+      {/* Right controls: Theme Switcher, Language Switcher, Gemini AI, Notifications, Profile Logout */}
       <div className="flex items-center gap-2.5">
         {/* Language Switcher */}
         <div className="flex items-center bg-secondary border border-border rounded-lg p-0.5 text-xs font-bold">

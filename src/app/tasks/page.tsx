@@ -34,9 +34,6 @@ export default function TasksPage() {
   const { 
     tasks, 
     updateTask, 
-    startTimer, 
-    activeTimerTaskId, 
-    isTimerRunning, 
     spaces,
     users,
     addTask,
@@ -337,9 +334,8 @@ export default function TasksPage() {
                 {!isCollapsed && groupTasks.length > 0 && (
                   <div className="hidden md:grid grid-cols-12 gap-3 px-4 py-1.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border">
                     <div className="col-span-6">{t.colTaskName}</div>
-                    <div className="col-span-2">{t.colAssigneeSpace}</div>
-                    <div className="col-span-2">{t.colDueDate}</div>
-                    <div className="col-span-2 text-right">{t.colTimeTracked}</div>
+                    <div className="col-span-3">{t.colAssigneeSpace}</div>
+                    <div className="col-span-3 text-right">{t.colDueDate}</div>
                   </div>
                 )}
 
@@ -354,11 +350,7 @@ export default function TasksPage() {
                       groupTasks.map((task) => {
                         const isDone = task.status === "done";
                         const space = spaces.find((s) => s.id === task.spaceId);
-                        const isTimerActiveForThis = activeTimerTaskId === task.id && isTimerRunning;
                         const assignee = users.find((u) => u.id === task.assigneeId);
-                        const progressPercent = task.timeEstimate 
-                          ? Math.min(100, Math.round(((task.timeTracked || 0) / task.timeEstimate) * 100)) 
-                          : 0;
 
                         return (
                           <div
@@ -398,8 +390,8 @@ export default function TasksPage() {
                               </div>
                             </div>
 
-                            {/* Col 7-8: Assignee & Space */}
-                            <div className="col-span-2 flex items-center gap-2">
+                            {/* Col 7-9: Assignee & Space */}
+                            <div className="col-span-3 flex items-center gap-2">
                               {assignee ? (
                                 <div className="h-6 w-6 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center text-[10px] font-bold text-white shadow ring-1 ring-[#EE3726]/30">
                                   {assignee.avatar}
@@ -417,41 +409,10 @@ export default function TasksPage() {
                               )}
                             </div>
 
-                            {/* Col 9-10: Due Date */}
-                            <div className="col-span-2 flex items-center gap-1.5 text-xs text-muted-foreground">
+                            {/* Col 10-12: Due Date */}
+                            <div className="col-span-3 flex items-center justify-end gap-1.5 text-xs text-muted-foreground">
                               <Calendar size={12} className="text-muted-foreground" />
                               <span>{task.dueDate || (language === 'en' ? 'No due date' : 'Tanpa batas')}</span>
-                            </div>
-
-                            {/* Col 11-12: Time Tracked & Live Timer */}
-                            <div className="col-span-2 flex items-center justify-end gap-2 w-full md:w-auto">
-                              <div className="flex flex-col items-end">
-                                <div className="flex items-center gap-1 text-xs font-mono">
-                                  <Clock size={11} className="text-[#EE3726]" />
-                                  <span className="text-[#EE3726] font-bold">{task.timeTracked || 0}m</span>
-                                  <span className="text-muted-foreground">/ {task.timeEstimate || 60}m</span>
-                                </div>
-                                <div className="w-16 h-1 bg-secondary rounded-full overflow-hidden mt-0.5">
-                                  <div
-                                    className="h-full bg-[#EE3726] rounded-full transition-all"
-                                    style={{ width: `${progressPercent}%` }}
-                                  />
-                                </div>
-                              </div>
-
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => startTimer(task.id)}
-                                className={`h-7 px-2.5 text-xs gap-1 border-border rounded-lg transition ${
-                                  isTimerActiveForThis
-                                    ? "bg-[#EE3726]/20 text-[#EE3726] border-[#EE3726]/50 shadow-sm"
-                                    : "text-foreground hover:bg-accent"
-                                }`}
-                              >
-                                <Play size={10} className={isTimerActiveForThis ? "fill-[#EE3726] text-[#EE3726]" : ""} />
-                                <span>{isTimerActiveForThis ? "Live" : "Start"}</span>
-                              </Button>
                             </div>
                           </div>
                         );
@@ -507,7 +468,6 @@ export default function TasksPage() {
                 {/* Cards in Column */}
                 <div className="space-y-2.5 min-h-[300px]">
                   {groupTasks.map((task) => {
-                    const isTimerActiveForThis = activeTimerTaskId === task.id && isTimerRunning;
                     const space = spaces.find((s) => s.id === task.spaceId);
 
                     return (
@@ -544,31 +504,6 @@ export default function TasksPage() {
                               <span>{space.name}</span>
                             </div>
                           )}
-
-                          <div className="flex items-center justify-between pt-2 border-t border-border text-xs">
-                            <div className="flex items-center gap-1 font-mono text-[11px] text-muted-foreground">
-                              <Clock size={11} className="text-[#EE3726]" />
-                              <span className="text-[#EE3726] font-semibold">{task.timeTracked || 0}m</span>
-                              <span>/ {task.timeEstimate || 60}m</span>
-                            </div>
-
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                startTimer(task.id);
-                              }}
-                              className={`h-6 px-2 text-[10px] gap-1 border-border rounded-md ${
-                                isTimerActiveForThis
-                                  ? "bg-[#EE3726]/20 text-[#EE3726] border-[#EE3726]/50"
-                                  : "text-foreground hover:bg-accent"
-                              }`}
-                            >
-                              <Play size={9} className={isTimerActiveForThis ? "fill-[#EE3726] text-[#EE3726]" : ""} />
-                              <span>{isTimerActiveForThis ? "Live" : "Start"}</span>
-                            </Button>
-                          </div>
 
                           {/* Quick Status Shift Buttons */}
                           <div className="flex items-center justify-between gap-1 pt-1 text-[10px] text-muted-foreground">

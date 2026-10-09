@@ -77,13 +77,13 @@ export const translations = {
     notepadPlaceholder: 'Tulis ide, memo, atau catatan cepat di sini...',
     agendaTitle: 'Agenda & Time Blocking Hari Ini',
     agendaDesc: 'Jadwal jam kerja yang sinkron dengan Planner dan Google Calendar.',
-    velocityTitle: 'Kapasitas & Pelacak Waktu Hari Ini',
-    velocityTarget: 'Target 8 Jam Kerja Harian',
+    velocityTitle: 'Tingkat Penyelesaian Tugas',
+    velocityTarget: 'Persentase tugas selesai dari total tugas aktif',
 
     // Tasks Page
     taskMgmtTag: 'Manajemen Tugas',
     myTasksTitle: 'My Tasks',
-    myTasksSubtitle: 'Pengorganisasian tugas ClickUp-style dengan time tracking, durasi estimasi, dan prioritas cerdas.',
+    myTasksSubtitle: 'Pengorganisasian tugas terstruktur dengan status, prioritas cerdas, dan kolaborasi tim.',
     tabAssigned: 'Assigned to me',
     tabToday: 'Today & Overdue',
     tabPersonal: 'Personal List',
@@ -259,13 +259,13 @@ export const translations = {
     notepadPlaceholder: 'Write ideas, memos, or scratchpad notes here...',
     agendaTitle: "Today's Agenda & Time Blocking",
     agendaDesc: 'Hourly schedule synced with Planner and Google Calendar.',
-    velocityTitle: 'Daily Capacity & Time Tracker',
-    velocityTarget: '8 Hours Daily Target',
+    velocityTitle: 'Task Completion Rate',
+    velocityTarget: 'Percentage of completed tasks from active workload',
 
     // Tasks Page
     taskMgmtTag: 'Task Management',
     myTasksTitle: 'My Tasks',
-    myTasksSubtitle: 'ClickUp-style task organization with time tracking, estimated durations, and smart priorities.',
+    myTasksSubtitle: 'Structured task management with statuses, smart priorities, and team collaboration.',
     tabAssigned: 'Assigned to me',
     tabToday: 'Today & Overdue',
     tabPersonal: 'Personal List',
