@@ -84,37 +84,37 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: #0d0e13;
+  --foreground: #f1f5f9;
+  --card: #13151f;
+  --card-foreground: #f8fafc;
+  --popover: #13151f;
+  --popover-foreground: #f8fafc;
+  --primary: #e11d48;
+  --primary-foreground: #ffffff;
+  --secondary: #1b1d29;
+  --secondary-foreground: #f1f5f9;
+  --muted: #181a26;
+  --muted-foreground: #94a3b8;
+  --accent: #2a151e;
+  --accent-foreground: #fb7185;
+  --destructive: #ef4444;
+  --border: #222536;
+  --input: #222536;
+  --ring: #e11d48;
+  --chart-1: #e11d48;
+  --chart-2: #f43f5e;
+  --chart-3: #fb7185;
+  --chart-4: #fda4af;
+  --chart-5: #ffe4e6;
+  --sidebar: #090a0f;
+  --sidebar-foreground: #f1f5f9;
+  --sidebar-primary: #e11d48;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1e141a;
+  --sidebar-accent-foreground: #fb7185;
+  --sidebar-border: #1a1c28;
+  --sidebar-ring: #e11d48;
 }
 
 @layer base {
@@ -122,9 +122,26 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased selection:bg-rose-600/30 selection:text-rose-200;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   html {
     @apply font-sans;
   }
+}
+
+/* ClickUp Style Ultra-Thin Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #232636;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #e11d48;
 }

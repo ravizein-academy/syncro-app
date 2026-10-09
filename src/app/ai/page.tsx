@@ -10,15 +10,14 @@ import {
   Send, 
   Loader2, 
   Copy, 
-  Check, 
-  Plus 
+  Check 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 
 export default function AIPage() {
-  const { tasks, addTask } = useStore();
+  const { tasks } = useStore();
   const [activeTab, setActiveTab] = useState<"knowledge" | "standup" | "agent">("knowledge");
 
   // Knowledge Manager State
@@ -111,25 +110,29 @@ export default function AIPage() {
   };
 
   return (
-    <div className="p-8 space-y-8 max-w-6xl mx-auto">
+    <div className="p-8 space-y-8 max-w-6xl mx-auto select-none">
       {/* Title */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-slate-100 flex items-center gap-3">
-            <Sparkles className="text-blue-400" />
+          <div className="flex items-center gap-2">
+            <span className="flex h-2 w-2 rounded-full bg-rose-500" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400">Gemini Intelligence</span>
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3 mt-1">
+            <Sparkles className="text-rose-500" />
             Gemini AI Engine
           </h1>
-          <p className="text-sm text-slate-400 mt-1">
+          <p className="text-xs text-slate-400 mt-1">
             Kecerdasan buatan terintegrasi untuk Knowledge Management, Content Writing, dan Super Agents.
           </p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex bg-slate-900 border border-slate-800 p-1 rounded-xl">
+        <div className="flex bg-[#12131b] border border-[#222533] p-1 rounded-xl shadow-inner">
           <button
             onClick={() => setActiveTab("knowledge")}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-              activeTab === "knowledge" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"
+              activeTab === "knowledge" ? "bg-rose-600 text-white shadow-md shadow-rose-950/40" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <BookOpen size={14} />
@@ -138,7 +141,7 @@ export default function AIPage() {
           <button
             onClick={() => setActiveTab("standup")}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-              activeTab === "standup" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"
+              activeTab === "standup" ? "bg-rose-600 text-white shadow-md shadow-rose-950/40" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <FileText size={14} />
@@ -147,7 +150,7 @@ export default function AIPage() {
           <button
             onClick={() => setActiveTab("agent")}
             className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition ${
-              activeTab === "agent" ? "bg-blue-600 text-white" : "text-slate-400 hover:text-slate-200"
+              activeTab === "agent" ? "bg-rose-600 text-white shadow-md shadow-rose-950/40" : "text-slate-400 hover:text-slate-200"
             }`}
           >
             <BrainCircuit size={14} />
@@ -158,10 +161,10 @@ export default function AIPage() {
 
       {/* Feature 1: Knowledge Manager */}
       {activeTab === "knowledge" && (
-        <Card className="bg-slate-900/90 border-slate-800 shadow-sm">
+        <Card className="bg-[#12131b] border-[#222533] shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BookOpen className="text-blue-400" size={18} />
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <BookOpen className="text-rose-500" size={18} />
               Knowledge Manager
             </CardTitle>
             <CardDescription className="text-xs text-slate-400">
@@ -174,17 +177,17 @@ export default function AIPage() {
                 placeholder="e.g. Apa saja tugas berprioritas tinggi yang belum selesai minggu ini?"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
-                className="bg-slate-950 border-slate-800 text-xs h-11 text-slate-200"
+                className="bg-[#181a24] border-[#2c3044] text-xs h-11 text-slate-200 focus-visible:ring-rose-500 rounded-xl"
               />
-              <Button type="submit" disabled={isKnowledgeLoading} className="bg-blue-600 hover:bg-blue-500 h-11 px-5">
+              <Button type="submit" disabled={isKnowledgeLoading} className="bg-rose-600 hover:bg-rose-500 h-11 px-5 rounded-xl shadow-md shadow-rose-950/40">
                 {isKnowledgeLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               </Button>
             </form>
 
             {knowledgeAnswer && (
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-2">
-                  <span className="flex items-center gap-1.5 text-blue-400 font-semibold">
+              <div className="p-4 rounded-xl bg-[#161722] border border-[#252838] space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400 border-b border-[#252838] pb-2">
+                  <span className="flex items-center gap-1.5 text-rose-400 font-bold">
                     <Sparkles size={13} />
                     Jawaban Gemini AI
                   </span>
@@ -196,7 +199,7 @@ export default function AIPage() {
                     <span>{copied ? "Tersalin" : "Salin"}</span>
                   </button>
                 </div>
-                <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap pt-1">
+                <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap pt-1 font-sans">
                   {knowledgeAnswer}
                 </p>
               </div>
@@ -207,10 +210,10 @@ export default function AIPage() {
 
       {/* Feature 2: Content & Project Writer */}
       {activeTab === "standup" && (
-        <Card className="bg-slate-900/90 border-slate-800 shadow-sm">
+        <Card className="bg-[#12131b] border-[#222533] shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="text-indigo-400" size={18} />
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <FileText className="text-rose-500" size={18} />
               Content & Project Writer (Standup Generator)
             </CardTitle>
             <CardDescription className="text-xs text-slate-400">
@@ -218,9 +221,9 @@ export default function AIPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between bg-slate-950/60 p-4 rounded-xl border border-slate-800">
+            <div className="flex items-center justify-between bg-[#161722] p-4 rounded-xl border border-[#252838]">
               <div>
-                <h4 className="text-sm font-semibold text-slate-200">Generate Standup Report Otomatis</h4>
+                <h4 className="text-sm font-bold text-white">Generate Standup Report Otomatis</h4>
                 <p className="text-xs text-slate-400 mt-0.5">
                   AI akan membaca {tasks.length} tugas yang ada di store untuk menyusun format 3 poin standar tim.
                 </p>
@@ -228,7 +231,7 @@ export default function AIPage() {
               <Button
                 onClick={handleGenerateStandup}
                 disabled={isStandupLoading}
-                className="bg-blue-600 hover:bg-blue-500 text-xs h-9 gap-1.5"
+                className="bg-rose-600 hover:bg-rose-500 text-xs h-9 gap-1.5 rounded-lg shadow-md shadow-rose-950/40 font-semibold"
               >
                 {isStandupLoading && <Loader2 size={14} className="animate-spin" />}
                 <Sparkles size={14} />
@@ -237,9 +240,9 @@ export default function AIPage() {
             </div>
 
             {standupReport && (
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-2">
-                  <span className="text-indigo-400 font-semibold flex items-center gap-1.5">
+              <div className="p-4 rounded-xl bg-[#161722] border border-[#252838] space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400 border-b border-[#252838] pb-2">
+                  <span className="text-rose-400 font-bold flex items-center gap-1.5">
                     <Sparkles size={13} />
                     Hasil Draf Standup
                   </span>
@@ -260,12 +263,12 @@ export default function AIPage() {
         </Card>
       )}
 
-      {/* Feature 3: Super Agent (Brain) */}
+      {/* Feature 3: Super Agent */}
       {activeTab === "agent" && (
-        <Card className="bg-slate-900/90 border-slate-800 shadow-sm">
+        <Card className="bg-[#12131b] border-[#222533] shadow-sm">
           <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <BrainCircuit className="text-emerald-400" size={18} />
+            <CardTitle className="text-lg font-bold flex items-center gap-2">
+              <BrainCircuit className="text-rose-500" size={18} />
               Super Agents (Brain) - Action Item Extractor
             </CardTitle>
             <CardDescription className="text-xs text-slate-400">
@@ -279,14 +282,14 @@ export default function AIPage() {
                 rows={5}
                 value={meetingNotes}
                 onChange={(e) => setMeetingNotes(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-sans"
+                className="w-full bg-[#181a24] border border-[#2c3044] rounded-xl p-3 text-xs text-slate-200 focus:outline-none focus:border-rose-500 font-sans leading-relaxed"
               />
             </div>
 
             <Button
               onClick={handleExtractActions}
               disabled={isAgentLoading}
-              className="bg-emerald-600 hover:bg-emerald-500 text-xs h-9 gap-1.5"
+              className="bg-rose-600 hover:bg-rose-500 text-xs h-9 gap-1.5 rounded-lg shadow-md shadow-rose-950/40 font-semibold"
             >
               {isAgentLoading && <Loader2 size={14} className="animate-spin" />}
               <Sparkles size={14} />
@@ -294,9 +297,9 @@ export default function AIPage() {
             </Button>
 
             {extractedActions && (
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-xs text-slate-400 border-b border-slate-800 pb-2">
-                  <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
+              <div className="p-4 rounded-xl bg-[#161722] border border-[#252838] space-y-2">
+                <div className="flex items-center justify-between text-xs text-slate-400 border-b border-[#252838] pb-2">
+                  <span className="text-rose-400 font-bold flex items-center gap-1.5">
                     <Sparkles size={13} />
                     Daftar Action Items Terdeteksi
                   </span>
