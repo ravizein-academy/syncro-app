@@ -9,6 +9,16 @@ export interface TaskAttachment {
   size?: string;
 }
 
+export interface TaskComment {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderAvatar?: string;
+  senderDepartment?: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Task {
   id: string;
   title: string;
@@ -25,6 +35,7 @@ export interface Task {
   tags?: string[];
   subtasks?: { id: string; title: string; done: boolean }[];
   attachments?: TaskAttachment[];
+  comments?: TaskComment[];
   createdAt: string;
 }
 
@@ -127,6 +138,10 @@ interface AppState {
   stopTimer: () => void;
   tickTimer: () => void;
 
+  // Task Comments Actions
+  addTaskComment: (taskId: string, comment: Omit<TaskComment, 'id' | 'createdAt'>) => void;
+  deleteTaskComment: (taskId: string, commentId: string) => void;
+
   // Space Actions
   addSpace: (space: Omit<Space, 'id'>) => void;
 
@@ -160,9 +175,102 @@ const INITIAL_SPACES: Space[] = [
 ];
 
 const INITIAL_TASKS: Task[] = [
-  { id: 't1', title: 'Review PRD Syncro & Gemini API Schema', description: 'Pastikan seluruh scope modul ClickUp & Gemini terakomodasi.', status: 'done', priority: 'high', assigneeId: 'u1', spaceId: 'sp1', dueDate: '2026-10-08', timeEstimate: 120, timeTracked: 110, scheduledSlot: '08:00 AM', isPersonal: false, createdAt: '2026-10-07' },
-  { id: 't2', title: 'Design System & Dark Mode Aesthetics', description: 'Implementasi tema gelap modern dengan Tailwind CSS.', status: 'done', priority: 'urgent', assigneeId: 'u3', spaceId: 'sp1', dueDate: '2026-10-08', timeEstimate: 180, timeTracked: 175, scheduledSlot: '10:00 AM', isPersonal: false, createdAt: '2026-10-07' },
-  { id: 't3', title: 'Setup Google Apps Script REST Endpoint', description: 'Hubungkan doGet dan doPost ke Google Sheets database.', status: 'in-progress', priority: 'high', assigneeId: 'u1', spaceId: 'sp3', dueDate: '2026-10-09', timeEstimate: 240, timeTracked: 95, scheduledSlot: '01:00 PM', isPersonal: false, createdAt: '2026-10-08' },
+  { 
+    id: 't1', 
+    title: 'Review PRD Syncro & Gemini API Schema', 
+    description: 'Pastikan seluruh scope modul ClickUp & Gemini terakomodasi.', 
+    status: 'done', 
+    priority: 'high', 
+    assigneeId: 'u1', 
+    spaceId: 'sp1', 
+    dueDate: '2026-10-08', 
+    timeEstimate: 120, 
+    timeTracked: 110, 
+    scheduledSlot: '08:00 AM', 
+    isPersonal: false, 
+    createdAt: '2026-10-07',
+    comments: [
+      {
+        id: 'c1',
+        senderId: 'u2',
+        senderName: 'Sarah Connor',
+        senderAvatar: 'SC',
+        senderDepartment: 'Product',
+        text: 'Review PRD sudah tuntas! Scope ClickUp 3.0 & integrasi AI Gemini sudah disetujui.',
+        createdAt: '2026-10-07T09:30:00.000Z',
+      },
+      {
+        id: 'c2',
+        senderId: 'u1',
+        senderName: 'Ravi Zein',
+        senderAvatar: 'RZ',
+        senderDepartment: 'Engineering',
+        text: 'Mantap Sarah! Lanjut ke integrasi Google Apps Script REST Endpoint.',
+        createdAt: '2026-10-07T10:15:00.000Z',
+      }
+    ]
+  },
+  { 
+    id: 't2', 
+    title: 'Design System & Dark Mode Aesthetics', 
+    description: 'Implementasi tema gelap modern dengan Tailwind CSS.', 
+    status: 'done', 
+    priority: 'urgent', 
+    assigneeId: 'u3', 
+    spaceId: 'sp1', 
+    dueDate: '2026-10-08', 
+    timeEstimate: 180, 
+    timeTracked: 175, 
+    scheduledSlot: '10:00 AM', 
+    isPersonal: false, 
+    createdAt: '2026-10-07',
+    comments: [
+      {
+        id: 'c3',
+        senderId: 'u3',
+        senderName: 'Alex Rivera',
+        senderAvatar: 'AR',
+        senderDepartment: 'Design',
+        text: 'Nuansa warna ITSEC Red (#EE3726) sudah diaplikasikan ke seluruh komponen modal dan badge.',
+        createdAt: '2026-10-07T14:20:00.000Z',
+      }
+    ]
+  },
+  { 
+    id: 't3', 
+    title: 'Setup Google Apps Script REST Endpoint', 
+    description: 'Hubungkan doGet dan doPost ke Google Sheets database.', 
+    status: 'in-progress', 
+    priority: 'high', 
+    assigneeId: 'u1', 
+    spaceId: 'sp3', 
+    dueDate: '2026-10-09', 
+    timeEstimate: 240, 
+    timeTracked: 95, 
+    scheduledSlot: '01:00 PM', 
+    isPersonal: false, 
+    createdAt: '2026-10-08',
+    comments: [
+      {
+        id: 'c4',
+        senderId: 'u1',
+        senderName: 'Ravi Zein',
+        senderAvatar: 'RZ',
+        senderDepartment: 'Engineering',
+        text: 'Web app URL Apps Script sudah berhasil dideploy dengan akses Any User.',
+        createdAt: '2026-10-08T11:00:00.000Z',
+      },
+      {
+        id: 'c5',
+        senderId: 'u2',
+        senderName: 'Sarah Connor',
+        senderAvatar: 'SC',
+        senderDepartment: 'Product',
+        text: 'Bagus Ravi, pastikan CORS headers dan respon JSON error 400 terformat dengan rapi.',
+        createdAt: '2026-10-08T11:45:00.000Z',
+      }
+    ]
+  },
   { id: 't4', title: 'Interactive Planner & Time Blocking Drag-Drop', description: 'Fitur kalender harian, mingguan, dan unscheduled drawer.', status: 'in-progress', priority: 'urgent', assigneeId: 'u1', spaceId: 'sp1', dueDate: '2026-10-09', timeEstimate: 180, timeTracked: 60, scheduledSlot: '03:00 PM', isPersonal: false, createdAt: '2026-10-08' },
   { id: 't5', title: 'Integrasi Google Meet 1-Click Link Generator', description: 'Buat tombol pembuatan room Meet langsung dari Planner.', status: 'todo', priority: 'normal', assigneeId: 'u2', spaceId: 'sp1', dueDate: '2026-10-10', timeEstimate: 90, timeTracked: 0, isPersonal: false, createdAt: '2026-10-08' },
   { id: 't6', title: 'Personal: Siapkan slide presentasi standup mingguan', description: 'Catatan poin-poin progress untuk sync tim.', status: 'todo', priority: 'low', assigneeId: 'u1', dueDate: '2026-10-09', timeEstimate: 45, timeTracked: 0, isPersonal: true, createdAt: '2026-10-08' },
@@ -287,6 +395,44 @@ export const useStore = create<AppState>()(
       deleteTask: (id) =>
         set((state) => ({
           tasks: state.tasks.filter((t) => t.id !== id),
+        })),
+
+      addTaskComment: (taskId, commentData) =>
+        set((state) => {
+          const newComment: TaskComment = {
+            ...commentData,
+            id: `c_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+            createdAt: new Date().toISOString(),
+          };
+
+          const targetTask = state.tasks.find((t) => t.id === taskId);
+          const newNotif: NotificationItem = {
+            id: `notif_${Date.now()}`,
+            sender: commentData.senderName,
+            action: 'mengomentari task',
+            target: targetTask ? targetTask.title : 'Tugas',
+            time: 'Baru saja',
+            read: false,
+            type: 'task',
+          };
+
+          return {
+            tasks: state.tasks.map((t) =>
+              t.id === taskId
+                ? { ...t, comments: [...(t.comments || []), newComment] }
+                : t
+            ),
+            notifications: [newNotif, ...state.notifications],
+          };
+        }),
+
+      deleteTaskComment: (taskId, commentId) =>
+        set((state) => ({
+          tasks: state.tasks.map((t) =>
+            t.id === taskId
+              ? { ...t, comments: (t.comments || []).filter((c) => c.id !== commentId) }
+              : t
+          ),
         })),
 
       startTimer: (taskId) => {

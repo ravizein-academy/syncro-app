@@ -29,7 +29,8 @@ import {
   Eye,
   EyeOff,
   Briefcase,
-  Paperclip
+  Paperclip,
+  MessageSquare
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -78,7 +79,8 @@ export default function TasksPage() {
   const [createDefaultSpace, setCreateDefaultSpace] = useState<string | undefined>(undefined);
   
   // Task Detail Modal State
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const selectedTask = useMemo(() => tasks.find((t) => t.id === selectedTaskId) || null, [tasks, selectedTaskId]);
   const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   // Calendar View State
@@ -96,7 +98,7 @@ export default function TasksPage() {
   };
 
   const handleOpenDetail = (task: Task) => {
-    setSelectedTask(task);
+    setSelectedTaskId(task.id);
     setDetailModalOpen(true);
   };
 
@@ -588,6 +590,14 @@ export default function TasksPage() {
                                 </span>
                               )}
 
+                              {/* Comments counter */}
+                              {task.comments && task.comments.length > 0 && (
+                                <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded border border-border shrink-0" title={`${task.comments.length} komentar`}>
+                                  <MessageSquare size={10} className="text-[#EE3726]" />
+                                  <span>{task.comments.length}</span>
+                                </span>
+                              )}
+
                               {/* Pin indicator */}
                               {isPinned && (
                                 <span title="Disematkan ke Lineup" className="shrink-0">
@@ -741,6 +751,12 @@ export default function TasksPage() {
                               <span className="inline-flex items-center gap-1 bg-secondary px-1.5 py-0.5 rounded border border-border">
                                 <Paperclip size={10} className="text-[#EE3726]" />
                                 <span>{task.attachments.length}</span>
+                              </span>
+                            )}
+                            {task.comments && task.comments.length > 0 && (
+                              <span className="inline-flex items-center gap-1 bg-secondary px-1.5 py-0.5 rounded border border-border" title={`${task.comments.length} komentar`}>
+                                <MessageSquare size={10} className="text-[#EE3726]" />
+                                <span>{task.comments.length}</span>
                               </span>
                             )}
                           </div>

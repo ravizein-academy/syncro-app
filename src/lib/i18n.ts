@@ -181,7 +181,18 @@ export const translations = {
     allNotifications: 'Semua',
     unreadNotifications: 'Belum Dibaca',
     allCaughtUp: 'Semua pemberitahuan sudah terbaca',
-    allCaughtUpSub: 'Tidak ada notifikasi baru untuk saat ini.'
+    allCaughtUpSub: 'Tidak ada notifikasi baru untuk saat ini.',
+
+    // Task Comments
+    taskCommentsTitle: 'Aktivitas & Komentar',
+    taskCommentsSubtitle: 'Diskusikan tugas ini bersama tim',
+    commentAs: 'Komentar sebagai',
+    writeCommentPlaceholder: 'Tulis komentar atau update tugas... (Tekan Enter)',
+    sendComment: 'Kirim',
+    noCommentsYet: 'Belum ada komentar untuk task ini.',
+    noCommentsSub: 'Mulai diskusi atau koordinasi dengan rekan tim di sini.',
+    deleteComment: 'Hapus komentar',
+    commentsCount: 'komentar',
   },
   en: {
     // Brand & Workspace
@@ -363,6 +374,17 @@ export const translations = {
     allNotifications: 'All',
     unreadNotifications: 'Unread',
     allCaughtUp: 'All notifications caught up',
-    allCaughtUpSub: 'You have no new notifications right now.'
+    allCaughtUpSub: 'You have no new notifications right now.',
+
+    // Task Comments
+    taskCommentsTitle: 'Activity & Comments',
+    taskCommentsSubtitle: 'Discuss this task with team members',
+    commentAs: 'Comment as',
+    writeCommentPlaceholder: 'Write a comment or task update... (Press Enter)',
+    sendComment: 'Send',
+    noCommentsYet: 'No comments on this task yet.',
+    noCommentsSub: 'Start a discussion or coordinate with teammates here.',
+    deleteComment: 'Delete comment',
+    commentsCount: 'comments',
   }
 };

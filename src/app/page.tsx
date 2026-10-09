@@ -376,6 +376,12 @@ export default function Home() {
                               {space.name}
                             </span>
                           )}
+                          {task.comments && task.comments.length > 0 && (
+                            <span className="bg-card px-1.5 py-0.5 rounded border border-border flex items-center gap-1 text-[#EE3726] shrink-0 font-semibold" title={`${task.comments.length} komentar`}>
+                              <MessageSquare size={10} />
+                              <span>{task.comments.length}</span>
+                            </span>
+                          )}
                         </div>
                       </div>
 
