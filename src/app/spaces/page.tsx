@@ -8,9 +8,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import Link from "next/link";
+import { translations } from "@/lib/i18n";
 
 export default function SpacesPage() {
-  const { spaces, tasks, addSpace } = useStore();
+  const { spaces, tasks, addSpace, language } = useStore();
+  const t = translations[language || 'id'];
+
   const [openDialog, setOpenDialog] = useState(false);
   const [spaceName, setSpaceName] = useState("");
   const [spaceDesc, setSpaceDesc] = useState("");
@@ -30,7 +33,7 @@ export default function SpacesPage() {
 
     addSpace({
       name: spaceName,
-      description: spaceDesc || "Ruang kerja tim untuk kolaborasi proyek",
+      description: spaceDesc || (language === 'en' ? "Team workspace for project collaboration" : "Ruang kerja tim untuk kolaborasi proyek"),
       color: selectedColor,
     });
 
@@ -40,20 +43,20 @@ export default function SpacesPage() {
   };
 
   return (
-    <div className="p-8 space-y-6 max-w-7xl mx-auto select-none">
+    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto select-none transition-colors duration-200">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-rose-500" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400">Workspace Spaces</span>
+            <span className="flex h-2 w-2 rounded-full bg-rose-500 shadow-sm" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">{t.spacesTag}</span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5 mt-1">
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-2.5 mt-1">
             <Briefcase className="text-rose-500" />
-            Spaces Proyek
+            {t.spacesTitle}
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Pengelompokan ruang kerja utama, divisi, dan proyek ClickUp-style di Syncro.
+          <p className="text-xs text-muted-foreground mt-1">
+            {t.spacesSubtitle}
           </p>
         </div>
 
@@ -62,55 +65,56 @@ export default function SpacesPage() {
             render={
               <Button className="bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs gap-1.5 h-9 shadow-md shadow-rose-950/40 rounded-lg">
                 <Plus size={14} />
-                <span>Buat Space Baru</span>
+                <span>{t.createSpaceBtn}</span>
               </Button>
             }
           />
-          <DialogContent className="bg-[#12131b] border-[#222533] text-slate-100 sm:max-w-[425px]">
+          <DialogContent className="bg-card border-border text-foreground sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle className="text-lg font-bold">Buat Space Baru</DialogTitle>
+              <DialogTitle className="text-lg font-bold">{t.createSpaceBtn}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreateSpace} className="space-y-4 pt-2">
               <div>
-                <label className="text-xs text-slate-400 mb-1 block">Nama Space</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t.spaceNameLabel}</label>
                 <Input
                   required
-                  placeholder="e.g. Mobile Apps V2, Security Compliance"
+                  placeholder={t.spaceNamePlaceholder}
                   value={spaceName}
                   onChange={(e) => setSpaceName(e.target.value)}
-                  className="bg-[#181a24] border-[#252837] text-sm focus-visible:ring-rose-500"
+                  className="bg-secondary border-border text-sm focus-visible:ring-rose-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400 mb-1 block">Deskripsi Singkat</label>
+                <label className="text-xs text-muted-foreground mb-1 block">{t.spaceDescLabel}</label>
                 <Input
-                  placeholder="e.g. Ruang lingkup fitur iOS & Android"
+                  placeholder={t.spaceDescPlaceholder}
                   value={spaceDesc}
                   onChange={(e) => setSpaceDesc(e.target.value)}
-                  className="bg-[#181a24] border-[#252837] text-sm focus-visible:ring-rose-500"
+                  className="bg-secondary border-border text-sm focus-visible:ring-rose-500"
                 />
               </div>
               <div>
-                <label className="text-xs text-slate-400 mb-1.5 block">Warna Tema Space</label>
+                <label className="text-xs text-muted-foreground mb-1.5 block">{t.spaceColorLabel}</label>
                 <div className="grid grid-cols-5 gap-2">
                   {COLOR_OPTIONS.map((c) => (
                     <button
                       key={c.val}
                       type="button"
                       onClick={() => setSelectedColor(c.val)}
-                      className={`h-8 rounded-lg bg-gradient-to-r ${c.val} transition ring-2 ${
-                        selectedColor === c.val ? "ring-white scale-105" : "ring-transparent opacity-80"
+                      className={`h-8 rounded-lg bg-gradient-to-r ${c.val} transition-transform ${
+                        selectedColor === c.val ? "scale-110 ring-2 ring-foreground shadow-md" : "opacity-70 hover:opacity-100"
                       }`}
+                      title={c.label}
                     />
                   ))}
                 </div>
               </div>
               <div className="flex justify-end gap-2 pt-2">
-                <Button type="button" variant="ghost" onClick={() => setOpenDialog(false)} className="text-xs">
-                  Batal
+                <Button type="button" variant="ghost" size="sm" onClick={() => setOpenDialog(false)}>
+                  {t.modalCancel}
                 </Button>
-                <Button type="submit" className="bg-rose-600 hover:bg-rose-500 text-xs font-semibold">
-                  Simpan Space
+                <Button type="submit" size="sm" className="bg-rose-600 hover:bg-rose-500 text-white font-semibold">
+                  {t.saveSpaceBtn}
                 </Button>
               </div>
             </form>
@@ -118,58 +122,60 @@ export default function SpacesPage() {
         </Dialog>
       </div>
 
-      {/* Grid of Spaces */}
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+      {/* Spaces Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {spaces.map((space) => {
           const spaceTasks = tasks.filter((t) => t.spaceId === space.id);
           const doneTasks = spaceTasks.filter((t) => t.status === "done");
-          const progressPercent = spaceTasks.length > 0 
-            ? Math.round((doneTasks.length / spaceTasks.length) * 100) 
-            : 0;
+          const progressPercent = spaceTasks.length ? Math.round((doneTasks.length / spaceTasks.length) * 100) : 0;
 
           return (
             <Card
               key={space.id}
-              className="bg-[#12131b] border-[#222533] overflow-hidden hover:border-rose-500/50 transition flex flex-col justify-between group shadow-sm"
+              className="bg-card border-border transition hover:border-rose-500/50 shadow-sm flex flex-col justify-between group"
             >
               <div>
-                <div className={`h-2.5 w-full bg-gradient-to-r ${space.color}`} />
-                <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg font-bold text-white group-hover:text-rose-400 transition">
+                <div className={`h-3 w-full rounded-t-xl bg-gradient-to-r ${space.color || "from-rose-500 to-red-700"}`} />
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-base font-bold text-foreground group-hover:text-rose-600 dark:group-hover:text-rose-400 transition">
                       {space.name}
                     </CardTitle>
-                    <FolderKanban className="text-slate-500 group-hover:text-rose-400 transition" size={20} />
+                    <FolderKanban size={16} className="text-muted-foreground" />
                   </div>
-                  <CardDescription className="text-xs text-slate-400 line-clamp-2">
+                  <CardDescription className="text-xs text-muted-foreground mt-1 line-clamp-2">
                     {space.description}
                   </CardDescription>
                 </CardHeader>
 
-                <CardContent className="space-y-4 pt-2">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>{spaceTasks.length} Tugas Terkait</span>
-                    <span className="font-semibold text-rose-300">{progressPercent}% Selesai</span>
+                <CardContent className="space-y-4">
+                  {/* Progress Stats */}
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Progress Proyek</span>
+                      <span className="font-mono text-foreground font-semibold">{progressPercent}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-gradient-to-r from-rose-500 to-red-600 rounded-full transition-all"
+                        style={{ width: `${progressPercent}%` }}
+                      />
+                    </div>
                   </div>
 
-                  {/* Progress bar */}
-                  <div className="w-full bg-[#1e202d] h-2 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full bg-gradient-to-r ${space.color} transition-all`}
-                      style={{ width: `${progressPercent}%` }}
-                    />
+                  {/* Task counts */}
+                  <div className="flex items-center justify-between text-xs text-muted-foreground border-t border-border pt-3">
+                    <span>{t.totalTasksCount} <strong className="text-foreground">{spaceTasks.length}</strong></span>
+                    <span>{t.completedTasksCount} <strong className="text-emerald-500">{doneTasks.length}</strong></span>
                   </div>
                 </CardContent>
               </div>
 
-              <div className="p-4 pt-0 border-t border-[#1e202d] mt-4 flex items-center justify-between">
-                <span className="text-[11px] text-slate-500">
-                  {doneTasks.length} dari {spaceTasks.length} selesai
-                </span>
+              <div className="p-4 pt-0">
                 <Link href="/tasks">
-                  <Button variant="ghost" size="sm" className="h-7 text-xs text-rose-400 hover:text-rose-300 gap-1 p-0">
-                    <span>Buka Tasks</span>
-                    <ArrowRight size={12} />
+                  <Button variant="outline" size="sm" className="w-full text-xs gap-1.5 border-border hover:bg-rose-500/10 hover:text-rose-600 dark:hover:text-rose-300">
+                    <span>{language === 'en' ? "Open Space Tasks" : "Buka Tugas Space"}</span>
+                    <ArrowRight size={13} />
                   </Button>
                 </Link>
               </div>

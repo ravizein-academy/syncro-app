@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNavbar } from "@/components/layout/TopNavbar";
+import { ThemeProvider } from "@/components/providers/ThemeProvider";
 
 const fontSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
@@ -11,7 +12,7 @@ const fontSans = Plus_Jakarta_Sans({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#0b0c10",
+  themeColor: "#e11d48",
 };
 
 export const metadata: Metadata = {
@@ -26,15 +27,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fontSans.variable} font-sans h-full antialiased dark`}>
-      <body className="flex h-screen overflow-hidden bg-[#0b0c10] text-slate-100 font-sans selection:bg-rose-500/30 selection:text-rose-200">
-        <Sidebar />
-        <div className="flex-1 flex flex-col h-full overflow-hidden bg-[#0e0f15]">
-          <TopNavbar />
-          <main className="flex-1 overflow-y-auto">
-            {children}
-          </main>
-        </div>
+    <html lang="id" className={`${fontSans.variable} font-sans h-full antialiased`}>
+      <body className="flex h-screen overflow-hidden bg-background text-foreground font-sans selection:bg-rose-500/30 selection:text-rose-600 transition-colors duration-200">
+        <ThemeProvider>
+          <Sidebar />
+          <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
+            <TopNavbar />
+            <main className="flex-1 overflow-y-auto">
+              {children}
+            </main>
+          </div>
+        </ThemeProvider>
       </body>
     </html>
   );

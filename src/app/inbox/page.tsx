@@ -5,54 +5,55 @@ import { useStore } from "@/store/useStore";
 import { 
   Inbox, 
   CheckCheck, 
-  Bell, 
-  ExternalLink 
+  Bell 
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import Link from "next/link";
+import { translations } from "@/lib/i18n";
 
 export default function InboxPage() {
-  const { notifications, markNotificationAsRead, markAllNotificationsAsRead } = useStore();
+  const { notifications, markNotificationAsRead, markAllNotificationsAsRead, language } = useStore();
+  const t = translations[language || 'id'];
+
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const filtered = notifications.filter((n) => (filter === "unread" ? !n.read : true));
 
   return (
-    <div className="p-8 space-y-6 max-w-5xl mx-auto select-none">
+    <div className="p-6 md:p-8 space-y-6 max-w-5xl mx-auto select-none transition-colors duration-200">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-rose-500" />
-            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400">Notifications Center</span>
+            <span className="flex h-2 w-2 rounded-full bg-rose-500 shadow-sm" />
+            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">{t.inboxTag}</span>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center gap-3 mt-1">
+          <h1 className="text-3xl font-extrabold tracking-tight text-foreground flex items-center gap-3 mt-1">
             <Inbox className="text-rose-500" />
-            Inbox
+            {t.inboxTitle}
           </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Pusat notifikasi penugasan, aktivitas tim, dan update sistem ClickUp-style.
+          <p className="text-xs text-muted-foreground mt-1">
+            {t.inboxSubtitle}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="bg-[#12131b] border border-[#222533] p-1 rounded-xl flex shadow-inner">
+          <div className="bg-secondary border border-border p-1 rounded-xl flex shadow-inner">
             <button
               onClick={() => setFilter("all")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                filter === "all" ? "bg-rose-600 text-white shadow-md shadow-rose-950/40" : "text-slate-400 hover:text-slate-200"
+                filter === "all" ? "bg-rose-600 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Semua ({notifications.length})
+              {t.allNotifications} ({notifications.length})
             </button>
             <button
               onClick={() => setFilter("unread")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition ${
-                filter === "unread" ? "bg-rose-600 text-white shadow-md shadow-rose-950/40" : "text-slate-400 hover:text-slate-200"
+                filter === "unread" ? "bg-rose-600 text-white shadow-sm" : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              Belum Dibaca ({notifications.filter((n) => !n.read).length})
+              {t.unreadNotifications} ({notifications.filter((n) => !n.read).length})
             </button>
           </div>
 
@@ -60,10 +61,10 @@ export default function InboxPage() {
             variant="outline"
             size="sm"
             onClick={markAllNotificationsAsRead}
-            className="h-8 text-xs gap-1.5 border-[#2c3044] text-slate-300 hover:bg-white/[0.04] rounded-lg"
+            className="h-8 text-xs gap-1.5 border-border text-foreground hover:bg-accent rounded-lg"
           >
-            <CheckCheck size={14} className="text-rose-400" />
-            <span>Tandai Semua Dibaca</span>
+            <CheckCheck size={14} className="text-rose-500" />
+            <span>{t.markAllRead}</span>
           </Button>
         </div>
       </div>
@@ -71,17 +72,17 @@ export default function InboxPage() {
       {/* Notifications List */}
       <div className="space-y-3">
         {filtered.length === 0 ? (
-          <div className="text-center py-20 bg-[#12131b]/60 border border-[#222533] rounded-2xl">
-            <Bell size={40} className="mx-auto text-slate-600 mb-3" />
-            <h3 className="text-base font-bold text-slate-200">Semua pemberitahuan sudah terbaca</h3>
-            <p className="text-xs text-slate-500 mt-1">Tidak ada notifikasi baru untuk saat ini.</p>
+          <div className="text-center py-20 bg-card border border-border rounded-2xl shadow-sm">
+            <Bell size={40} className="mx-auto text-muted-foreground mb-3 opacity-60" />
+            <h3 className="text-base font-bold text-foreground">{t.allCaughtUp}</h3>
+            <p className="text-xs text-muted-foreground mt-1">{t.allCaughtUpSub}</p>
           </div>
         ) : (
           filtered.map((item) => (
             <Card
               key={item.id}
-              className={`border-[#222533] transition ${
-                item.read ? "bg-[#0f1017]/80 opacity-70" : "bg-[#12131b] shadow-sm border-rose-500/30"
+              className={`border-border transition ${
+                item.read ? "bg-card/60 opacity-70" : "bg-card shadow-sm border-rose-500/30"
               }`}
             >
               <CardContent className="p-4 flex items-center justify-between gap-4">
@@ -89,40 +90,32 @@ export default function InboxPage() {
                   <div
                     className={`h-10 w-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
                       item.type === "system"
-                        ? "bg-rose-950/40 text-rose-300 border border-rose-800/40"
-                        : "bg-rose-500/15 text-rose-300 border border-rose-500/30"
+                        ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/20"
+                        : "bg-rose-500/15 text-rose-600 dark:text-rose-300 border border-rose-500/30"
                     }`}
                   >
                     {item.sender[0]}
                   </div>
                   <div>
-                    <p className="text-xs sm:text-sm text-slate-200">
-                      <strong className="font-bold text-white">{item.sender}</strong>{" "}
-                      <span className="text-slate-400">{item.action}</span>{" "}
-                      <strong className="text-rose-400 font-semibold">"{item.target}"</strong>
+                    <p className="text-xs sm:text-sm text-foreground">
+                      <strong className="font-bold">{item.sender}</strong>{" "}
+                      <span className="text-muted-foreground">{item.action}</span>{" "}
+                      <span className="font-semibold text-rose-600 dark:text-rose-300">"{item.target}"</span>
                     </p>
-                    <span className="text-[11px] text-slate-500 mt-0.5 block">{item.time}</span>
+                    <span className="text-[11px] text-muted-foreground mt-0.5 block">{item.time}</span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <Link href="/tasks">
-                    <Button variant="ghost" size="sm" className="h-8 text-xs text-rose-400 hover:text-rose-300">
-                      <ExternalLink size={13} className="mr-1" />
-                      Lihat Task
-                    </Button>
-                  </Link>
-                  {!item.read && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => markNotificationAsRead(item.id)}
-                      className="h-8 text-xs border-[#2c3044] hover:bg-rose-500/10 text-slate-300 rounded-lg"
-                    >
-                      Tandai Dibaca
-                    </Button>
-                  )}
-                </div>
+                {!item.read && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => markNotificationAsRead(item.id)}
+                    className="text-xs text-rose-600 dark:text-rose-400 hover:text-rose-500 hover:bg-rose-500/10"
+                  >
+                    Tandai Dibaca
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))

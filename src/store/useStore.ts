@@ -85,6 +85,13 @@ interface AppState {
     gmail: boolean;
   };
 
+  // Appearance & Localization
+  theme: 'light' | 'dark';
+  language: 'id' | 'en';
+  setTheme: (theme: 'light' | 'dark') => void;
+  toggleTheme: () => void;
+  setLanguage: (lang: 'id' | 'en') => void;
+
   // Actions
   setTasks: (tasks: Task[]) => void;
   addTask: (task: Omit<Task, 'id' | 'createdAt'> & { id?: string }) => void;
@@ -216,6 +223,12 @@ export const useStore = create<AppState>()(
         googleMeet: true,
         gmail: false,
       },
+
+      theme: 'light',
+      language: 'id',
+      setTheme: (theme) => set({ theme }),
+      toggleTheme: () => set((state) => ({ theme: state.theme === 'light' ? 'dark' : 'light' })),
+      setLanguage: (language) => set({ language }),
 
       setTasks: (tasks) => set({ tasks }),
       
