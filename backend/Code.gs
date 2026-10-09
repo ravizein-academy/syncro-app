@@ -157,6 +157,10 @@ function doPost(e) {
         result = setupInitialDatabase();
         break;
 
+      case 'notifyLogin':
+        result = sendLoginNotificationEmail(payload);
+        break;
+
       default:
         return jsonResponse({
           status: 'error',
@@ -448,3 +452,54 @@ function clearAllData() {
     message: 'Semua data dummy telah dihapus. Database bersih untuk pengujian baru!'
   };
 }
+
+/**
+ * Mengirim email notifikasi login keamanan ke email pengguna via Google MailApp
+ */
+function sendLoginNotificationEmail(payload) {
+  if (!payload || !payload.email) {
+    return { success: false, message: 'Alamat email wajib diisi' };
+  }
+
+  var targetEmail = String(payload.email).trim();
+  var userName = payload.name || targetEmail.split('@')[0];
+  var timeStr = payload.time || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd MMMM yyyy, HH:mm:ss') + ' WIB';
+  var userAgent = payload.device || 'Perangkat Web Browser';
+
+  var subject = '🔒 Notifikasi Keamanan: Akun Anda Berhasil Masuk ke Syncro';
+  var htmlBody = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; padding: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">'
+    + '<div style="text-align: center; margin-bottom: 24px;">'
+    + '<div style="display: inline-block; background: #EE3726; color: #ffffff; font-weight: 900; font-size: 22px; width: 48px; height: 48px; line-height: 48px; border-radius: 14px; text-align: center; box-shadow: 0 4px 12px rgba(238,55,38,0.3);">S</div>'
+    + '<h2 style="color: #0f172a; margin: 14px 0 4px; font-size: 20px; font-weight: 800;">Aktivitas Masuk Berhasil</h2>'
+    + '<p style="color: #64748b; margin: 0; font-size: 13px;">Syncro Workspace Security Notification</p>'
+    + '</div>'
+    + '<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">'
+    + '<p style="margin: 0 0 8px; color: #334155; font-size: 14px;">Halo <strong>' + userName + '</strong>,</p>'
+    + '<p style="margin: 0; color: #475569; font-size: 13px; line-height: 1.6;">'
+    + 'Kami mendeteksi aktivitas login baru ke workspace <strong>Syncro</strong> menggunakan akun email <strong>' + targetEmail + '</strong>.'
+    + '</p>'
+    + '</div>'
+    + '<table style="width: 100%; font-size: 13px; color: #334155; margin-bottom: 20px; border-collapse: collapse;">'
+    + '<tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0; color: #64748b; width: 130px;">Waktu Masuk:</td><td style="padding: 10px 0; font-weight: 600;">' + timeStr + '</td></tr>'
+    + '<tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0; color: #64748b;">Metode Auth:</td><td style="padding: 10px 0; font-weight: 600;">Google SSO (OAuth 2.0)</td></tr>'
+    + '<tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0; color: #64748b;">Status Sesi:</td><td style="padding: 10px 0; font-weight: 600; color: #16a34a;">Aktif & Terverifikasi ✓</td></tr>'
+    + '<tr><td style="padding: 10px 0; color: #64748b;">Klien / Browser:</td><td style="padding: 10px 0; font-weight: 600;">' + userAgent + '</td></tr>'
+    + '</table>'
+    + '<div style="border-top: 1px solid #e2e8f0; padding-top: 18px; text-align: center;">'
+    + '<p style="color: #64748b; font-size: 12px; margin: 0 0 6px;">Jika ini adalah Anda, tidak ada tindakan lebih lanjut yang diperlukan.</p>'
+    + '<p style="color: #94a3b8; font-size: 11px; margin: 0;">Syncro PWA • Workspace Platform • Google Ecosystem</p>'
+    + '</div>'
+    + '</div>';
+
+  try {
+    MailApp.sendEmail({
+      to: targetEmail,
+      subject: subject,
+      htmlBody: htmlBody
+    });
+    return { success: true, email: targetEmail, message: 'Email sent successfully' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+

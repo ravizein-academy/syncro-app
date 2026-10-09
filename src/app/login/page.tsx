@@ -77,6 +77,18 @@ export default function LoginPage() {
     setLoginMethod("google");
     setIsGoogleModalOpen(false);
 
+    // Kirim notifikasi keamanan ke email via backend
+    fetch("/api/auth/notify-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: cleanEmail,
+        name: targetName || cleanEmail.split("@")[0],
+        time: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }) + " WIB",
+        device: typeof navigator !== "undefined" ? navigator.userAgent : "Browser"
+      }),
+    }).catch((err) => console.warn("Failed to dispatch login notification:", err));
+
     setTimeout(() => {
       loginWithGoogle(cleanEmail, targetName);
       setIsLoading(false);
@@ -94,11 +106,24 @@ export default function LoginPage() {
 
     setTimeout(() => {
       const existingUser = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+      const namePart = email.split("@")[0] || "User";
+      const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+
+      // Kirim notifikasi keamanan ke email via backend
+      fetch("/api/auth/notify-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim(),
+          name: existingUser?.name || formattedName,
+          time: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }) + " WIB",
+          device: typeof navigator !== "undefined" ? navigator.userAgent : "Browser"
+        }),
+      }).catch((err) => console.warn("Failed to dispatch login notification:", err));
+
       if (existingUser) {
         login(existingUser);
       } else {
-        const namePart = email.split("@")[0] || "User";
-        const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
         const newUser: User = {
           id: `u_${Date.now()}`,
           name: formattedName,
