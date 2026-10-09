@@ -14,6 +14,8 @@ export interface Task {
   timeTracked?: number; // in minutes
   scheduledSlot?: string; // e.g. "08:00 AM", "10:00 AM", or undefined if unscheduled
   isPersonal?: boolean;
+  tags?: string[];
+  subtasks?: { id: string; title: string; done: boolean }[];
   createdAt: string;
 }
 

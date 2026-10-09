@@ -29,9 +29,11 @@ import {
   Flag,
   Tag,
   Play,
-  RotateCcw
+  RotateCcw,
+  Maximize2
 } from "lucide-react";
 import { translations } from "@/lib/i18n";
+import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 
 export default function Home() {
   const { 
@@ -56,6 +58,8 @@ export default function Home() {
   const [activeWorkTab, setActiveWorkTab] = useState<"todo" | "overdue" | "next" | "unscheduled">("todo");
   const [showAddLineupDropdown, setShowAddLineupDropdown] = useState(false);
   const [quickTaskTitle, setQuickTaskTitle] = useState("");
+  const [createTaskOpen, setCreateTaskOpen] = useState(false);
+  const [createTaskInitialTitle, setCreateTaskInitialTitle] = useState("");
   const [notesDraft, setNotesDraft] = useState(personalNotes || "");
   const [notesSaved, setNotesSaved] = useState(true);
   const [todayStr, setTodayStr] = useState("");
@@ -198,6 +202,18 @@ export default function Home() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            onClick={() => {
+              setCreateTaskInitialTitle("");
+              setCreateTaskOpen(true);
+            }}
+            className="h-8 gap-1.5 text-xs bg-[#EE3726] hover:bg-[#D32717] text-white font-bold rounded-lg shadow-sm shadow-[#EE3726]/20 transition"
+          >
+            <Plus size={14} />
+            <span>{t.newTask}</span>
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -522,14 +538,27 @@ export default function Home() {
               </CardHeader>
 
               <CardContent className="p-4 space-y-2">
-                {/* Inline Quick Add Task */}
+                {/* Inline Quick Add Task with ClickUp Expand Icon */}
                 <form onSubmit={handleQuickAddTask} className="flex gap-2 pb-2">
-                  <Input
-                    placeholder={language === 'en' ? "+ Add task to My Work (press Enter)..." : "+ Tambah tugas ke My Work (tekan Enter)..."}
-                    value={quickTaskTitle}
-                    onChange={(e) => setQuickTaskTitle(e.target.value)}
-                    className="h-9 text-xs bg-secondary border-border focus-visible:ring-[#EE3726] rounded-lg"
-                  />
+                  <div className="relative flex-1">
+                    <Input
+                      placeholder={language === 'en' ? "+ Add task to My Work (press Enter)..." : "+ Tambah tugas ke My Work (tekan Enter)..."}
+                      value={quickTaskTitle}
+                      onChange={(e) => setQuickTaskTitle(e.target.value)}
+                      className="h-9 text-xs bg-secondary border-border focus-visible:ring-[#EE3726] rounded-lg pr-9"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCreateTaskInitialTitle(quickTaskTitle);
+                        setCreateTaskOpen(true);
+                      }}
+                      title="Buka Modal ClickUp Lengkap"
+                      className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-[#EE3726] transition"
+                    >
+                      <Maximize2 size={13} />
+                    </button>
+                  </div>
                   <Button type="submit" size="sm" className="h-9 px-3.5 bg-[#EE3726] hover:bg-[#D32717] text-white text-xs font-semibold rounded-lg">
                     <Plus size={13} />
                   </Button>
@@ -828,6 +857,13 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {/* Global ClickUp CreateTaskModal for Dashboard */}
+      <CreateTaskModal
+        open={createTaskOpen}
+        onOpenChange={setCreateTaskOpen}
+        initialTitle={createTaskInitialTitle}
+      />
     </div>
   );
 }
