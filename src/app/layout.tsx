@@ -12,7 +12,7 @@ const fontSans = Plus_Jakarta_Sans({
 });
 
 export const viewport: Viewport = {
-  themeColor: "#e11d48",
+  themeColor: "#EE3726",
 };
 
 export const metadata: Metadata = {

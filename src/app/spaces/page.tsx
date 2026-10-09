@@ -20,11 +20,11 @@ export default function SpacesPage() {
   const [selectedColor, setSelectedColor] = useState("from-rose-500 to-red-700");
 
   const COLOR_OPTIONS = [
-    { label: "Crimson Red", val: "from-rose-500 to-red-700" },
-    { label: "Scarlet Ruby", val: "from-red-600 to-rose-600" },
-    { label: "Wine Berry", val: "from-rose-700 to-purple-800" },
-    { label: "Sunset Coral", val: "from-orange-500 to-rose-600" },
-    { label: "Dark Cherry", val: "from-red-900 to-rose-900" },
+    { label: "ITSEC Pomegranate", val: "from-[#EE3726] to-[#BA1E10]" },
+    { label: "ITSEC Scarlet", val: "from-[#EE3726] to-[#D32717]" },
+    { label: "Crimson Berry", val: "from-[#D32717] to-[#7A140A]" },
+    { label: "Sunset Coral", val: "from-[#FF7060] to-[#EE3726]" },
+    { label: "Dark Cherry", val: "from-[#7A140A] to-[#420A05]" },
   ];
 
   const handleCreateSpace = (e: React.FormEvent) => {

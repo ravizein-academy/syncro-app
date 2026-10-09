@@ -4,7 +4,7 @@ export const translations = {
   id: {
     // Brand & Workspace
     brandName: 'Syncro',
-    brandTagline: 'ClickUp Red Edition',
+    brandTagline: 'ITSEC Red Edition',
     workspaceOwner: 'Workspace Owner',
     navMain: 'Navigasi Utama',
     spacesProject: 'Spaces Proyek',
@@ -164,7 +164,7 @@ export const translations = {
   en: {
     // Brand & Workspace
     brandName: 'Syncro',
-    brandTagline: 'ClickUp Red Edition',
+    brandTagline: 'ITSEC Red Edition',
     workspaceOwner: 'Workspace Owner',
     navMain: 'Main Navigation',
     spacesProject: 'Project Spaces',

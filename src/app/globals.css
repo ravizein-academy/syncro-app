@@ -46,6 +46,26 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Official ITSEC Logo Red Color Scale (#EE3726 - Pomegranate Red) */
+  --color-itsec: #EE3726;
+  --color-itsec-hover: #D32717;
+  --color-itsec-dark: #BA1E10;
+  --color-itsec-light: #FEECEB;
+  --color-rose-50: #FFF5F4;
+  --color-rose-100: #FEECEB;
+  --color-rose-200: #FFD2CD;
+  --color-rose-300: #FFA69C;
+  --color-rose-400: #FF7060;
+  --color-rose-500: #EE3726;
+  --color-rose-600: #D32717;
+  --color-rose-700: #BA1E10;
+  --color-rose-800: #96180C;
+  --color-rose-900: #7A140A;
+  --color-rose-950: #420A05;
+  --color-red-500: #EE3726;
+  --color-red-600: #D32717;
+  --color-red-700: #BA1E10;
 }
 
 :root {
@@ -55,32 +75,32 @@
   --card-foreground: #0f172a;
   --popover: #ffffff;
   --popover-foreground: #0f172a;
-  --primary: #e11d48;
+  --primary: #EE3726;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
   --secondary-foreground: #0f172a;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --accent: #fff1f2;
-  --accent-foreground: #e11d48;
-  --destructive: #ef4444;
+  --accent: #FEECEB;
+  --accent-foreground: #EE3726;
+  --destructive: #EE3726;
   --border: #e2e8f0;
   --input: #e2e8f0;
-  --ring: #e11d48;
-  --chart-1: #e11d48;
-  --chart-2: #f43f5e;
-  --chart-3: #fb7185;
-  --chart-4: #fda4af;
-  --chart-5: #ffe4e6;
+  --ring: #EE3726;
+  --chart-1: #EE3726;
+  --chart-2: #FF7060;
+  --chart-3: #FFA69C;
+  --chart-4: #FFD2CD;
+  --chart-5: #FEECEB;
   --radius: 0.625rem;
   --sidebar: #ffffff;
   --sidebar-foreground: #0f172a;
-  --sidebar-primary: #e11d48;
+  --sidebar-primary: #EE3726;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #fff1f2;
-  --sidebar-accent-foreground: #e11d48;
+  --sidebar-accent: #FEECEB;
+  --sidebar-accent-foreground: #EE3726;
   --sidebar-border: #e2e8f0;
-  --sidebar-ring: #e11d48;
+  --sidebar-ring: #EE3726;
 }
 
 .dark {
@@ -90,31 +110,31 @@
   --card-foreground: #f8fafc;
   --popover: #13151f;
   --popover-foreground: #f8fafc;
-  --primary: #e11d48;
+  --primary: #EE3726;
   --primary-foreground: #ffffff;
   --secondary: #1b1d29;
   --secondary-foreground: #f1f5f9;
   --muted: #181a26;
   --muted-foreground: #94a3b8;
-  --accent: #2a151e;
-  --accent-foreground: #fb7185;
-  --destructive: #ef4444;
+  --accent: #2b110f;
+  --accent-foreground: #FF7060;
+  --destructive: #EE3726;
   --border: #222536;
   --input: #222536;
-  --ring: #e11d48;
-  --chart-1: #e11d48;
-  --chart-2: #f43f5e;
-  --chart-3: #fb7185;
-  --chart-4: #fda4af;
-  --chart-5: #ffe4e6;
+  --ring: #EE3726;
+  --chart-1: #EE3726;
+  --chart-2: #FF7060;
+  --chart-3: #FFA69C;
+  --chart-4: #FFD2CD;
+  --chart-5: #FEECEB;
   --sidebar: #090a0f;
   --sidebar-foreground: #f1f5f9;
-  --sidebar-primary: #e11d48;
+  --sidebar-primary: #EE3726;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #1e141a;
-  --sidebar-accent-foreground: #fb7185;
+  --sidebar-accent: #240d0c;
+  --sidebar-accent-foreground: #FF7060;
   --sidebar-border: #1a1c28;
-  --sidebar-ring: #e11d48;
+  --sidebar-ring: #EE3726;
 }
 
 @layer base {
@@ -122,7 +142,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground antialiased selection:bg-rose-600/30 selection:text-rose-200;
+    @apply bg-background text-foreground antialiased selection:bg-[#EE3726]/25 selection:text-[#EE3726];
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
   html {
@@ -143,5 +163,5 @@
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #e11d48;
+  background: #EE3726;
 }
