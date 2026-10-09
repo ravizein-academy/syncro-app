@@ -1,51 +1,37 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import { Sidebar } from "@/components/layout/Sidebar";
+import { TopNavbar } from "@/components/layout/TopNavbar";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Syncro",
-  description: "Syncro - Platform Manajemen Tugas, Agenda, dan Kolaborasi Tim terintegrasi ClickUp & Gemini AI.",
-  manifest: "/manifest.json",
-  icons: {
-    icon: "/icon.svg",
-    apple: "/icon.svg",
-  },
-};
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const viewport: Viewport = {
-  themeColor: "#ee3425",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  themeColor: "#0f172a",
+};
+
+export const metadata: Metadata = {
+  title: "Syncro | Task & Time Management",
+  description: "Progressive Web App for Task Management, Time Tracking, and Collaboration.",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html
-      lang="id"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <head>
-        <link rel="manifest" href="/manifest.json" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-      </head>
-      <body className="min-h-full flex flex-col bg-slate-50 text-slate-900">{children}</body>
+    <html lang="en" className={`${inter.variable} h-full antialiased dark`}>
+      <body className="flex h-screen overflow-hidden bg-slate-950 text-slate-50">
+        <Sidebar />
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          <TopNavbar />
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+        </div>
+      </body>
     </html>
   );
 }
