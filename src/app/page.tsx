@@ -346,21 +346,28 @@ export default function Home() {
                     >
                       <div className="space-y-1.5">
                         <div className="flex items-start justify-between gap-2">
-                          <button
-                            onClick={() => handleToggleTaskStatus(task)}
-                            className="flex items-center gap-2 text-left min-w-0"
-                          >
-                            <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition ${
-                              isDone ? 'bg-[#EE3726] border-[#EE3726] text-white' : 'border-border'
-                            }`}>
-                              {isDone && <Check size={11} />}
-                            </div>
-                            <span className={`text-xs font-bold line-clamp-2 ${isDone ? 'line-through text-muted-foreground' : 'text-foreground'}`}>
+                          <div className="flex items-center gap-2 text-left min-w-0">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleTaskStatus(task)}
+                              className="shrink-0"
+                            >
+                              <div className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition ${
+                                isDone ? 'bg-[#EE3726] border-[#EE3726] text-white' : 'border-border hover:border-[#EE3726]'
+                              }`}>
+                                {isDone && <Check size={11} />}
+                              </div>
+                            </button>
+                            <Link
+                              href={`/tasks/${task.id}`}
+                              className={`text-xs font-bold line-clamp-2 hover:text-[#EE3726] transition ${isDone ? 'line-through text-muted-foreground' : 'text-foreground'}`}
+                            >
                               {task.title}
-                            </span>
-                          </button>
+                            </Link>
+                          </div>
 
                           <button
+                            type="button"
                             onClick={() => removeFromLineup(task.id)}
                             className="text-muted-foreground hover:text-[#EE3726] p-1 opacity-60 group-hover:opacity-100 transition"
                             title={t.removeFromLineup}

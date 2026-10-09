@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useStore, Task } from "@/store/useStore";
 import { 
@@ -156,9 +157,12 @@ export default function PlannerPage() {
                               }`}
                             >
                               <div className="flex items-center justify-between">
-                                <span className="text-xs font-semibold text-foreground line-clamp-1">
+                                <Link
+                                  href={`/tasks/${task.id}`}
+                                  className="text-xs font-semibold text-foreground hover:text-[#EE3726] transition line-clamp-1"
+                                >
                                   {task.title}
-                                </span>
+                                </Link>
                                 <div
                                   {...provided.dragHandleProps}
                                   className="text-muted-foreground hover:text-rose-500 cursor-grab active:cursor-grabbing p-1"
@@ -230,9 +234,12 @@ export default function PlannerPage() {
                                         <GripVertical size={14} />
                                       </div>
                                       <div className="min-w-0">
-                                        <p className="text-xs font-bold text-foreground truncate">
+                                        <Link
+                                          href={`/tasks/${task.id}`}
+                                          className="text-xs font-bold text-foreground hover:text-[#EE3726] transition truncate block"
+                                        >
                                           {task.title}
-                                        </p>
+                                        </Link>
                                         <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
                                           <Clock size={11} className="text-rose-500" />
                                           {task.timeEstimate || 60}m

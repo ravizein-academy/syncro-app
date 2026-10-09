@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import { Suspense } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TopNavbar } from "@/components/layout/TopNavbar";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
@@ -30,7 +31,9 @@ export default function RootLayout({
     <html lang="id" className={`${fontSans.variable} font-sans h-full antialiased`}>
       <body className="flex h-screen overflow-hidden bg-background text-foreground font-sans selection:bg-rose-500/30 selection:text-rose-600 transition-colors duration-200">
         <ThemeProvider>
-          <Sidebar />
+          <Suspense fallback={<aside className="w-64 border-r border-border shrink-0 hidden md:block bg-card" />}>
+            <Sidebar />
+          </Suspense>
           <div className="flex-1 flex flex-col h-full overflow-hidden bg-background">
             <TopNavbar />
             <main className="flex-1 overflow-y-auto">

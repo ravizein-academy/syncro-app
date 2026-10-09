@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useStore, Task } from "@/store/useStore";
 import { 
   CheckCircle2, 
@@ -37,7 +38,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { translations } from "@/lib/i18n";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
-import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 
 type GroupByType = "status" | "dueDate" | "priority" | "space";
 
@@ -78,10 +78,7 @@ export default function TasksPage() {
   const [createDefaultStatus, setCreateDefaultStatus] = useState<"todo" | "in-progress" | "done">("todo");
   const [createDefaultSpace, setCreateDefaultSpace] = useState<string | undefined>(undefined);
   
-  // Task Detail Modal State
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const selectedTask = useMemo(() => tasks.find((t) => t.id === selectedTaskId) || null, [tasks, selectedTaskId]);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const router = useRouter();
 
   // Calendar View State
   const [calendarYear, setCalendarYear] = useState(2026);
@@ -98,8 +95,7 @@ export default function TasksPage() {
   };
 
   const handleOpenDetail = (task: Task) => {
-    setSelectedTaskId(task.id);
-    setDetailModalOpen(true);
+    router.push(`/tasks/${task.id}`);
   };
 
   const handleToggleStatus = (task: Task, e?: React.MouseEvent) => {
@@ -938,13 +934,6 @@ export default function TasksPage() {
         onOpenChange={setCreateModalOpen}
         defaultStatus={createDefaultStatus}
         defaultSpaceId={createDefaultSpace}
-      />
-
-      {/* ClickUp Task Detail Modal */}
-      <TaskDetailModal
-        task={selectedTask}
-        open={detailModalOpen}
-        onOpenChange={setDetailModalOpen}
       />
     </div>
   );
