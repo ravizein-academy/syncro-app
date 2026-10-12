@@ -22,13 +22,21 @@ import { LogoutModal } from '@/components/layout/LogoutModal';
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { currentUser, spaces, language, isMobileSidebarOpen, setMobileSidebarOpen } = useStore();
+  const { users, currentUser, spaces, language, isMobileSidebarOpen, setMobileSidebarOpen } = useStore();
   const t = translations[language || 'id'];
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
+  const pendingRequestsCount = currentUser?.role === 'admin' ? users.filter((u) => u.status === 'pending').length : 0;
+
   const NAV_ITEMS = [
     { name: t.navDashboard, href: '/', icon: LayoutDashboard },
-    { name: t.navInbox, href: '/inbox', icon: Inbox },
+    { 
+      name: t.navInbox, 
+      href: '/inbox', 
+      icon: Inbox, 
+      badge: pendingRequestsCount > 0 ? String(pendingRequestsCount) : undefined,
+      isPendingAlert: pendingRequestsCount > 0
+    },
     { name: t.navMyTasks, href: '/tasks', icon: CheckSquare },
     { name: t.navPlanner, href: '/planner', icon: Calendar },
     { name: t.navSpaces, href: '/spaces', icon: Briefcase },
@@ -88,7 +96,11 @@ export function Sidebar() {
                 <span>{item.name}</span>
               </div>
               {item.badge && (
-                <span className="rounded-full bg-gradient-to-r from-[#EE3726] to-[#BA1E10] px-1.5 py-0.5 text-[10px] font-extrabold text-white shadow-sm shadow-rose-900/50">
+                <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-extrabold shadow-sm ${
+                  item.isPendingAlert
+                    ? 'bg-amber-500 text-slate-950 font-black animate-pulse shadow-amber-500/30'
+                    : 'bg-gradient-to-r from-[#EE3726] to-[#BA1E10] text-white shadow-rose-900/50'
+                }`}>
                   {item.badge}
                 </span>
               )}
