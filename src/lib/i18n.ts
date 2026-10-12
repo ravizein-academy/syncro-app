@@ -208,6 +208,18 @@ export const translations = {
     noCommentsSub: 'Mulai diskusi atau koordinasi dengan rekan tim di sini.',
     deleteComment: 'Hapus komentar',
     commentsCount: 'komentar',
+
+    // Auto-Sync
+    autoSyncTitle: 'Google Cloud Auto-Sync',
+    autoSyncActive: 'Auto-Sync Aktif',
+    autoSyncSyncing: 'Menyinkronkan...',
+    autoSyncSynced: 'Tersinkron Otomatis',
+    autoSyncError: 'Offline / Tersimpan Lokal',
+    autoSyncSubtitle: 'Setiap perubahan tugas langsung disimpan otomatis ke Google Sheets.',
+    autoSyncToggle: 'Otomatisasi Sinkronisasi',
+    autoSyncLastSynced: 'Terakhir disinkronkan',
+    autoSyncNowBtn: 'Sinkronkan Sekarang',
+    autoSyncTasksSaved: 'Tugas Tersimpan di Cloud',
   },
   en: {
     // Brand & Workspace
@@ -416,5 +428,17 @@ export const translations = {
     noCommentsSub: 'Start a discussion or coordinate with teammates here.',
     deleteComment: 'Delete comment',
     commentsCount: 'comments',
+
+    // Auto-Sync
+    autoSyncTitle: 'Google Cloud Auto-Sync',
+    autoSyncActive: 'Auto-Sync Active',
+    autoSyncSyncing: 'Syncing...',
+    autoSyncSynced: 'Auto-Synced',
+    autoSyncError: 'Offline / Cached Locally',
+    autoSyncSubtitle: 'Every task update is automatically synced to Google Sheets in real time.',
+    autoSyncToggle: 'Automatic Synchronization',
+    autoSyncLastSynced: 'Last synced',
+    autoSyncNowBtn: 'Sync Now',
+    autoSyncTasksSaved: 'Tasks Saved in Cloud',
   }
 };

@@ -170,7 +170,11 @@ interface AppState {
   // Cloud Sync Backend State
   cloudSyncStatus: 'idle' | 'syncing' | 'synced' | 'error';
   lastCloudSync: string | null;
-  setCloudSyncStatus: (status: 'idle' | 'syncing' | 'synced' | 'error', time?: string) => void;
+  lastCloudSyncMessage?: string | null;
+  isAutoSyncEnabled: boolean;
+  toggleAutoSync: () => void;
+  setAutoSyncEnabled: (enabled: boolean) => void;
+  setCloudSyncStatus: (status: 'idle' | 'syncing' | 'synced' | 'error', time?: string, message?: string | null) => void;
 }
 
 const INITIAL_USERS: User[] = [];
@@ -443,10 +447,16 @@ export const useStore = create<AppState>()(
       // Cloud Sync Backend State
       cloudSyncStatus: 'idle',
       lastCloudSync: null,
-      setCloudSyncStatus: (status, time) =>
+      lastCloudSyncMessage: null,
+      isAutoSyncEnabled: true,
+      toggleAutoSync: () =>
+        set((state) => ({ isAutoSyncEnabled: !state.isAutoSyncEnabled })),
+      setAutoSyncEnabled: (isAutoSyncEnabled) => set({ isAutoSyncEnabled }),
+      setCloudSyncStatus: (status, time, message) =>
         set({
           cloudSyncStatus: status,
           ...(time !== undefined ? { lastCloudSync: time } : {}),
+          ...(message !== undefined ? { lastCloudSyncMessage: message } : {}),
         }),
     }),
     {

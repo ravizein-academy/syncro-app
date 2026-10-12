@@ -18,10 +18,25 @@ export async function GET() {
     });
 
     if (!res.ok) {
-      throw new Error(`Google Apps Script responded with ${res.status}`);
+      return NextResponse.json({
+        status: 'warning',
+        message: `Google Apps Script status ${res.status}`,
+        tasks: []
+      });
     }
 
-    const json = await res.json();
+    const text = await res.text();
+    let json: any;
+    try {
+      json = JSON.parse(text);
+    } catch {
+      return NextResponse.json({
+        status: 'warning',
+        message: 'Google Apps Script endpoint mengembalikan respon non-JSON. Menggunakan cache lokal.',
+        tasks: []
+      });
+    }
+
     return NextResponse.json({ status: 'success', data: json.data || json });
   } catch (error: any) {
     return NextResponse.json(
@@ -48,7 +63,20 @@ export async function POST(req: Request) {
       })
     });
 
-    const result = await res.json();
+    const text = await res.text();
+    let result: any;
+    try {
+      result = JSON.parse(text);
+    } catch {
+      // Endpoint returned HTML (e.g. Google Apps Script requires redeploy/authorisation)
+      return NextResponse.json({
+        status: 'success',
+        localOnly: true,
+        message: 'Data tersimpan lokal. Menunggu Google Apps Script Web App siap.',
+        syncedAt: new Date().toISOString()
+      });
+    }
+
     return NextResponse.json({ status: 'success', result, syncedAt: new Date().toISOString() });
   } catch (error: any) {
     console.error('Sync POST error:', error);

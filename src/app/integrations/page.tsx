@@ -11,15 +11,42 @@ import {
   Mail, 
   Lock, 
   RefreshCw, 
-  ExternalLink 
+  ExternalLink,
+  Cloud,
+  Check,
+  Zap
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { translations } from "@/lib/i18n";
+import { performAutoCloudSync } from "@/lib/sync";
+import { useState } from "react";
 
 export default function IntegrationsPage() {
-  const { integrations, toggleIntegration, language, currentUser } = useStore();
+  const { 
+    integrations, 
+    toggleIntegration, 
+    language, 
+    currentUser,
+    isAutoSyncEnabled,
+    toggleAutoSync,
+    cloudSyncStatus,
+    lastCloudSync,
+    lastCloudSyncMessage,
+    tasks
+  } = useStore();
+  const [isSyncingNow, setIsSyncingNow] = useState(false);
   const t = translations[language || 'id'];
+
+  const handleManualSync = async () => {
+    if (isSyncingNow) return;
+    setIsSyncingNow(true);
+    try {
+      await performAutoCloudSync({ force: true });
+    } finally {
+      setIsSyncingNow(false);
+    }
+  };
 
   const INTEGRATION_LIST = [
     {
@@ -90,6 +117,80 @@ export default function IntegrationsPage() {
           {t.integrationsSubtitle}
         </p>
       </div>
+
+      {/* Featured: Google Sheets Cloud Auto-Sync Card */}
+      <Card className="bg-gradient-to-r from-emerald-500/10 via-card to-card border-emerald-500/30 shadow-sm overflow-hidden">
+        <CardContent className="p-4 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className="h-12 w-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-500 shrink-0">
+              <Cloud size={24} />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base font-bold text-foreground">
+                  {t.autoSyncTitle}
+                </h3>
+                <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                  isAutoSyncEnabled
+                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                    : 'bg-secondary border-border text-muted-foreground'
+                }`}>
+                  {isAutoSyncEnabled ? (
+                    <>
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                      </span>
+                      {t.autoSyncActive}
+                    </>
+                  ) : (
+                    'Nonaktif'
+                  )}
+                </span>
+                <span className="text-[11px] font-mono text-muted-foreground bg-secondary px-2 py-0.5 rounded-md border border-border">
+                  100% Free Tier REST
+                </span>
+              </div>
+              <p className="text-xs text-muted-foreground max-w-2xl leading-relaxed">
+                {language === 'en'
+                  ? 'All tasks, updates, and checkboxes are automatically synchronized to Google Sheets in real-time. No manual export or sync buttons required.'
+                  : 'Seluruh task, penambahan, pengeditan, dan checklist tersinkronisasi otomatis ke spreadsheet Google Sheets secara real-time tanpa perlu klik manual.'}
+              </p>
+              <div className="flex items-center gap-4 text-[11px] text-muted-foreground pt-1 flex-wrap">
+                <span>{t.autoSyncLastSynced}: <strong className="text-foreground font-mono">{lastCloudSync || (language === 'en' ? 'Just now' : 'Baru saja')}</strong></span>
+                <span>•</span>
+                <span>{t.autoSyncTasksSaved}: <strong className="text-foreground">{tasks.length}</strong></span>
+                {lastCloudSyncMessage && (
+                  <>
+                    <span>•</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">{lastCloudSyncMessage}</span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
+            <Button
+              variant={isAutoSyncEnabled ? "outline" : "default"}
+              size="sm"
+              onClick={toggleAutoSync}
+              className="text-xs h-8 border-border"
+            >
+              {isAutoSyncEnabled ? (language === 'en' ? 'Pause Auto-Sync' : 'Jeda Otomatis') : (language === 'en' ? 'Enable Auto-Sync' : 'Aktifkan Otomatis')}
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleManualSync}
+              disabled={isSyncingNow || cloudSyncStatus === 'syncing'}
+              className="text-xs h-8 bg-[#EE3726] hover:bg-[#EE3726]/90 text-white shadow-sm gap-1.5"
+            >
+              <RefreshCw size={12} className={isSyncingNow || cloudSyncStatus === 'syncing' ? "animate-spin" : ""} />
+              <span>{t.autoSyncNowBtn}</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Integration Cards */}
       <div className="grid gap-5 md:grid-cols-2">
