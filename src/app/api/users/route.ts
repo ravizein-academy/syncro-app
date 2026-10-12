@@ -115,16 +115,20 @@ export async function POST(req: Request) {
     }
 
     if (action === 'deleteUser') {
-      if (email) {
-        userStatusOverrides.set(email, {
-          status: 'deleted',
-          updatedAt: Date.now(),
-        });
+      const email = (payload?.email || '').toLowerCase().trim();
+      const id = payload?.id;
+      if (email || id) {
+        if (email) {
+          userStatusOverrides.set(email, {
+            status: 'deleted',
+            updatedAt: Date.now(),
+          });
+        }
 
-        // Hapus dari in-memory cache & broadcast SSE auto-kick (< 5ms)
-        deleteCachedUser(email, payload?.id);
+        // Hapus dari in-memory cache, bersihkan DM terkait & broadcast SSE auto-kick (< 5ms)
+        deleteCachedUser(email, id);
       }
-      return NextResponse.json({ status: 'success', data: { success: true, deleted: email } });
+      return NextResponse.json({ status: 'success', data: { success: true, deleted: email || id } });
     }
 
     // Default flow: createUser / createRecord

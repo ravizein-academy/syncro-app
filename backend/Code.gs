@@ -985,7 +985,61 @@ function updateUserRecord(user) {
 }
 
 /**
- * Delete User Record in Users sheet
+ * Clean up all direct message threads associated with a deleted user
+ */
+function cleanUpUserDMs(email, id) {
+  try {
+    const ss = getSpreadsheet();
+    const sheet = ss.getSheetByName(SHEET_NAMES.DMS);
+    if (!sheet) return;
+
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) return;
+
+    const headers = data[0];
+    const idIdx = headers.indexOf('id');
+    const pIdIdx = headers.indexOf('participantId');
+    const pEmailIdx = headers.indexOf('participantEmail');
+    const pEmailsIdx = headers.indexOf('participantEmails');
+    const msgIdx = headers.indexOf('messages');
+
+    const cleanEmail = (email || '').toLowerCase().trim();
+    const cleanId = id ? String(id).trim() : '';
+    const cleanEmailSlug = cleanEmail ? cleanEmail.replace(/[^a-zA-Z0-9]/g, '_') : '';
+
+    // Loop mundur agar penghapusan baris tidak mengacaukan index baris berikutnya
+    for (let i = data.length - 1; i >= 1; i--) {
+      const row = data[i];
+      const rowThreadId = idIdx >= 0 ? String(row[idIdx]) : '';
+      const rowPId = pIdIdx >= 0 ? String(row[pIdIdx]) : '';
+      const rowPEmail = pEmailIdx >= 0 ? String(row[pEmailIdx]).toLowerCase().trim() : '';
+      const rowPEmailsRaw = pEmailsIdx >= 0 ? String(row[pEmailsIdx]) : '';
+      const rowMessagesRaw = msgIdx >= 0 ? String(row[msgIdx]) : '';
+
+      let match = false;
+      if (cleanEmail) {
+        if (rowPEmail === cleanEmail) match = true;
+        if (rowPEmailsRaw.toLowerCase().indexOf(cleanEmail) !== -1) match = true;
+        if (cleanEmailSlug && rowThreadId.indexOf(cleanEmailSlug) !== -1) match = true;
+        if (rowMessagesRaw.toLowerCase().indexOf(cleanEmail) !== -1) match = true;
+      }
+      if (cleanId) {
+        if (rowPId === cleanId) match = true;
+        if (rowThreadId.indexOf(cleanId) !== -1) match = true;
+        if (rowMessagesRaw.indexOf(cleanId) !== -1) match = true;
+      }
+
+      if (match) {
+        sheet.deleteRow(i + 1);
+      }
+    }
+  } catch (err) {
+    console.error('Error cleaning up DMs for user: ' + err);
+  }
+}
+
+/**
+ * Delete User Record in Users sheet & cascade delete all associated DMs
  */
 function deleteUser(payload) {
   if (!payload) return { success: false, message: 'Invalid payload' };
@@ -995,6 +1049,9 @@ function deleteUser(payload) {
 
   const id = typeof payload === 'object' ? (payload.id || '') : String(payload);
   const email = typeof payload === 'object' ? (payload.email || '') : '';
+
+  // Bersihkan juga seluruh riwayat percakapan DM user ini
+  cleanUpUserDMs(email, id);
 
   const data = sheet.getDataRange().getValues();
   if (data.length <= 1) return { success: false, message: 'No users found' };

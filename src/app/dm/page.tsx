@@ -40,10 +40,14 @@ function DirectMessagesContent() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // All teammates in workspace except current user
+  // All teammates in workspace except current user and deleted/rejected users
   const teammates = useMemo(() => {
     return users.filter(
-      (u) => u.id !== currentUser?.id && u.email?.toLowerCase().trim() !== currentUser?.email?.toLowerCase().trim()
+      (u) =>
+        u.id !== currentUser?.id &&
+        u.email?.toLowerCase().trim() !== currentUser?.email?.toLowerCase().trim() &&
+        (u.status as string) !== 'deleted' &&
+        (u.status as string) !== 'rejected'
     );
   }, [users, currentUser]);
 
@@ -56,12 +60,14 @@ function DirectMessagesContent() {
     );
   }, [teammates, searchQuery]);
 
-  // Filter percakapan aktif yang melibatkan akun saya
+  // Filter percakapan aktif yang melibatkan akun saya DAN lawan bicara masih aktif di workspace
   const myActiveThreads = useMemo(() => {
     const myEmail = currentUser?.email?.toLowerCase().trim();
     const myId = currentUser?.id;
     if (!myEmail && !myId) return dmThreads;
+
     return dmThreads.filter((t) => {
+      // 1. Thread harus melibatkan user saat ini
       const inEmails = t.participantEmails && t.participantEmails.some((e) => e.toLowerCase().trim() === myEmail);
       const inPartEmail = t.participantEmail && t.participantEmail.toLowerCase().trim() === myEmail;
       const inPartId = t.participantId && t.participantId === myId;
@@ -71,9 +77,55 @@ function DirectMessagesContent() {
           (m.senderId && m.senderId === myId)
       );
       const inId = myEmail ? t.id.includes(myEmail.replace(/[^a-zA-Z0-9]/g, '_')) : false;
-      return inEmails || inPartEmail || inPartId || inMessages || inId;
+      const involvesMe = inEmails || inPartEmail || inPartId || inMessages || inId;
+      if (!involvesMe) return false;
+
+      // 2. Jika daftar users sudah dimuat, pastikan partnernya masih ada & tidak dihapus
+      if (users.length > 0) {
+        let otherEmail: string | undefined = undefined;
+        let otherId: string | undefined = undefined;
+
+        if (t.participantEmails && t.participantEmails.length > 0) {
+          otherEmail = t.participantEmails.find((e) => e.toLowerCase().trim() !== myEmail)?.toLowerCase().trim();
+        }
+        if (!otherEmail && t.participantEmail && t.participantEmail.toLowerCase().trim() !== myEmail) {
+          otherEmail = t.participantEmail.toLowerCase().trim();
+        }
+        if (t.participantId && t.participantId !== myId) {
+          otherId = t.participantId;
+        }
+
+        if (!otherEmail && !otherId && t.messages && t.messages.length > 0) {
+          const otherMsg = t.messages.find(
+            (m) =>
+              (m.senderEmail && m.senderEmail.toLowerCase().trim() !== myEmail) ||
+              (m.senderId && m.senderId === myId)
+          );
+          if (otherMsg) {
+            otherEmail = otherMsg.senderEmail?.toLowerCase().trim();
+            otherId = otherMsg.senderId;
+          }
+        }
+
+        // Jika berhasil mengidentifikasi partner
+        if (otherEmail || otherId) {
+          const partnerExists = users.some((u) => {
+            const matchEmail = otherEmail && u.email?.toLowerCase().trim() === otherEmail;
+            const matchId = otherId && u.id === otherId;
+            const isActive = (u.status as string) !== 'deleted' && (u.status as string) !== 'rejected';
+            return (matchEmail || matchId) && isActive;
+          });
+
+          // Jika lawan bicara sudah dihapus dari akun, jangan tampilkan DM ini
+          if (!partnerExists) {
+            return false;
+          }
+        }
+      }
+
+      return true;
     });
-  }, [dmThreads, currentUser]);
+  }, [dmThreads, currentUser, users]);
 
   // Handle URL query parameter ?userId=... to auto-open conversation
   useEffect(() => {
@@ -87,6 +139,17 @@ function DirectMessagesContent() {
       setSelectedThreadId(myActiveThreads[0].id);
     }
   }, [targetUserId, users, myActiveThreads, selectedThreadId, createOrSelectDMThread]);
+
+  // Jika thread yang sedang dibuka sudah tidak ada di myActiveThreads (misal akun lawan bicara dihapus),
+  // reset atau alihkan ke percakapan aktif yang tersisa
+  useEffect(() => {
+    if (selectedThreadId) {
+      const stillActive = myActiveThreads.some((t) => t.id === selectedThreadId);
+      if (!stillActive) {
+        setSelectedThreadId(myActiveThreads.length > 0 ? myActiveThreads[0].id : "");
+      }
+    }
+  }, [selectedThreadId, myActiveThreads]);
 
   const currentThread = dmThreads.find((dm) => dm.id === selectedThreadId);
 

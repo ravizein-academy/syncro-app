@@ -569,12 +569,21 @@ export const useStore = create<AppState>()(
           (userEmail && u.email?.toLowerCase().trim() === userEmail.toLowerCase().trim()) ||
           (userId && userId !== '' && u.id === userId)
         );
-        const targetEmail = target?.email || userEmail || '';
+        const targetEmail = (target?.email || userEmail || '').toLowerCase().trim();
 
         set((state) => ({
           users: state.users.filter((u) => {
-            if (targetEmail && u.email?.toLowerCase().trim() === targetEmail.toLowerCase().trim()) return false;
+            if (targetEmail && u.email?.toLowerCase().trim() === targetEmail) return false;
             if (userId && userId !== '' && u.id === userId) return false;
+            return true;
+          }),
+          dmThreads: state.dmThreads.filter((t) => {
+            if (targetEmail) {
+              if (t.participantEmail?.toLowerCase().trim() === targetEmail) return false;
+              if (t.participantEmails && t.participantEmails.some((e) => e.toLowerCase().trim() === targetEmail)) return false;
+              if (t.id.includes(targetEmail.replace(/[^a-zA-Z0-9]/g, '_'))) return false;
+            }
+            if (userId && (t.participantId === userId || t.id.includes(userId))) return false;
             return true;
           }),
         }));
@@ -620,12 +629,21 @@ export const useStore = create<AppState>()(
           (userEmail && u.email?.toLowerCase().trim() === userEmail.toLowerCase().trim()) ||
           (userId && userId !== '' && u.id === userId)
         );
-        const emailToDelete = target?.email || userEmail || '';
+        const emailToDelete = (target?.email || userEmail || '').toLowerCase().trim();
 
         set((state) => ({
           users: state.users.filter((u) => {
-            if (emailToDelete && u.email?.toLowerCase().trim() === emailToDelete.toLowerCase().trim()) return false;
+            if (emailToDelete && u.email?.toLowerCase().trim() === emailToDelete) return false;
             if (userId && userId !== '' && u.id === userId) return false;
+            return true;
+          }),
+          dmThreads: state.dmThreads.filter((t) => {
+            if (emailToDelete) {
+              if (t.participantEmail?.toLowerCase().trim() === emailToDelete) return false;
+              if (t.participantEmails && t.participantEmails.some((e) => e.toLowerCase().trim() === emailToDelete)) return false;
+              if (t.id.includes(emailToDelete.replace(/[^a-zA-Z0-9]/g, '_'))) return false;
+            }
+            if (userId && (t.participantId === userId || t.id.includes(userId))) return false;
             return true;
           }),
         }));

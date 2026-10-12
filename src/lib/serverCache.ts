@@ -150,10 +150,31 @@ export function deleteCachedUser(email: string, id?: string) {
   });
   serverCache.usersLastFetch = Date.now();
 
-  // 1. Broadcast seketika (akan memicu auto-kick di browser akun tersebut)
+  // 1. Hapus seluruh DM thread terkait user ini dari memory cache & broadcast
+  if (serverCache.dmThreads) {
+    const deletedThreadIds: string[] = [];
+    serverCache.dmThreads = serverCache.dmThreads.filter((t) => {
+      const isMatch =
+        (cleanEmail && t.participantEmail?.toLowerCase().trim() === cleanEmail) ||
+        (cleanEmail && t.participantEmails && t.participantEmails.some((e: string) => e.toLowerCase().trim() === cleanEmail)) ||
+        (cleanEmail && t.id.includes(cleanEmail.replace(/[^a-zA-Z0-9]/g, '_'))) ||
+        (id && (t.participantId === id || t.id.includes(id)));
+      if (isMatch) {
+        deletedThreadIds.push(t.id);
+        return false;
+      }
+      return true;
+    });
+    serverCache.dmThreadsLastFetch = Date.now();
+    deletedThreadIds.forEach((tId) => {
+      broadcastRealtimeEvent('dm_thread_deleted', { threadId: tId });
+    });
+  }
+
+  // 2. Broadcast seketika (akan memicu auto-kick di browser akun tersebut)
   broadcastRealtimeEvent('user_deleted', { email: cleanEmail, id });
 
-  // 2. Simpan ke Google Apps Script di background
+  // 3. Simpan ke Google Apps Script di background
   const deleteUrl = `${APPS_SCRIPT_URL}?action=deleteUser&id=${encodeURIComponent(id || '')}&email=${encodeURIComponent(cleanEmail)}`;
   fireAndForget(
     fetch(deleteUrl, { method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store' }),
