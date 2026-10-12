@@ -200,9 +200,10 @@ export async function performAutoCloudSync(options: { force?: boolean } = {}): P
 
   isSyncInProgress = true;
   hasPendingChanges = false;
-  store.setCloudSyncStatus('syncing');
+  // Silent sync: tidak mengubah status ke 'syncing' agar UI tetap tenang dan realtime
 
   try {
+
     const currentUser = store.currentUser;
     const userEmail = (currentUser?.email || '').trim().toLowerCase();
     const userName = currentUser?.name || '';

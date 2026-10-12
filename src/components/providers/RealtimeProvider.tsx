@@ -160,7 +160,18 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
             const state = useStore.getState();
             const taskMap = new Map();
             state.tasks.forEach((t) => taskMap.set(t.id, t));
-            remoteTasks.forEach((t) => taskMap.set(t.id, t));
+            remoteTasks.forEach((remoteTask) => {
+              const localTask = taskMap.get(remoteTask.id);
+              if (!localTask) {
+                taskMap.set(remoteTask.id, remoteTask);
+              } else {
+                const localTime = new Date(localTask.updatedAt || 0).getTime();
+                const remoteTime = new Date(remoteTask.updatedAt || 0).getTime();
+                if (remoteTime >= localTime) {
+                  taskMap.set(remoteTask.id, { ...localTask, ...remoteTask });
+                }
+              }
+            });
             state.setTasks(Array.from(taskMap.values()));
           }
         }
@@ -171,6 +182,7 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
           if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
             const state = useStore.getState();
             state.setUsers(remoteUsers);
+
 
             // Verifikasi status saya: jika tidak active, langsung auto-kick
             if (

@@ -109,41 +109,17 @@ export function TopNavbar() {
         <div className="relative" ref={popoverRef}>
           <button
             onClick={() => setIsSyncPopoverOpen((prev) => !prev)}
-            title="Google Sheets Auto-Sync: Tersinkron otomatis secara real-time"
-            className={`h-8 px-2 sm:px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition shrink-0 ${
-              isCurrentlySyncing
-                ? 'bg-amber-500/10 border-amber-500/30 text-amber-500'
-                : cloudSyncStatus === 'error'
-                ? 'bg-rose-500/10 border-rose-500/30 text-rose-500'
-                : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'
-            }`}
+            title="Sinkronisasi Realtime: Terus sinkron otomatis tanpa refresh"
+            className="h-8 px-2 sm:px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 transition shrink-0 bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 shadow-xs"
           >
-            {isCurrentlySyncing ? (
-              <>
-                <RefreshCw size={13} className="animate-spin text-amber-500" />
-                <span className="hidden md:inline">{t.autoSyncSyncing}</span>
-              </>
-            ) : cloudSyncStatus === 'error' ? (
-              <>
-                <Cloud size={13} className="text-rose-500" />
-                <span className="hidden md:inline">Offline Cache</span>
-              </>
-            ) : (
-              <>
-                <span className="relative flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                </span>
-                <Cloud size={13} className="text-emerald-500" />
-                <span className="hidden md:inline">{t.autoSyncActive}</span>
-                {lastCloudSync && (
-                  <span className="hidden lg:inline text-[10px] opacity-75 font-mono">
-                    ({lastCloudSync})
-                  </span>
-                )}
-              </>
-            )}
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <Cloud size={13} className="text-emerald-500" />
+            <span className="hidden md:inline font-bold">Realtime Aktif</span>
           </button>
+
 
           {/* Auto-Sync Details & Control Dropdown */}
           {isSyncPopoverOpen && (
