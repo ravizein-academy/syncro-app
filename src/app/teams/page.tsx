@@ -12,7 +12,11 @@ import {
   Check,
   X,
   RefreshCw,
-  UserCheck
+  UserCheck,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  UserX
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,7 +25,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { translations } from "@/lib/i18n";
 
 export default function TeamsPage() {
-  const { users, currentUser, updateUserRole, addUser, approveUser, rejectUser, setUsers, language } = useStore();
+  const { users, currentUser, updateUserRole, updateUser, deleteUser, addUser, approveUser, rejectUser, setUsers, language } = useStore();
   const t = translations[language || 'id'];
 
   const [openInvite, setOpenInvite] = useState(false);
@@ -32,6 +36,16 @@ export default function TeamsPage() {
 
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [pendingConfigs, setPendingConfigs] = useState<Record<string, { role: "admin" | "member" | "guest"; department: string }>>({});
+
+  // State untuk Edit Anggota (Khusus Admin)
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editRole, setEditRole] = useState<"admin" | "member" | "guest">("member");
+  const [editDepartment, setEditDepartment] = useState("Engineering");
+  const [editStatus, setEditStatus] = useState<"active" | "inactive" | "pending">("active");
+
+  // State untuk Hapus Anggota (Khusus Admin)
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
 
   const refreshUsers = async () => {
     setIsRefreshing(true);
@@ -75,6 +89,42 @@ export default function TeamsPage() {
     setName("");
     setEmail("");
     setOpenInvite(false);
+  };
+
+  const handleOpenEdit = (user: User) => {
+    setEditingUser(user);
+    setEditName(user.name);
+    setEditRole(user.role);
+    setEditDepartment(user.department || "Engineering");
+    setEditStatus(user.status || "active");
+  };
+
+  const handleSaveEdit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    updateUser(editingUser.id, {
+      name: editName,
+      role: editRole,
+      department: editDepartment,
+      status: editStatus,
+    });
+
+    setEditingUser(null);
+  };
+
+  const handleConfirmDelete = () => {
+    if (!deletingUser) return;
+    if (
+      deletingUser.id === currentUser?.id ||
+      deletingUser.email.toLowerCase() === currentUser?.email.toLowerCase()
+    ) {
+      alert("Anda tidak dapat menghapus akun Anda sendiri.");
+      return;
+    }
+
+    deleteUser(deletingUser.id);
+    setDeletingUser(null);
   };
 
   return (
@@ -356,56 +406,227 @@ export default function TeamsPage() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {activeUsers.map((user) => (
-            <Card
-              key={user.id}
-              className="bg-card border-border p-5 space-y-4 hover:border-rose-500/50 transition shadow-sm"
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="h-11 w-11 rounded-full bg-gradient-to-br from-rose-500 to-red-700 flex items-center justify-center font-bold text-sm text-white shadow ring-2 ring-rose-400/30">
-                    {user.avatar || user.name.substring(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-foreground">{user.name}</h3>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                    <span className="inline-block mt-1 bg-secondary text-rose-600 dark:text-rose-300 border border-border text-[10px] px-2 py-0.5 rounded font-semibold">
-                      @{user.department}
-                    </span>
-                  </div>
-                </div>
+          {activeUsers.map((user) => {
+            const isSelf = user.id === currentUser?.id || user.email.toLowerCase() === currentUser?.email.toLowerCase();
+            const isInactive = user.status === "inactive";
 
-                {currentUser?.role === 'admin' ? (
-                  <select
-                    value={user.role}
-                    onChange={(e: any) => updateUserRole(user.id, e.target.value)}
-                    className="bg-secondary border border-border text-[11px] rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-rose-500 capitalize"
-                  >
-                    <option value="admin">Admin</option>
-                    <option value="member">Member</option>
-                    <option value="guest">Guest</option>
-                  </select>
-                ) : (
+            return (
+              <Card
+                key={user.id}
+                className={`bg-card border-border p-5 space-y-4 hover:border-rose-500/50 transition shadow-sm ${
+                  isInactive ? "opacity-75 border-dashed border-muted-foreground/40" : ""
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`h-11 w-11 rounded-full flex items-center justify-center font-bold text-sm text-white shadow ring-2 ${
+                      isInactive 
+                        ? "bg-zinc-600 ring-zinc-500/30" 
+                        : "bg-gradient-to-br from-rose-500 to-red-700 ring-rose-400/30"
+                    }`}>
+                      {user.avatar || user.name.substring(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <h3 className="text-sm font-bold text-foreground">{user.name}</h3>
+                        {isSelf && (
+                          <span className="text-[9px] bg-rose-500/10 text-rose-500 font-bold px-1.5 py-0.2 rounded border border-rose-500/20">
+                            Anda
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">{user.email}</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="bg-secondary text-rose-600 dark:text-rose-300 border border-border text-[10px] px-2 py-0.5 rounded font-semibold">
+                          @{user.department}
+                        </span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-semibold border ${
+                          isInactive
+                            ? "bg-zinc-500/15 text-zinc-400 border-zinc-500/25"
+                            : "bg-emerald-500/15 text-emerald-500 border-emerald-500/25"
+                        }`}>
+                          {isInactive ? "Nonaktif" : "Aktif"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
                   <span className="bg-secondary border border-border text-[10px] font-semibold rounded-md px-2 py-0.5 text-muted-foreground uppercase">
                     {user.role}
                   </span>
-                )}
-              </div>
+                </div>
 
-              {/* Quick Communication Action */}
-              <div className="pt-2 border-t border-border flex justify-end">
-                <Link
-                  href={`/dm?userId=${user.id}`}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#EE3726] hover:text-white bg-[#EE3726]/10 hover:bg-[#EE3726] px-3 py-1.5 rounded-lg border border-[#EE3726]/20 transition-all shadow-2xs"
-                >
-                  <MessageSquare size={13} />
-                  <span>Kirim Pesan (DM)</span>
-                </Link>
-              </div>
-            </Card>
-          ))}
+                {/* Card Actions Footer: Edit, Hapus, dan Kirim Pesan DM */}
+                <div className="pt-2 border-t border-border flex items-center justify-between gap-2">
+                  {currentUser?.role === 'admin' ? (
+                    <div className="flex items-center gap-1">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenEdit(user)}
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-secondary gap-1 rounded-md"
+                        title="Edit Data & Status Anggota"
+                      >
+                        <Pencil size={12} />
+                        <span>Edit</span>
+                      </Button>
+                      {!isSelf && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeletingUser(user)}
+                          className="h-7 px-2 text-xs text-red-500 hover:text-red-400 hover:bg-red-500/10 gap-1 rounded-md"
+                          title="Hapus Anggota Tim"
+                        >
+                          <Trash2 size={12} />
+                          <span>Hapus</span>
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div />
+                  )}
+
+                  <Link
+                    href={`/dm?userId=${user.id}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#EE3726] hover:text-white bg-[#EE3726]/10 hover:bg-[#EE3726] px-3 py-1.5 rounded-lg border border-[#EE3726]/20 transition-all shadow-2xs"
+                  >
+                    <MessageSquare size={13} />
+                    <span>Kirim Pesan (DM)</span>
+                  </Link>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
+
+      {/* Modal Edit Data & Status Anggota (Khusus Admin) */}
+      <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
+        <DialogContent className="bg-card border-border text-foreground sm:max-w-[440px]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <Pencil size={16} className="text-rose-500" />
+              <span>Edit Anggota & Status Tim</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {editingUser && (
+            <form onSubmit={handleSaveEdit} className="space-y-4 pt-2">
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Nama Lengkap</label>
+                <Input
+                  required
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="bg-secondary border-border text-sm focus-visible:ring-rose-500"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Email Akun (Identitas Akun)</label>
+                <Input
+                  disabled
+                  value={editingUser.email}
+                  className="bg-secondary/50 border-border text-sm text-muted-foreground cursor-not-allowed"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Peran (Role)</label>
+                  <select
+                    value={editRole}
+                    onChange={(e: any) => setEditRole(e.target.value)}
+                    className="w-full h-9 rounded-md bg-secondary border border-border text-sm px-3 text-foreground focus:outline-none focus:border-rose-500"
+                  >
+                    <option value="member">Member</option>
+                    <option value="admin">Admin</option>
+                    <option value="guest">Guest</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-xs text-muted-foreground mb-1 block">Status Akun</label>
+                  <select
+                    value={editStatus}
+                    onChange={(e: any) => setEditStatus(e.target.value)}
+                    className="w-full h-9 rounded-md bg-secondary border border-border text-sm px-3 text-foreground focus:outline-none focus:border-rose-500"
+                  >
+                    <option value="active">Aktif (Bisa Akses)</option>
+                    <option value="inactive">Nonaktif (Dibekukan)</option>
+                    <option value="pending">Pending (Menunggu ACC)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground mb-1 block">Departemen</label>
+                <select
+                  value={editDepartment}
+                  onChange={(e) => setEditDepartment(e.target.value)}
+                  className="w-full h-9 rounded-md bg-secondary border border-border text-sm px-3 text-foreground focus:outline-none focus:border-rose-500"
+                >
+                  <option value="Engineering">Engineering</option>
+                  <option value="Product">Product</option>
+                  <option value="Product & Tech">Product & Tech</option>
+                  <option value="Design">Design</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Operations">Operations</option>
+                </select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-border">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setEditingUser(null)}>
+                  {t.modalCancel}
+                </Button>
+                <Button type="submit" size="sm" className="bg-rose-600 hover:bg-rose-500 text-white font-semibold">
+                  Simpan Perubahan
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Konfirmasi Hapus Anggota (Khusus Admin) */}
+      <Dialog open={!!deletingUser} onOpenChange={(open) => !open && setDeletingUser(null)}>
+        <DialogContent className="bg-card border-border text-foreground sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2 text-red-500">
+              <Trash2 size={16} />
+              <span>Hapus Anggota Tim</span>
+            </DialogTitle>
+          </DialogHeader>
+
+          {deletingUser && (
+            <div className="space-y-4 pt-1">
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Apakah Anda yakin ingin menghapus akun <strong className="text-foreground">{deletingUser.name}</strong> ({deletingUser.email}) dari tim?
+              </p>
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-[11px] text-red-500 leading-relaxed">
+                Akun ini akan dihapus dari Google Sheets dan tidak akan dapat lagi masuk ke workspace Syncro.
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setDeletingUser(null)}>
+                  {t.modalCancel}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={handleConfirmDelete}
+                  className="bg-red-600 hover:bg-red-500 text-white font-semibold"
+                >
+                  Ya, Hapus Anggota
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

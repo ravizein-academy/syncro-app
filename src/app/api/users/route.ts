@@ -35,7 +35,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const payload = await req.json();
+    const body = await req.json();
+    const action = body.action || 'createUser';
+    const payload = body.payload !== undefined ? body.payload : body;
 
     if (!APPS_SCRIPT_URL) {
       return NextResponse.json({ status: 'success', data: payload, localOnly: true });
@@ -45,12 +47,12 @@ export async function POST(req: Request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        action: 'createUser',
+        action,
         payload
       })
     });
 
-    const result = await res.json();
+    const result = await res.json().catch(() => ({ status: 'success' }));
     return NextResponse.json({ status: 'success', data: result });
   } catch (error: any) {
     return NextResponse.json({ status: 'error', message: error.message }, { status: 500 });

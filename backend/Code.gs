@@ -111,6 +111,10 @@ function doGet(e) {
         result = updateUserRecord(e && e.parameter);
         break;
 
+      case 'deleteUser':
+        result = deleteUser(e && e.parameter);
+        break;
+
       default:
         return jsonResponse({
           status: 'error',
@@ -169,6 +173,10 @@ function doPost(e) {
 
       case 'updateUser':
         result = updateUserRecord(payload);
+        break;
+
+      case 'deleteUser':
+        result = deleteUser(payload);
         break;
 
       case 'notifyAdminAccessRequest':
@@ -680,6 +688,36 @@ function updateUserRecord(user) {
     }
   }
   return { success: false, message: 'User not found' };
+}
+
+/**
+ * Delete User Record in Users sheet
+ */
+function deleteUser(payload) {
+  if (!payload) return { success: false, message: 'Invalid payload' };
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.USERS);
+  if (!sheet) return { success: false, message: 'Users sheet not found' };
+
+  const id = typeof payload === 'object' ? (payload.id || '') : String(payload);
+  const email = typeof payload === 'object' ? (payload.email || '') : '';
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { success: false, message: 'No users found' };
+
+  const headers = data[0];
+  const idIdx = headers.indexOf('id');
+  const emailIdx = headers.indexOf('email');
+
+  for (let i = 1; i < data.length; i++) {
+    const rowId = idIdx >= 0 ? String(data[i][idIdx]) : '';
+    const rowEmail = emailIdx >= 0 ? String(data[i][emailIdx]).toLowerCase().trim() : '';
+    if ((id && rowId === String(id)) || (email && rowEmail === String(email).toLowerCase().trim())) {
+      sheet.deleteRow(i + 1);
+      return { success: true, deleted: id || email };
+    }
+  }
+  return { success: false, message: 'User not found in sheet' };
 }
 
 /**

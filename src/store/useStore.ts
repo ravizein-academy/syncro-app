@@ -48,7 +48,7 @@ export interface User {
   avatar?: string;
   department: string;
   capacityHours: number;
-  status?: 'active' | 'pending';
+  status?: 'active' | 'pending' | 'inactive';
   requestedAt?: string;
 }
 
@@ -172,6 +172,8 @@ interface AppState {
   addUser: (user: Omit<User, 'id'>) => void;
   approveUser: (userId: string, role: 'admin' | 'member' | 'guest', department?: string) => void;
   rejectUser: (userId: string) => void;
+  updateUser: (userId: string, updates: Partial<User>) => void;
+  deleteUser: (userId: string) => void;
 
   // Notification Actions
   markNotificationAsRead: (id: string) => void;
@@ -457,6 +459,7 @@ export const useStore = create<AppState>()(
       },
 
       rejectUser: (userId) => {
+        const target = get().users.find((u) => u.id === userId);
         set((state) => ({
           users: state.users.filter((u) => u.id !== userId),
         }));
@@ -467,9 +470,51 @@ export const useStore = create<AppState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               action: 'deleteUser',
-              payload: { id: userId },
+              payload: { id: userId, email: target?.email },
             }),
           }).catch((err) => console.warn('Failed to delete rejected user:', err));
+        }
+      },
+
+      updateUser: (userId, updates) => {
+        const target = get().users.find((u) => u.id === userId);
+        if (!target) return;
+        const updated: User = {
+          ...target,
+          ...updates,
+        };
+        set((state) => ({
+          users: state.users.map((u) => (u.id === userId ? updated : u)),
+          currentUser: state.currentUser?.id === userId ? updated : state.currentUser,
+        }));
+
+        if (typeof fetch !== 'undefined') {
+          fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'updateUser',
+              payload: updated,
+            }),
+          }).catch((err) => console.warn('Failed to sync updated user:', err));
+        }
+      },
+
+      deleteUser: (userId) => {
+        const target = get().users.find((u) => u.id === userId);
+        set((state) => ({
+          users: state.users.filter((u) => u.id !== userId),
+        }));
+
+        if (typeof fetch !== 'undefined') {
+          fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'deleteUser',
+              payload: { id: userId, email: target?.email },
+            }),
+          }).catch((err) => console.warn('Failed to delete user:', err));
         }
       },
 
@@ -478,7 +523,7 @@ export const useStore = create<AppState>()(
           const matched = get().users.find(
             (u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()
           );
-          if (matched && matched.status !== 'pending') {
+          if (matched && matched.status !== 'pending' && matched.status !== 'inactive') {
             set({
               isAuthenticated: true,
               currentUser: matched,
@@ -493,7 +538,7 @@ export const useStore = create<AppState>()(
         const cleanEmail = email.trim().toLowerCase();
         const found = get().users.find((u) => u.email.toLowerCase() === cleanEmail);
 
-        if (found && found.status !== 'pending') {
+        if (found && found.status !== 'pending' && found.status !== 'inactive') {
           set({
             isAuthenticated: true,
             currentUser: found,
