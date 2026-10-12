@@ -343,45 +343,16 @@ export default function LoginPage() {
                 <GoogleGLogo size={32} />
               </div>
               <h2 className="text-lg font-bold text-foreground">
-                {language === 'en' ? 'Choose an account' : 'Pilih akun'}
+                {language === 'en' ? 'Sign in with Google' : 'Masuk dengan Akun Google'}
               </h2>
               <p className="text-xs text-muted-foreground">
                 {language === 'en'
-                  ? 'to continue to Syncro'
-                  : 'untuk melanjutkan ke Syncro'}
+                  ? 'Enter your Google email to continue to Syncro'
+                  : 'Masukkan email Google Anda untuk melanjutkan ke Syncro'}
               </p>
             </div>
 
-            {/* List of previously logged in Google accounts if any */}
-            {users.length > 0 && (
-              <div className="space-y-1.5 border-y border-border py-2.5 max-h-48 overflow-y-auto">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-1">
-                  {language === 'en' ? 'Choose from active accounts' : 'Pilih akun yang aktif'}
-                </p>
-                {users.map((u) => (
-                  <button
-                    key={u.id}
-                    type="button"
-                    onClick={() => handleConfirmGoogleAccount(u.email, u.name)}
-                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-secondary/80 border border-transparent hover:border-[#4285F4]/30 transition text-left group"
-                  >
-                    <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#4285F4] to-[#34A853] flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0">
-                      {u.avatar || u.name.substring(0, 2).toUpperCase()}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-foreground group-hover:text-[#4285F4] truncate">
-                        {u.name}
-                      </p>
-                      <p className="text-[11px] text-muted-foreground truncate">
-                        {u.email}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {/* Form to enter ANY Google / Google Workspace account */}
+            {/* Form to enter Google / Google Workspace account */}
             <form
               onSubmit={(e) => {
                 e.preventDefault();
@@ -394,11 +365,6 @@ export default function LoginPage() {
                   <label className="text-[11px] font-bold text-foreground block">
                     {language === 'en' ? 'Google Account Email' : 'Email Akun Google Anda'}
                   </label>
-                  {users.length > 0 && (
-                    <span className="text-[10px] text-muted-foreground">
-                      {language === 'en' ? 'or use another account' : 'atau gunakan akun lain'}
-                    </span>
-                  )}
                 </div>
                 <Input
                   type="email"
