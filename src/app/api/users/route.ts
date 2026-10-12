@@ -26,16 +26,18 @@ export async function GET() {
     const rawUsers = json?.data?.users || json?.users || [];
     
     // Pastikan setiap user memiliki status yang valid (Admin = active, pemohon baru = pending)
-    const users = rawUsers.map((u: any) => {
+    const users = rawUsers.map((u: any, index: number) => {
       const email = (u.email || '').toLowerCase().trim();
-      const isMasterAdmin = email === 'ravizein@itsecacademy.com' || u.role === 'admin';
+      const isMasterAdmin = email === 'ravizein@itsecacademy.com';
 
-      const userId = u.id || u.sta || 'user_1';
+      const userId = (u.id && u.id !== '') 
+        ? u.id 
+        : (u.sta && u.sta !== '' ? u.sta : (isMasterAdmin ? 'user_1' : `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`));
 
       if (isMasterAdmin) {
         return {
           ...u,
-          id: userId,
+          id: 'user_1',
           role: 'admin',
           status: 'active'
         };
