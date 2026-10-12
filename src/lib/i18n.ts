@@ -16,7 +16,7 @@ export const translations = {
     navMyTasks: 'My Tasks',
     navPlanner: 'Planner',
     navSpaces: 'Spaces',
-    navTeams: 'Teams & Beban Kerja',
+    navTeams: 'Teams',
     navChannels: 'Channels',
     navDM: 'Pesan Langsung',
     navAI: 'Gemini AI Brain',
@@ -149,9 +149,9 @@ export const translations = {
     completedTasksCount: 'Selesai:',
 
     // Teams Page
-    teamTag: 'Alokasi Tim',
-    teamTitle: 'Teams & Beban Kerja',
-    teamSubtitle: 'Manajemen peran anggota, pemantauan kapasitas beban kerja ClickUp-style, dan sub-divisi tim.',
+    teamTag: 'Tim Workspace',
+    teamTitle: 'Teams',
+    teamSubtitle: 'Manajemen peran anggota dan departemen tim.',
     inviteMemberBtn: 'Undang Anggota',
     inviteNameLabel: 'Nama Lengkap',
     inviteEmailLabel: 'Alamat Email',
@@ -236,7 +236,7 @@ export const translations = {
     navMyTasks: 'My Tasks',
     navPlanner: 'Planner',
     navSpaces: 'Spaces',
-    navTeams: 'Teams & Workload',
+    navTeams: 'Teams',
     navChannels: 'Channels',
     navDM: 'Direct Messages',
     navAI: 'Gemini AI Brain',
@@ -369,9 +369,9 @@ export const translations = {
     completedTasksCount: 'Completed:',
 
     // Teams Page
-    teamTag: 'Team Allocation',
-    teamTitle: 'Teams & Workload',
-    teamSubtitle: 'Member role governance, ClickUp-style capacity monitoring, and team divisions.',
+    teamTag: 'Team Members',
+    teamTitle: 'Teams',
+    teamSubtitle: 'Manage team members, roles, and workspace departments.',
     inviteMemberBtn: 'Invite Member',
     inviteNameLabel: 'Full Name',
     inviteEmailLabel: 'Email Address',

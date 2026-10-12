@@ -6,8 +6,6 @@ import Link from "next/link";
 import { 
   Users, 
   ShieldCheck, 
-  Activity, 
-  AlertTriangle, 
   Plus,
   MessageSquare,
   Clock,
@@ -23,7 +21,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { translations } from "@/lib/i18n";
 
 export default function TeamsPage() {
-  const { users, tasks, currentUser, updateUserRole, addUser, approveUser, rejectUser, setUsers, language } = useStore();
+  const { users, currentUser, updateUserRole, addUser, approveUser, rejectUser, setUsers, language } = useStore();
   const t = translations[language || 'id'];
 
   const [openInvite, setOpenInvite] = useState(false);
@@ -59,12 +57,6 @@ export default function TeamsPage() {
 
   const pendingUsers = users.filter((u) => u.status === "pending");
   const activeUsers = users.filter((u) => u.status !== "pending");
-
-  const getUserWorkload = (userId: string) => {
-    const userTasks = tasks.filter((t) => t.assigneeId === userId && t.status !== "done");
-    const totalMinutes = userTasks.reduce((acc, t) => acc + (t.timeEstimate || 60), 0);
-    return Math.round((totalMinutes / 60) * 10) / 10;
-  };
 
   const handleInviteUser = (e: React.FormEvent) => {
     e.preventDefault();
@@ -364,17 +356,10 @@ export default function TeamsPage() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {activeUsers.map((user) => {
-            const workloadHours = getUserWorkload(user.id);
-            const percentLoad = Math.min(100, Math.round((workloadHours / (user.capacityHours || 40)) * 100));
-            const isOverloaded = percentLoad > 85;
-
-          return (
+          {activeUsers.map((user) => (
             <Card
               key={user.id}
-              className={`bg-card border-border p-5 space-y-4 hover:border-rose-500/50 transition shadow-sm ${
-                isOverloaded ? "border-rose-500/50" : ""
-              }`}
+              className="bg-card border-border p-5 space-y-4 hover:border-rose-500/50 transition shadow-sm"
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
@@ -407,32 +392,8 @@ export default function TeamsPage() {
                 )}
               </div>
 
-              {/* Capacity & Workload Bar */}
-              <div className="space-y-1.5 pt-2 border-t border-border">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{t.workloadLabel} <strong className="text-foreground">{workloadHours}j</strong></span>
-                  <span className="text-muted-foreground">{t.capacityLabel} <strong className="text-foreground">{user.capacityHours || 40}j/mgg</strong></span>
-                </div>
-
-                <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${
-                      isOverloaded ? "bg-rose-600" : percentLoad > 50 ? "bg-amber-500" : "bg-emerald-500"
-                    }`}
-                    style={{ width: `${percentLoad}%` }}
-                  />
-                </div>
-
-                {isOverloaded && (
-                  <div className="flex items-center gap-1.5 text-[10px] text-rose-600 dark:text-rose-400 font-semibold pt-1">
-                    <AlertTriangle size={12} />
-                    <span>{t.burnoutWarning}</span>
-                  </div>
-                )}
-              </div>
-
               {/* Quick Communication Action */}
-              <div className="pt-2 flex justify-end">
+              <div className="pt-2 border-t border-border flex justify-end">
                 <Link
                   href={`/dm?userId=${user.id}`}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#EE3726] hover:text-white bg-[#EE3726]/10 hover:bg-[#EE3726] px-3 py-1.5 rounded-lg border border-[#EE3726]/20 transition-all shadow-2xs"
@@ -442,9 +403,8 @@ export default function TeamsPage() {
                 </Link>
               </div>
             </Card>
-          );
-        })}
-      </div>
+          ))}
+        </div>
       )}
     </div>
   );
