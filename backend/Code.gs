@@ -764,16 +764,34 @@ function notifyAdminAccessRequest(payload) {
     + '</div>';
 
   try {
-    MailApp.sendEmail({
-      to: adminEmail,
-      subject: subject,
-      body: plainBody,
-      htmlBody: htmlBody,
-      name: 'Syncro Workspace Security'
-    });
+    if (typeof GmailApp !== 'undefined') {
+      GmailApp.sendEmail(adminEmail, subject, plainBody, {
+        htmlBody: htmlBody,
+        name: 'Syncro Workspace Security'
+      });
+    } else {
+      MailApp.sendEmail({
+        to: adminEmail,
+        subject: subject,
+        body: plainBody,
+        htmlBody: htmlBody,
+        name: 'Syncro Workspace Security'
+      });
+    }
     return { success: true, adminEmail: adminEmail };
   } catch (err) {
-    return { success: false, error: err.toString() };
+    try {
+      MailApp.sendEmail({
+        to: adminEmail,
+        subject: subject,
+        body: plainBody,
+        htmlBody: htmlBody,
+        name: 'Syncro Workspace Security'
+      });
+      return { success: true, adminEmail: adminEmail };
+    } catch (e2) {
+      return { success: false, error: err.toString() };
+    }
   }
 }
 
