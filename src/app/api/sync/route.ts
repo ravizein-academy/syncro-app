@@ -5,13 +5,20 @@ const APPS_SCRIPT_URL =
   process.env.APPS_SCRIPT_URL ||
   'https://script.google.com/macros/s/AKfycbysCD7FNRG0gzuu3LKrqCGjtv2GwmcgIvHEXkrsNbc5gDKrs3H8kJEMtKGd2k450wl3/exec';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const userEmail = searchParams.get('userEmail') || '';
+
     if (!APPS_SCRIPT_URL) {
       return NextResponse.json({ status: 'warning', message: 'Apps script URL unconfigured' });
     }
 
-    const res = await fetch(`${APPS_SCRIPT_URL}?action=getAllData`, {
+    const scriptUrl = userEmail
+      ? `${APPS_SCRIPT_URL}?action=getAllData&userEmail=${encodeURIComponent(userEmail)}`
+      : `${APPS_SCRIPT_URL}?action=getAllData`;
+
+    const res = await fetch(scriptUrl, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
       cache: 'no-store'

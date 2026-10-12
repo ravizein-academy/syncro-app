@@ -11,7 +11,8 @@ import {
   Menu,
   Cloud,
   RefreshCw,
-  CheckCircle2
+  CheckCircle2,
+  Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,7 +33,8 @@ export function TopNavbar() {
     lastCloudSyncMessage,
     isAutoSyncEnabled,
     toggleAutoSync,
-    tasks
+    tasks,
+    currentUser
   } = useStore();
 
   const t = translations[language || 'id'];
@@ -172,6 +174,19 @@ export function TopNavbar() {
 
               {/* Status Info */}
               <div className="py-2.5 space-y-2 text-xs">
+                {/* User Gmail Badge */}
+                <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 truncate">
+                    <Mail size={13} className="text-emerald-500 shrink-0" />
+                    <span className="font-semibold text-emerald-700 dark:text-emerald-300 truncate">
+                      {currentUser?.email || "Akun Google"}
+                    </span>
+                  </div>
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/20 px-1.5 py-0.5 rounded shrink-0">
+                    Akun Aktif
+                  </span>
+                </div>
+
                 <div className="p-2 rounded-lg bg-secondary/60 border border-border text-[11px] space-y-1">
                   <div className="flex items-center justify-between text-muted-foreground">
                     <span>{t.autoSyncLastSynced}:</span>
@@ -193,7 +208,7 @@ export function TopNavbar() {
                 </div>
 
                 <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  {t.autoSyncSubtitle}
+                  Semua tugas otomatis disinkronkan dengan akun Gmail Anda tanpa perlu tindakan manual.
                 </p>
               </div>
 

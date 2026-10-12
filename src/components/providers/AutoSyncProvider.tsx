@@ -19,18 +19,20 @@ import {
 export function AutoSyncProvider({ children }: { children?: React.ReactNode }) {
   const isAutoSyncEnabled = useStore((s) => s.isAutoSyncEnabled);
   const isAuthenticated = useStore((s) => s.isAuthenticated);
+  const currentUser = useStore((s) => s.currentUser);
+  const currentEmail = currentUser?.email;
   const isInitialMount = useRef(true);
 
-  // 1. Initial Cloud Pull & Sync on Mount / Login
+  // 1. Initial Cloud Pull & Sync on Mount / Login / Gmail Account Switch
   useEffect(() => {
     let isMounted = true;
 
     async function initCloudSync() {
       if (!isAutoSyncEnabled) return;
       try {
-        // Step 1: Pull any remote updates from Google Sheets
-        await pullCloudData();
-        // Step 2: Push current merged state to ensure Google Sheets is synchronized
+        // Step 1: Pull remote updates specifically for this Gmail account
+        await pullCloudData(currentEmail);
+        // Step 2: Push merged state tagged with this Gmail account to Google Sheets
         if (isMounted) {
           await performAutoCloudSync();
         }
@@ -44,7 +46,7 @@ export function AutoSyncProvider({ children }: { children?: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [isAuthenticated, isAutoSyncEnabled]);
+  }, [currentEmail, isAuthenticated, isAutoSyncEnabled]);
 
   // 2. Subscribe to task changes for automatic debounced saving
   useEffect(() => {

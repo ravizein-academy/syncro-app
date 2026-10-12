@@ -1,9 +1,9 @@
 /**
  * Sync Service between Syncro Client and Google Apps Script / Next.js API Backend
  * Supports:
- * - Automatic background synchronization
+ * - Automatic background synchronization per user Gmail account
  * - Debounced auto-save on task changes
- * - Initial cloud pull & merge on app load
+ * - Initial cloud pull & merge on app load / user login
  * - Offline-first caching with graceful recovery
  */
 
@@ -51,12 +51,23 @@ export function triggerDebouncedAutoSync(delayMs = 1500) {
 }
 
 /**
- * Pull latest data from Google Apps Script / Cloud Backend
- * Used on app initial load or when refreshing tab.
+ * Pull latest data from Google Apps Script / Cloud Backend for the current Gmail account
+ * Used on app initial load, user login, or when refreshing tab.
  */
-export async function pullCloudData(): Promise<{ success: boolean; pulledCount: number; message: string }> {
+export async function pullCloudData(specificEmail?: string): Promise<{
+  success: boolean;
+  pulledCount: number;
+  message: string;
+}> {
   try {
-    const res = await fetch('/api/sync', {
+    const store = useStore.getState();
+    const userEmail = (specificEmail || store.currentUser?.email || '').trim().toLowerCase();
+
+    const url = userEmail
+      ? `/api/sync?userEmail=${encodeURIComponent(userEmail)}`
+      : '/api/sync';
+
+    const res = await fetch(url, {
       method: 'GET',
       headers: { 'Accept': 'application/json' },
       cache: 'no-store',
@@ -70,7 +81,6 @@ export async function pullCloudData(): Promise<{ success: boolean; pulledCount: 
     const remoteTasks: Task[] = data?.data?.tasks || data?.tasks || [];
 
     if (Array.isArray(remoteTasks) && remoteTasks.length > 0) {
-      const store = useStore.getState();
       const currentTasks = store.tasks;
 
       // Smart merge: Include all remote tasks while preserving unique local ones
@@ -78,12 +88,22 @@ export async function pullCloudData(): Promise<{ success: boolean; pulledCount: 
       
       // Populate remote tasks first
       remoteTasks.forEach((t) => {
-        if (t && t.id) taskMap.set(t.id, t);
+        if (t && t.id) {
+          taskMap.set(t.id, {
+            ...t,
+            userEmail: t.userEmail || userEmail,
+          });
+        }
       });
 
       // Overwrite/merge with current local tasks (local holds latest user interactions)
       currentTasks.forEach((t) => {
-        if (t && t.id) taskMap.set(t.id, t);
+        if (t && t.id) {
+          taskMap.set(t.id, {
+            ...t,
+            userEmail: t.userEmail || userEmail,
+          });
+        }
       });
 
       const mergedTasks = Array.from(taskMap.values());
@@ -92,7 +112,7 @@ export async function pullCloudData(): Promise<{ success: boolean; pulledCount: 
       return {
         success: true,
         pulledCount: remoteTasks.length,
-        message: `Berhasil memuat ${remoteTasks.length} tugas dari cloud`,
+        message: `Berhasil memuat ${remoteTasks.length} tugas untuk ${userEmail || 'akun Anda'}`,
       };
     }
 
@@ -105,7 +125,7 @@ export async function pullCloudData(): Promise<{ success: boolean; pulledCount: 
 
 /**
  * Core Auto Cloud Sync Engine
- * Pushes all current tasks to Google Sheets backend automatically.
+ * Pushes all current tasks tagged with current user Gmail to Google Sheets backend automatically.
  */
 export async function performAutoCloudSync(options: { force?: boolean } = {}): Promise<{
   success: boolean;
@@ -130,13 +150,25 @@ export async function performAutoCloudSync(options: { force?: boolean } = {}): P
   store.setCloudSyncStatus('syncing');
 
   try {
-    const tasks = store.tasks;
+    const currentUser = store.currentUser;
+    const userEmail = (currentUser?.email || '').trim().toLowerCase();
+    const userName = currentUser?.name || '';
+    const userId = currentUser?.id || '';
+
+    // Automatically tag all tasks with current user's Gmail if not already set
+    const tasksWithUserEmail = store.tasks.map((task) => ({
+      ...task,
+      userEmail: task.userEmail || userEmail,
+    }));
 
     const res = await fetch('/api/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        tasks,
+        tasks: tasksWithUserEmail,
+        userEmail,
+        userName,
+        userId,
         timestamp: new Date().toISOString(),
       }),
     });
@@ -149,6 +181,8 @@ export async function performAutoCloudSync(options: { force?: boolean } = {}): P
     const formattedTime = getNowFormatted();
     const statusMsg = json?.localOnly
       ? 'Tersimpan lokal (offline)'
+      : userEmail
+      ? `Tersinkron otomatis dengan ${userEmail}`
       : 'Tersinkronisasi otomatis dengan Google Sheets';
 
     store.setCloudSyncStatus('synced', formattedTime, statusMsg);
@@ -156,7 +190,7 @@ export async function performAutoCloudSync(options: { force?: boolean } = {}): P
     return {
       success: true,
       message: statusMsg,
-      count: tasks.length,
+      count: tasksWithUserEmail.length,
     };
   } catch (error: any) {
     console.warn('[Syncro Auto-Sync] Sync warning (tersimpan lokal):', error);
@@ -189,19 +223,25 @@ export async function fullCloudSync(): Promise<{ success: boolean; message: stri
  */
 export async function syncSingleTaskToBackend(task: Task, action: 'create' | 'update' | 'delete' = 'create') {
   try {
+    const currentUser = useStore.getState().currentUser;
+    const taskPayload = {
+      ...task,
+      userEmail: task.userEmail || currentUser?.email || '',
+    };
+
     if (action === 'delete') {
       await fetch(`/api/tasks?id=${task.id}`, { method: 'DELETE' });
     } else if (action === 'update') {
       await fetch('/api/tasks', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(task),
+        body: JSON.stringify(taskPayload),
       });
     } else {
       await fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(task),
+        body: JSON.stringify(taskPayload),
       });
     }
   } catch (err) {

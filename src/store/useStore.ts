@@ -26,6 +26,7 @@ export interface Task {
   status: 'todo' | 'in-progress' | 'done';
   priority?: 'urgent' | 'high' | 'normal' | 'low';
   assigneeId?: string;
+  userEmail?: string; // Akun Gmail pemilik/pembuat tugas
   spaceId?: string;
   dueDate?: string;
   timeEstimate?: number; // in minutes
@@ -231,11 +232,14 @@ export const useStore = create<AppState>()(
       setTasks: (tasks) => set({ tasks }),
       
       addTask: (taskData) => {
+        const currentUser = get().currentUser;
         const newTask: Task = {
           ...taskData,
           id: taskData.id || `t_${Date.now()}`,
           createdAt: new Date().toISOString().split('T')[0],
           timeTracked: taskData.timeTracked || 0,
+          userEmail: taskData.userEmail || currentUser?.email || '',
+          assigneeId: taskData.assigneeId || currentUser?.id || 'u1',
         };
         set((state) => ({ tasks: [newTask, ...state.tasks] }));
       },

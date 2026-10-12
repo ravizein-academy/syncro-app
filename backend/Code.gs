@@ -74,8 +74,9 @@ function doGet(e) {
         break;
 
       case 'getAllData':
+        const filterEmail = (e && e.parameter && e.parameter.userEmail) || '';
         result = {
-          tasks: getTasksRecords(),
+          tasks: getTasksRecords(filterEmail),
           users: getRecords(SHEET_NAMES.USERS),
           teams: getRecords(SHEET_NAMES.TEAMS),
           spaces: getRecords(SHEET_NAMES.SPACES),
@@ -245,9 +246,9 @@ function getJsonFieldRecords(sheetName, jsonFields) {
 /**
  * Read Tasks with serialized fields decoded (attachments, comments, subtasks, tags)
  */
-function getTasksRecords() {
+function getTasksRecords(filterEmail) {
   const records = getRecords(SHEET_NAMES.TASKS);
-  return records.map(task => {
+  const tasks = records.map(task => {
     ['subtasks', 'attachments', 'comments', 'tags'].forEach(field => {
       if (task[field] && typeof task[field] === 'string') {
         try {
@@ -265,6 +266,18 @@ function getTasksRecords() {
     if (task.isPersonal !== undefined) task.isPersonal = String(task.isPersonal).toLowerCase() === 'true';
     return task;
   });
+
+  if (filterEmail) {
+    const cleanFilter = String(filterEmail).toLowerCase().trim();
+    return tasks.filter(t => {
+      const taskEmail = (t.userEmail || '').toLowerCase().trim();
+      const isPersonal = t.isPersonal === true;
+      if (!isPersonal) return true; // Shared workspace tasks
+      return !taskEmail || taskEmail === cleanFilter;
+    });
+  }
+
+  return tasks;
 }
 
 /**
@@ -373,14 +386,78 @@ function createRecord(sheetName, recordData) {
 }
 
 /**
- * Bulk Sync All Data from frontend
+ * Helper: Upsert User Profile Record into Users sheet
+ */
+function upsertUserRecord(user) {
+  if (!user || !user.email) return;
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAMES.USERS);
+  if (!sheet) return;
+
+  const email = String(user.email).toLowerCase().trim();
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    createRecord(SHEET_NAMES.USERS, {
+      id: 'u_' + Date.now(),
+      name: user.name || email.split('@')[0],
+      email: email,
+      role: user.role || 'member',
+      avatar: user.name ? user.name.slice(0, 2).toUpperCase() : 'U',
+      department: user.department || 'Product & Tech',
+      capacityHours: user.capacityHours || 40
+    });
+    return;
+  }
+
+  const headers = data[0];
+  const emailIdx = headers.indexOf('email');
+  if (emailIdx === -1) return;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][emailIdx]).toLowerCase().trim() === email) {
+      return; // Already registered
+    }
+  }
+
+  createRecord(SHEET_NAMES.USERS, {
+    id: 'u_' + Date.now(),
+    name: user.name || email.split('@')[0],
+    email: email,
+    role: user.role || 'member',
+    avatar: user.name ? user.name.slice(0, 2).toUpperCase() : 'U',
+    department: user.department || 'Product & Tech',
+    capacityHours: user.capacityHours || 40
+  });
+}
+
+/**
+ * Bulk Sync All Data from frontend tagged by user's Gmail
  */
 function syncAllData(state) {
+  const userEmail = (state.userEmail || '').toLowerCase().trim();
+  const userName = state.userName || '';
+
+  // Auto-register user in Users sheet if email provided
+  if (userEmail) {
+    upsertUserRecord({
+      email: userEmail,
+      name: userName || userEmail.split('@')[0],
+      role: 'member',
+      department: userEmail.includes('itsec') ? 'Cyber Security' : 'Product & Tech'
+    });
+  }
+
   if (state.tasks && Array.isArray(state.tasks)) {
-    state.tasks.forEach(task => upsertTask(task));
+    state.tasks.forEach(task => {
+      if (!task.userEmail && userEmail) {
+        task.userEmail = userEmail;
+      }
+      upsertTask(task);
+    });
   }
   return {
     syncedAt: new Date().toISOString(),
+    userEmail: userEmail,
     taskCount: state.tasks ? state.tasks.length : 0
   };
 }
@@ -394,7 +471,7 @@ function setupInitialDatabase() {
 
   const schemas = {
     [SHEET_NAMES.TASKS]: [
-      'id', 'title', 'description', 'status', 'priority', 'assigneeId', 'spaceId',
+      'id', 'title', 'description', 'status', 'priority', 'assigneeId', 'userEmail', 'spaceId',
       'dueDate', 'timeEstimate', 'timeTracked', 'scheduledSlot', 'isPersonal',
       'subtasks', 'attachments', 'comments', 'tags', 'createdAt', 'updatedAt'
     ],

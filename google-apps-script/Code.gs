@@ -1,16 +1,13 @@
 /**
- * WorkFlow PWA (Syncro) - Google Apps Script Backend (REST API)
- * 100% Free Tier Database using Google Sheets
- * 
- * Deployment Instructions:
- * 1. Open Google Sheets (https://sheets.new)
- * 2. Extensions > Apps Script
- * 3. Replace all code with this file content
- * 4. Run `initDatabase()` once in Apps Script editor to create tables & headers
- * 5. Click "Deploy" > "New deployment" > Select type: "Web app"
- * 6. Execute as: "Me", Who has access: "Anyone"
- * 7. Copy the generated Web App URL into your .env.local:
- *    NEXT_PUBLIC_APPS_SCRIPT_URL=https://script.google.com/macros/s/.../exec
+ * =========================================================================
+ * SYNCRO PWA - GOOGLE APPS SCRIPT REST API BACKEND
+ * =========================================================================
+ * Backend berbasis Google Sheets & Google Apps Script sesuai PRD Syncro:
+ * - 100% Free Tier (Google Ecosystem)
+ * - REST API JSON (doGet, doPost, doOptions)
+ * - Otentikasi & Database multi-sheet (Tasks, Users, Teams, Spaces, Channels, DMs, Events)
+ * - Auto-initialization function: setupInitialDatabase()
+ * =========================================================================
  */
 
 const SHEET_NAMES = {
@@ -18,370 +15,568 @@ const SHEET_NAMES = {
   USERS: 'Users',
   TEAMS: 'Teams',
   SPACES: 'Spaces',
-  TIME_LOGS: 'TimeLogs'
+  CHANNELS: 'Channels',
+  DMS: 'DirectMessages',
+  EVENTS: 'PlannerEvents',
+  SYSTEM: 'SystemMeta'
 };
 
-const HEADERS = {
-  TASKS: ['id', 'title', 'description', 'status', 'priority', 'dueDate', 'scheduledTime', 'durationMinutes', 'assignedTo', 'spaceId', 'createdAt', 'updatedAt'],
-  USERS: ['id', 'name', 'email', 'avatar', 'role', 'team'],
-  TEAMS: ['id', 'name', 'division', 'leaderId'],
-  SPACES: ['id', 'name', 'color', 'icon'],
-  TIME_LOGS: ['id', 'taskId', 'userId', 'durationMinutes', 'logDate', 'notes', 'createdAt']
-};
+function getSpreadsheet() {
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
 
 /**
- * Handle HTTP GET Requests
+ * HTTP GET HANDLER
+ * Parameter: ?action=<action_name>&...
  */
 function doGet(e) {
-  const lock = LockService.getScriptLock();
-  lock.tryLock(10000);
-
   try {
-    const params = (e && e.parameter) ? e.parameter : {};
-    const action = params.action || 'getInitialData';
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const action = (e && e.parameter && e.parameter.action) || 'health';
 
-    let result = {};
+    let result = null;
 
     switch (action) {
-      case 'getInitialData':
+      case 'health':
         result = {
-          tasks: getSheetData(ss, SHEET_NAMES.TASKS),
-          users: getSheetData(ss, SHEET_NAMES.USERS),
-          teams: getSheetData(ss, SHEET_NAMES.TEAMS),
-          spaces: getSheetData(ss, SHEET_NAMES.SPACES),
-          timeLogs: getSheetData(ss, SHEET_NAMES.TIME_LOGS)
+          status: 'ok',
+          service: 'Syncro Google Apps Script Backend',
+          version: '1.0.0',
+          timestamp: new Date().toISOString()
         };
         break;
 
       case 'getTasks':
-        result = { tasks: getSheetData(ss, SHEET_NAMES.TASKS) };
+        result = { tasks: getTasksRecords() };
         break;
 
       case 'getUsers':
-        result = { users: getSheetData(ss, SHEET_NAMES.USERS) };
+        result = { users: getRecords(SHEET_NAMES.USERS) };
         break;
 
       case 'getTeams':
-        result = { teams: getSheetData(ss, SHEET_NAMES.TEAMS) };
+        result = { teams: getRecords(SHEET_NAMES.TEAMS) };
         break;
 
       case 'getSpaces':
-        result = { spaces: getSheetData(ss, SHEET_NAMES.SPACES) };
+        result = { spaces: getRecords(SHEET_NAMES.SPACES) };
         break;
 
-      case 'getTimeLogs':
-        result = { timeLogs: getSheetData(ss, SHEET_NAMES.TIME_LOGS) };
+      case 'getChannels':
+        result = { channels: getJsonFieldRecords(SHEET_NAMES.CHANNELS, ['messages']) };
+        break;
+
+      case 'getDMs':
+        result = { dmThreads: getJsonFieldRecords(SHEET_NAMES.DMS, ['messages']) };
+        break;
+
+      case 'getEvents':
+        result = { events: getRecords(SHEET_NAMES.EVENTS) };
+        break;
+
+      case 'getAllData':
+        const filterEmail = (e && e.parameter && e.parameter.userEmail) || '';
+        result = {
+          tasks: getTasksRecords(filterEmail),
+          users: getRecords(SHEET_NAMES.USERS),
+          teams: getRecords(SHEET_NAMES.TEAMS),
+          spaces: getRecords(SHEET_NAMES.SPACES),
+          channels: getJsonFieldRecords(SHEET_NAMES.CHANNELS, ['messages']),
+          dmThreads: getJsonFieldRecords(SHEET_NAMES.DMS, ['messages']),
+          events: getRecords(SHEET_NAMES.EVENTS)
+        };
+        break;
+
+      case 'initDatabase':
+        result = setupInitialDatabase();
+        break;
+
+      case 'clearAllData':
+        result = clearAllData();
         break;
 
       default:
-        result = { error: 'Unknown action: ' + action };
+        return jsonResponse({
+          status: 'error',
+          message: 'Unknown action: ' + action
+        }, 400);
     }
 
-    return responseJson({ status: 'success', data: result });
-  } catch (err) {
-    return responseJson({ status: 'error', message: err.toString() });
-  } finally {
-    lock.releaseLock();
+    return jsonResponse({ status: 'success', data: result });
+  } catch (error) {
+    return jsonResponse({ status: 'error', message: error.toString() }, 500);
   }
 }
 
 /**
- * Handle HTTP POST Requests
+ * HTTP POST HANDLER
+ * Body JSON: { action: "createTask" | "updateTask" | "deleteTask" | "syncAll", payload: {...} }
  */
 function doPost(e) {
-  const lock = LockService.getScriptLock();
-  lock.tryLock(15000);
-
   try {
-    const payload = JSON.parse(e.postData.contents || '{}');
-    const action = payload.action;
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (!e || !e.postData || !e.postData.contents) {
+      return jsonResponse({ status: 'error', message: 'No payload provided' }, 400);
+    }
 
-    let result = {};
+    let body = {};
+    try {
+      body = JSON.parse(e.postData.contents);
+    } catch (parseErr) {
+      return jsonResponse({ status: 'error', message: 'Invalid JSON payload' }, 400);
+    }
+
+    const action = body.action;
+    const payload = body.payload;
+
+    if (!action) {
+      return jsonResponse({ status: 'error', message: 'Field "action" is required' }, 400);
+    }
+
+    let result = null;
 
     switch (action) {
       case 'createTask':
-        result = createTask(ss, payload.data);
+        result = upsertTask(payload);
         break;
 
       case 'updateTask':
-        result = updateTask(ss, payload.id, payload.data);
+        result = upsertTask(payload);
         break;
 
       case 'deleteTask':
-        result = deleteTask(ss, payload.id);
+        result = deleteTask(payload.id);
         break;
 
-      case 'logTime':
-        result = logTime(ss, payload.data);
+      case 'createUser':
+        result = createRecord(SHEET_NAMES.USERS, payload);
         break;
 
-      case 'seedDemoData':
-        result = seedDemoData(ss);
+      case 'syncAll':
+        result = syncAllData(payload);
         break;
 
-      case 'registerUser':
-        result = registerUser(ss, payload.data);
+      case 'initDatabase':
+        result = setupInitialDatabase();
         break;
 
-      case 'deleteUser':
-        result = deleteUser(ss, payload.id);
+      case 'notifyLogin':
+        result = sendLoginNotificationEmail(payload);
         break;
 
       default:
-        return responseJson({ status: 'error', message: 'Unknown action: ' + action });
+        return jsonResponse({
+          status: 'error',
+          message: 'Unknown action: ' + action
+        }, 400);
     }
 
-    return responseJson({ status: 'success', data: result });
-  } catch (err) {
-    return responseJson({ status: 'error', message: err.toString() });
-  } finally {
-    lock.releaseLock();
+    return jsonResponse({ status: 'success', data: result });
+  } catch (error) {
+    return jsonResponse({ status: 'error', message: error.toString() }, 500);
   }
 }
 
 /**
- * Read data from sheet as JSON array of objects
+ * CORS PREFLIGHT HANDLER
  */
-function getSheetData(ss, sheetName) {
-  const sheet = ss.getSheetByName(sheetName);
+function doOptions(e) {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With',
+    'Access-Control-Max-Age': '86400'
+  };
+  return ContentService.createTextOutput('')
+    .setMimeType(ContentService.MimeType.TEXT)
+    .setHeaders(headers);
+}
+
+/**
+ * Helper JSON Response
+ */
+function jsonResponse(data, statusCode) {
+  const responseOutput = ContentService.createTextOutput(JSON.stringify(data))
+    .setMimeType(ContentService.MimeType.JSON);
+  return responseOutput;
+}
+
+/**
+ * Helper: Read all rows from a sheet as Array of Objects
+ */
+function getRecords(sheetName) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(sheetName);
   if (!sheet) return [];
 
-  const values = sheet.getDataRange().getValues();
-  if (values.length <= 1) return [];
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
 
-  const headers = values[0];
-  const rows = values.slice(1);
+  const headers = data[0];
+  const records = [];
 
-  return rows.map(row => {
-    const obj = {};
-    headers.forEach((h, i) => {
-      obj[h] = row[i];
-    });
-    return obj;
-  });
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const record = {};
+    for (let j = 0; j < headers.length; j++) {
+      record[headers[j]] = row[j];
+    }
+    records.push(record);
+  }
+  return records;
 }
 
 /**
- * Create a new task
+ * Helper: Read records and auto-parse JSON strings for specific fields
  */
-function createTask(ss, data) {
-  const sheet = ss.getSheetByName(SHEET_NAMES.TASKS);
-  const id = 'task_' + Utilities.getUuid().substring(0, 8);
-  const now = new Date().toISOString();
-
-  const row = [
-    id,
-    data.title || 'Untitled Task',
-    data.description || '',
-    data.status || 'todo',
-    data.priority || 'medium',
-    data.dueDate || '',
-    data.scheduledTime || '',
-    data.durationMinutes || 30,
-    data.assignedTo || '',
-    data.spaceId || 'space_general',
-    now,
-    now
-  ];
-
-  sheet.appendRow(row);
-  return { id: id, ...data, createdAt: now, updatedAt: now };
-}
-
-/**
- * Update an existing task
- */
-function updateTask(ss, id, updates) {
-  const sheet = ss.getSheetByName(SHEET_NAMES.TASKS);
-  const values = sheet.getDataRange().getValues();
-  if (values.length <= 1) throw new Error('Task not found');
-
-  const headers = values[0];
-  const idColIdx = headers.indexOf('id');
-  const updatedColIdx = headers.indexOf('updatedAt');
-
-  for (let r = 1; r < values.length; r++) {
-    if (values[r][idColIdx] == id) {
-      Object.keys(updates).forEach(key => {
-        const cIdx = headers.indexOf(key);
-        if (cIdx !== -1) {
-          sheet.getRange(r + 1, cIdx + 1).setValue(updates[key]);
+function getJsonFieldRecords(sheetName, jsonFields) {
+  const records = getRecords(sheetName);
+  return records.map(rec => {
+    jsonFields.forEach(field => {
+      if (rec[field] && typeof rec[field] === 'string') {
+        try {
+          rec[field] = JSON.parse(rec[field]);
+        } catch (e) {
+          rec[field] = [];
         }
-      });
-      if (updatedColIdx !== -1) {
-        sheet.getRange(r + 1, updatedColIdx + 1).setValue(new Date().toISOString());
       }
-      return { id: id, ...updates };
-    }
-  }
-
-  throw new Error('Task ID ' + id + ' not found');
+    });
+    return rec;
+  });
 }
 
 /**
- * Delete a task
+ * Read Tasks with serialized fields decoded (attachments, comments, subtasks, tags)
  */
-function deleteTask(ss, id) {
-  const sheet = ss.getSheetByName(SHEET_NAMES.TASKS);
-  const values = sheet.getDataRange().getValues();
-  const idColIdx = values[0].indexOf('id');
-
-  for (let r = 1; r < values.length; r++) {
-    if (values[r][idColIdx] == id) {
-      sheet.deleteRow(r + 1);
-      return { id: id, deleted: true };
-    }
-  }
-
-  throw new Error('Task ID ' + id + ' not found');
-}
-
-/**
- * Log Time Tracking Entry
- */
-function logTime(ss, data) {
-  const sheet = ss.getSheetByName(SHEET_NAMES.TIME_LOGS);
-  const id = 'log_' + Utilities.getUuid().substring(0, 8);
-  const now = new Date().toISOString();
-
-  const row = [
-    id,
-    data.taskId || '',
-    data.userId || '',
-    data.durationMinutes || 0,
-    data.logDate || now.substring(0, 10),
-    data.notes || '',
-    now
-  ];
-
-  sheet.appendRow(row);
-  return { id: id, ...data, createdAt: now };
-}
-
-/**
- * Register or update office user in Users sheet
- */
-function registerUser(ss, data) {
-  const sheet = ss.getSheetByName(SHEET_NAMES.USERS);
-  const values = sheet.getDataRange().getValues();
-  const headers = values[0];
-  const emailColIdx = headers.indexOf('email');
-
-  for (let r = 1; r < values.length; r++) {
-    if (values[r][emailColIdx] && String(values[r][emailColIdx]).toLowerCase() === String(data.email).toLowerCase()) {
-      return { 
-        id: values[r][headers.indexOf('id')], 
-        name: values[r][headers.indexOf('name')], 
-        email: data.email, 
-        role: values[r][headers.indexOf('role')], 
-        team: values[r][headers.indexOf('team')], 
-        avatar: values[r][headers.indexOf('avatar')] 
-      };
-    }
-  }
-
-  const id = data.id || ('user_' + Utilities.getUuid().substring(0, 8));
-  const newRow = [
-    id,
-    data.name || 'Anggota Tim',
-    data.email,
-    data.avatar || ('https://api.dicebear.com/7.x/initials/svg?seed=' + encodeURIComponent(data.name || 'User') + '&backgroundColor=ee3425'),
-    data.role || 'Member',
-    data.team || 'Engineering & Operations'
-  ];
-  sheet.appendRow(newRow);
-  return { id: id, ...data };
-}
-
-/**
- * Delete a user by ID or email
- */
-function deleteUser(ss, idOrEmail) {
-  const sheet = ss.getSheetByName(SHEET_NAMES.USERS);
-  const values = sheet.getDataRange().getValues();
-  if (values.length <= 1) return { deleted: false };
-
-  const headers = values[0];
-  const idColIdx = headers.indexOf('id');
-  const emailColIdx = headers.indexOf('email');
-
-  for (let r = values.length - 1; r >= 1; r--) {
-    const rowId = String(values[r][idColIdx] || '');
-    const rowEmail = String(values[r][emailColIdx] || '').toLowerCase();
-    const query = String(idOrEmail || '').toLowerCase();
-
-    if (rowId === idOrEmail || rowEmail === query) {
-      sheet.deleteRow(r + 1);
-      return { id: idOrEmail, deleted: true };
-    }
-  }
-
-  return { id: idOrEmail, deleted: false };
-}
-
-/**
- * Helper JSON response with CORS
- */
-function responseJson(obj) {
-  return ContentService.createTextOutput(JSON.stringify(obj))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-
-/**
- * Initialize Tables & Headers (Run once manually in Apps Script)
- */
-function initDatabase() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-
-  Object.keys(SHEET_NAMES).forEach(key => {
-    const sheetName = SHEET_NAMES[key];
-    let sheet = ss.getSheetByName(sheetName);
-    if (!sheet) {
-      sheet = ss.insertSheet(sheetName);
-    }
-    if (sheet.getLastRow() === 0) {
-      sheet.appendRow(HEADERS[key]);
-    }
+function getTasksRecords(filterEmail) {
+  const records = getRecords(SHEET_NAMES.TASKS);
+  const tasks = records.map(task => {
+    ['subtasks', 'attachments', 'comments', 'tags'].forEach(field => {
+      if (task[field] && typeof task[field] === 'string') {
+        try {
+          task[field] = JSON.parse(task[field]);
+        } catch (e) {
+          task[field] = [];
+        }
+      } else if (!task[field]) {
+        task[field] = [];
+      }
+    });
+    // Parse booleans and numbers
+    if (task.timeEstimate) task.timeEstimate = Number(task.timeEstimate);
+    if (task.timeTracked) task.timeTracked = Number(task.timeTracked);
+    if (task.isPersonal !== undefined) task.isPersonal = String(task.isPersonal).toLowerCase() === 'true';
+    return task;
   });
 
-  // Remove default 'Sheet1' if exists and empty
-  const defaultSheet = ss.getSheetByName('Sheet1');
-  if (defaultSheet && ss.getSheets().length > 1) {
-    ss.deleteSheet(defaultSheet);
+  if (filterEmail) {
+    const cleanFilter = String(filterEmail).toLowerCase().trim();
+    return tasks.filter(t => {
+      const taskEmail = (t.userEmail || '').toLowerCase().trim();
+      const isPersonal = t.isPersonal === true;
+      if (!isPersonal) return true; // Shared workspace tasks
+      return !taskEmail || taskEmail === cleanFilter;
+    });
   }
+
+  return tasks;
 }
 
 /**
- * Seed initial sample demo data
+ * Insert or Update a Task
  */
-function seedDemoData(ss) {
-  initDatabase();
-  const today = new Date().toISOString().substring(0, 10);
-
-  // Users - HANYA RAVI ZEIN SEBAGAI OWNER / ADMIN
-  const userSheet = ss.getSheetByName(SHEET_NAMES.USERS);
-  if (userSheet.getLastRow() <= 1) {
-    userSheet.appendRow(['user_1', 'Ravi Zein', 'ravizein@itsecacademy.com', 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100', 'Admin', 'Product & Tech']);
+function upsertTask(task) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAMES.TASKS);
+  if (!sheet) {
+    setupInitialDatabase();
+    sheet = ss.getSheetByName(SHEET_NAMES.TASKS);
   }
 
-  // Spaces
-  const spaceSheet = ss.getSheetByName(SHEET_NAMES.SPACES);
-  if (spaceSheet.getLastRow() <= 1) {
-    spaceSheet.appendRow(['space_1', 'Product Development', '#6366f1', 'Layers']);
-    spaceSheet.appendRow(['space_2', 'IT Security Operations', '#ef4444', 'Shield']);
-    spaceSheet.appendRow(['space_3', 'Academy & Training', '#10b981', 'GraduationCap']);
+  const id = task.id || ('task_' + Date.now());
+  task.id = id;
+
+  // Prepare fields
+  const serializedTask = {
+    ...task,
+    subtasks: JSON.stringify(task.subtasks || []),
+    attachments: JSON.stringify(task.attachments || []),
+    comments: JSON.stringify(task.comments || []),
+    tags: JSON.stringify(task.tags || []),
+    updatedAt: new Date().toISOString()
+  };
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const idIndex = headers.indexOf('id');
+
+  const data = sheet.getDataRange().getValues();
+  let foundRow = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idIndex]) === String(id)) {
+      foundRow = i + 1;
+      break;
+    }
   }
 
-  // Tasks
-  const taskSheet = ss.getSheetByName(SHEET_NAMES.TASKS);
-  if (taskSheet.getLastRow() <= 1) {
-    taskSheet.appendRow(['task_1', 'Setup Google Apps Script REST API', 'Implement doGet and doPost handlers', 'done', 'high', today, '09:00', 60, 'user_1', 'space_1', new Date().toISOString(), new Date().toISOString()]);
-    taskSheet.appendRow(['task_2', 'Integrasi Next.js PWA & UI ClickUp', 'Buat layout sidebar, kanban, dan kalender', 'in_progress', 'urgent', today, '13:00', 120, 'user_1', 'space_1', new Date().toISOString(), new Date().toISOString()]);
-    taskSheet.appendRow(['task_3', 'Review SOC Assessment Report', 'Pemeriksaan temuan keamanan DNS block list', 'todo', 'high', today, '', 45, 'user_3', 'space_2', new Date().toISOString(), new Date().toISOString()]);
-    taskSheet.appendRow(['task_4', 'SOP Mac Mini Lab Update', 'Finalisasi panduan lab student ITSEC', 'todo', 'medium', today, '', 90, 'user_2', 'space_3', new Date().toISOString(), new Date().toISOString()]);
+  if (foundRow > 0) {
+    // Update existing row
+    for (let j = 0; j < headers.length; j++) {
+      const header = headers[j];
+      if (serializedTask.hasOwnProperty(header)) {
+        sheet.getRange(foundRow, j + 1).setValue(serializedTask[header]);
+      }
+    }
+  } else {
+    // Append new row
+    const newRow = [];
+    for (let j = 0; j < headers.length; j++) {
+      const header = headers[j];
+      newRow.push(serializedTask[header] !== undefined ? serializedTask[header] : '');
+    }
+    sheet.appendRow(newRow);
   }
 
-  return { message: 'Demo data seeded successfully' };
+  return task;
 }
+
+/**
+ * Delete a Task by ID
+ */
+function deleteTask(id) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.TASKS);
+  if (!sheet) return { success: false, message: 'Sheet not found' };
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idIndex = headers.indexOf('id');
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idIndex]) === String(id)) {
+      sheet.deleteRow(i + 1);
+      return { success: true, deletedId: id };
+    }
+  }
+  return { success: false, message: 'Task not found: ' + id };
+}
+
+/**
+ * Create a Generic Record
+ */
+function createRecord(sheetName, recordData) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(sheetName);
+  if (!sheet) throw new Error('Sheet ' + sheetName + ' not found');
+
+  if (!recordData.id) {
+    recordData.id = 'id_' + Math.random().toString(36).substring(2, 9);
+  }
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const newRow = [];
+
+  for (let i = 0; i < headers.length; i++) {
+    const header = headers[i];
+    let val = recordData[header];
+    if (typeof val === 'object') val = JSON.stringify(val);
+    newRow.push(val !== undefined ? val : '');
+  }
+
+  sheet.appendRow(newRow);
+  return recordData;
+}
+
+/**
+ * Helper: Upsert User Profile Record into Users sheet
+ */
+function upsertUserRecord(user) {
+  if (!user || !user.email) return;
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAMES.USERS);
+  if (!sheet) return;
+
+  const email = String(user.email).toLowerCase().trim();
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    createRecord(SHEET_NAMES.USERS, {
+      id: 'u_' + Date.now(),
+      name: user.name || email.split('@')[0],
+      email: email,
+      role: user.role || 'member',
+      avatar: user.name ? user.name.slice(0, 2).toUpperCase() : 'U',
+      department: user.department || 'Product & Tech',
+      capacityHours: user.capacityHours || 40
+    });
+    return;
+  }
+
+  const headers = data[0];
+  const emailIdx = headers.indexOf('email');
+  if (emailIdx === -1) return;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][emailIdx]).toLowerCase().trim() === email) {
+      return; // Already registered
+    }
+  }
+
+  createRecord(SHEET_NAMES.USERS, {
+    id: 'u_' + Date.now(),
+    name: user.name || email.split('@')[0],
+    email: email,
+    role: user.role || 'member',
+    avatar: user.name ? user.name.slice(0, 2).toUpperCase() : 'U',
+    department: user.department || 'Product & Tech',
+    capacityHours: user.capacityHours || 40
+  });
+}
+
+/**
+ * Bulk Sync All Data from frontend tagged by user's Gmail
+ */
+function syncAllData(state) {
+  const userEmail = (state.userEmail || '').toLowerCase().trim();
+  const userName = state.userName || '';
+
+  // Auto-register user in Users sheet if email provided
+  if (userEmail) {
+    upsertUserRecord({
+      email: userEmail,
+      name: userName || userEmail.split('@')[0],
+      role: 'member',
+      department: userEmail.includes('itsec') ? 'Cyber Security' : 'Product & Tech'
+    });
+  }
+
+  if (state.tasks && Array.isArray(state.tasks)) {
+    state.tasks.forEach(task => {
+      if (!task.userEmail && userEmail) {
+        task.userEmail = userEmail;
+      }
+      upsertTask(task);
+    });
+  }
+  return {
+    syncedAt: new Date().toISOString(),
+    userEmail: userEmail,
+    taskCount: state.tasks ? state.tasks.length : 0
+  };
+}
+
+/**
+ * Database Initializer & Setup Function
+ * Run this function once from Apps Script editor or call ?action=initDatabase
+ */
+function setupInitialDatabase() {
+  const ss = getSpreadsheet();
+
+  const schemas = {
+    [SHEET_NAMES.TASKS]: [
+      'id', 'title', 'description', 'status', 'priority', 'assigneeId', 'userEmail', 'spaceId',
+      'dueDate', 'timeEstimate', 'timeTracked', 'scheduledSlot', 'isPersonal',
+      'subtasks', 'attachments', 'comments', 'tags', 'createdAt', 'updatedAt'
+    ],
+    [SHEET_NAMES.USERS]: [
+      'id', 'name', 'email', 'role', 'avatar', 'department', 'capacityHours'
+    ],
+    [SHEET_NAMES.TEAMS]: [
+      'id', 'name', 'description'
+    ],
+    [SHEET_NAMES.SPACES]: [
+      'id', 'name', 'color', 'description'
+    ],
+    [SHEET_NAMES.CHANNELS]: [
+      'id', 'name', 'description', 'department', 'messages'
+    ],
+    [SHEET_NAMES.DMS]: [
+      'id', 'participantId', 'participantName', 'messages'
+    ],
+    [SHEET_NAMES.EVENTS]: [
+      'id', 'title', 'start', 'end', 'meetLink', 'taskId'
+    ]
+  };
+
+  // Create or configure each sheet
+  Object.keys(schemas).forEach(name => {
+    let sheet = ss.getSheetByName(name);
+    if (!sheet) {
+      sheet = ss.insertSheet(name);
+    }
+    const headers = schemas[name];
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+    sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold').setBackground('#EE3726').setFontColor('#FFFFFF');
+    sheet.setFrozenRows(1);
+  });
+
+  return {
+    status: 'success',
+    message: 'Database schema and initial sheets successfully created (clean without dummy data)!'
+  };
+}
+
+/**
+ * Clear All Dummy Data from all sheets (keeps header row)
+ */
+function clearAllData() {
+  const ss = getSpreadsheet();
+  Object.values(SHEET_NAMES).forEach(sheetName => {
+    const sheet = ss.getSheetByName(sheetName);
+    if (sheet && sheet.getLastRow() > 1) {
+      sheet.deleteRows(2, sheet.getLastRow() - 1);
+    }
+  });
+  return {
+    status: 'success',
+    message: 'Semua data dummy telah dihapus. Database bersih untuk pengujian baru!'
+  };
+}
+
+/**
+ * Mengirim email notifikasi login keamanan ke email pengguna via Google MailApp
+ */
+function sendLoginNotificationEmail(payload) {
+  if (!payload || !payload.email) {
+    return { success: false, message: 'Alamat email wajib diisi' };
+  }
+
+  var targetEmail = String(payload.email).trim();
+  var userName = payload.name || targetEmail.split('@')[0];
+  var timeStr = payload.time || Utilities.formatDate(new Date(), 'Asia/Jakarta', 'dd MMMM yyyy, HH:mm:ss') + ' WIB';
+  var userAgent = payload.device || 'Perangkat Web Browser';
+
+  var subject = '🔒 Notifikasi Keamanan: Akun Anda Berhasil Masuk ke Syncro';
+  var htmlBody = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; padding: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">'
+    + '<div style="text-align: center; margin-bottom: 24px;">'
+    + '<div style="display: inline-block; background: #EE3726; color: #ffffff; font-weight: 900; font-size: 22px; width: 48px; height: 48px; line-height: 48px; border-radius: 14px; text-align: center; box-shadow: 0 4px 12px rgba(238,55,38,0.3);">S</div>'
+    + '<h2 style="color: #0f172a; margin: 14px 0 4px; font-size: 20px; font-weight: 800;">Aktivitas Masuk Berhasil</h2>'
+    + '<p style="color: #64748b; margin: 0; font-size: 13px;">Syncro Workspace Security Notification</p>'
+    + '</div>'
+    + '<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">'
+    + '<p style="margin: 0 0 8px; color: #334155; font-size: 14px;">Halo <strong>' + userName + '</strong>,</p>'
+    + '<p style="margin: 0; color: #475569; font-size: 13px; line-height: 1.6;">'
+    + 'Kami mendeteksi aktivitas login baru ke workspace <strong>Syncro</strong> menggunakan akun email <strong>' + targetEmail + '</strong>.'
+    + '</p>'
+    + '</div>'
+    + '<table style="width: 100%; font-size: 13px; color: #334155; margin-bottom: 20px; border-collapse: collapse;">'
+    + '<tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0; color: #64748b; width: 130px;">Waktu Masuk:</td><td style="padding: 10px 0; font-weight: 600;">' + timeStr + '</td></tr>'
+    + '<tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0; color: #64748b;">Metode Auth:</td><td style="padding: 10px 0; font-weight: 600;">Google SSO (OAuth 2.0)</td></tr>'
+    + '<tr style="border-bottom: 1px solid #f1f5f9;"><td style="padding: 10px 0; color: #64748b;">Status Sesi:</td><td style="padding: 10px 0; font-weight: 600; color: #16a34a;">Aktif & Terverifikasi ✓</td></tr>'
+    + '<tr><td style="padding: 10px 0; color: #64748b;">Klien / Browser:</td><td style="padding: 10px 0; font-weight: 600;">' + userAgent + '</td></tr>'
+    + '</table>'
+    + '<div style="border-top: 1px solid #e2e8f0; padding-top: 18px; text-align: center;">'
+    + '<p style="color: #64748b; font-size: 12px; margin: 0 0 6px;">Jika ini adalah Anda, tidak ada tindakan lebih lanjut yang diperlukan.</p>'
+    + '<p style="color: #94a3b8; font-size: 11px; margin: 0;">Syncro PWA • Workspace Platform • Google Ecosystem</p>'
+    + '</div>'
+    + '</div>';
+
+  try {
+    MailApp.sendEmail({
+      to: targetEmail,
+      subject: subject,
+      htmlBody: htmlBody
+    });
+    return { success: true, email: targetEmail, message: 'Email sent successfully' };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
