@@ -25,22 +25,35 @@ export async function POST(req: Request) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
 
+    async function generateWithFallback(promptText: string) {
+      const candidateModels = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-pro-latest"];
+      let lastErr: any = null;
+      for (const modelName of candidateModels) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          const res = await model.generateContent(promptText);
+          return res.response.text();
+        } catch (err: any) {
+          lastErr = err;
+          console.warn(`[Gemini API] ${modelName} fallback warning:`, err?.message);
+        }
+      }
+      throw lastErr;
+    }
+
     if (mode === "knowledge") {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
       const fullPrompt = `Konteks Proyek Syncro:\n${context || "Aplikasi manajemen tugas PWA Syncro"}\n\nPertanyaan Pengguna: ${prompt}\n\nJawablah dengan terstruktur, profesional, dan padat.`;
-      const res = await model.generateContent(fullPrompt);
-      return NextResponse.json({ result: res.response.text() });
+      const text = await generateWithFallback(fullPrompt);
+      return NextResponse.json({ result: text });
     } else if (mode === "standup") {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const tasksStr = JSON.stringify(tasks || [], null, 2);
       const fullPrompt = `Buatkan Laporan Standup Harian yang ringkas, profesional, dan siap dikirim ke tim berdasarkan data tugas berikut:\n${tasksStr}`;
-      const res = await model.generateContent(fullPrompt);
-      return NextResponse.json({ result: res.response.text() });
+      const text = await generateWithFallback(fullPrompt);
+      return NextResponse.json({ result: text });
     } else {
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
       const fullPrompt = `Ekstrak seluruh 'Action Items' (daftar to-do) dan penugasan secara detail dalam format markdown checklist dari catatan berikut:\n\n${notes}`;
-      const res = await model.generateContent(fullPrompt);
-      return NextResponse.json({ result: res.response.text() });
+      const text = await generateWithFallback(fullPrompt);
+      return NextResponse.json({ result: text });
     }
   } catch (error: any) {
     console.error("AI Route Error:", error);
