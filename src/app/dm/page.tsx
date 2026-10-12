@@ -36,6 +36,7 @@ function DirectMessagesContent() {
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null);
+  const [deletingThreadId, setDeletingThreadId] = useState<string | null>(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -250,34 +251,76 @@ function DirectMessagesContent() {
               {myActiveThreads.map((thread) => {
                 const partner = getThreadPartner(thread);
                 const isActive = thread.id === currentThread?.id;
+                const isDeleting = deletingThreadId === thread.id;
                 const lastMsg = thread.messages && thread.messages.length > 0
                   ? thread.messages[thread.messages.length - 1]
                   : null;
                 return (
-                  <button
+                  <div
                     key={thread.id}
                     onClick={() => setSelectedThreadId(thread.id)}
-                    className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center gap-3 transition text-xs font-semibold ${
+                    className={`w-full text-left px-3 py-2.5 rounded-xl flex items-center justify-between gap-2.5 transition text-xs font-semibold cursor-pointer group ${
                       isActive
                         ? "bg-[#EE3726]/15 text-[#EE3726] border border-[#EE3726]/30 shadow-xs"
-                        : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                        : "text-muted-foreground hover:bg-accent hover:text-foreground border border-transparent"
                     }`}
                   >
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center font-bold text-xs text-white shadow shrink-0">
-                      {partner.avatar}
-                    </div>
-                    <div className="truncate flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-foreground truncate">{partner.name}</span>
-                        {lastMsg && (
-                          <span className="text-[9px] text-muted-foreground font-normal">{lastMsg.timestamp}</span>
-                        )}
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center font-bold text-xs text-white shadow shrink-0">
+                        {partner.avatar}
                       </div>
-                      <span className="text-[10px] text-muted-foreground block truncate font-normal mt-0.5">
-                        {lastMsg ? lastMsg.text : "Belum ada pesan"}
-                      </span>
+                      <div className="truncate flex-1 min-w-0">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-foreground truncate">{partner.name}</span>
+                          {lastMsg && (
+                            <span className="text-[9px] text-muted-foreground font-normal ml-1 shrink-0">{lastMsg.timestamp}</span>
+                          )}
+                        </div>
+                        <span className="text-[10px] text-muted-foreground block truncate font-normal mt-0.5">
+                          {lastMsg ? lastMsg.text : "Belum ada pesan"}
+                        </span>
+                      </div>
                     </div>
-                  </button>
+
+                    {/* Tombol Hapus di Pinggir Nama Percakapan Aktif */}
+                    <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                      {isDeleting ? (
+                        <div className="flex items-center gap-1 bg-background border border-red-500/30 px-1.5 py-0.5 rounded-lg text-[10px] shadow-sm animate-in fade-in">
+                          <span className="text-red-500 font-bold">Hapus?</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              deleteDMThread(thread.id);
+                              setDeletingThreadId(null);
+                              if (selectedThreadId === thread.id) {
+                                setSelectedThreadId("");
+                              }
+                              triggerDebouncedAutoSync(1000);
+                            }}
+                            className="bg-red-600 hover:bg-red-700 text-white font-bold px-1.5 py-0.5 rounded text-[10px]"
+                          >
+                            Ya
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeletingThreadId(null)}
+                            className="text-muted-foreground hover:text-foreground px-1"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setDeletingThreadId(thread.id)}
+                          className="p-1 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition opacity-70 hover:opacity-100 group-hover:opacity-100"
+                          title={`Hapus percakapan dengan ${partner.name}`}
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 );
               })}
             </div>
