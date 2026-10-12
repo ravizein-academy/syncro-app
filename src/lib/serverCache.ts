@@ -10,6 +10,8 @@ interface ServerCacheState {
   tasksLastFetch: number;
   users: any[];
   usersLastFetch: number;
+  dmThreads: any[];
+  dmThreadsLastFetch: number;
   isTasksFetching: boolean;
   isUsersFetching: boolean;
 }
@@ -26,10 +28,13 @@ if (!globalForServerCache.syncroServerCache) {
     tasksLastFetch: 0,
     users: [],
     usersLastFetch: 0,
+    dmThreads: [],
+    dmThreadsLastFetch: 0,
     isTasksFetching: false,
     isUsersFetching: false,
   };
 }
+
 
 if (!globalForServerCache.syncroRealtimeEmitter) {
   const emitter = new EventEmitter();
@@ -249,3 +254,88 @@ export function deleteCachedTask(id: string) {
     `deleteTask (${id})`
   );
 }
+
+// ==========================================
+// DIRECT MESSAGE CACHE & REALTIME OPERATIONS
+// ==========================================
+
+export async function getCachedDMs(forceFresh = false): Promise<any[]> {
+  const now = Date.now();
+  const isStale = now - (serverCache.dmThreadsLastFetch || 0) > CACHE_TTL_MS;
+
+  if (!forceFresh && (serverCache.dmThreads || []).length > 0 && !isStale) {
+    return serverCache.dmThreads || [];
+  }
+
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=getDMs`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      const threads = json?.data?.dmThreads || json?.dmThreads || [];
+      if (Array.isArray(threads)) {
+        serverCache.dmThreads = threads;
+        serverCache.dmThreadsLastFetch = Date.now();
+      }
+    }
+  } catch (err) {
+    console.warn('[getCachedDMs] Apps Script fetch failed:', err);
+  }
+
+  return serverCache.dmThreads || [];
+}
+
+export function saveDMMessageInMemory(threadId: string, message: any, participantInfo?: any) {
+  if (!serverCache.dmThreads) serverCache.dmThreads = [];
+
+  let thread = serverCache.dmThreads.find((t) => t.id === threadId);
+  if (!thread) {
+    thread = {
+      id: threadId,
+      participantId: participantInfo?.participantId || '',
+      participantName: participantInfo?.participantName || '',
+      participantEmail: participantInfo?.participantEmail || '',
+      participantEmails: participantInfo?.participantEmails || [],
+      messages: [],
+    };
+    serverCache.dmThreads.push(thread);
+  } else if (participantInfo?.participantEmails && (!thread.participantEmails || thread.participantEmails.length === 0)) {
+    thread.participantEmails = participantInfo.participantEmails;
+  }
+
+  // Hindari duplikasi pesan berdasarkan id pesan
+  const msgExists = (thread.messages || []).some((m: any) => m.id === message.id);
+  if (!msgExists) {
+    thread.messages = [...(thread.messages || []), message];
+  }
+  serverCache.dmThreadsLastFetch = Date.now();
+
+  // 1. Broadcast seketika ke seluruh tab / user yang aktif (< 5ms)
+  broadcastRealtimeEvent('dm_message', {
+    threadId,
+    message,
+    participantEmail: participantInfo?.participantEmail,
+    participantName: participantInfo?.participantName,
+    participantEmails: thread.participantEmails || participantInfo?.participantEmails,
+  });
+
+  // 2. Simpan thread ke Google Apps Script di background
+  fireAndForget(
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'saveDM',
+        payload: thread,
+      }),
+    }),
+    `saveDM (${threadId})`
+  );
+
+  return thread;
+}
+

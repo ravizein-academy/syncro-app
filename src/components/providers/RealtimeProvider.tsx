@@ -129,6 +129,40 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
           }
         });
 
+        // 6. Direct Message SSE Event
+        es.addEventListener("dm_message", (e: MessageEvent) => {
+          try {
+            const data = JSON.parse(e.data);
+            const { threadId, message } = data;
+            if (!threadId || !message) return;
+
+            const state = useStore.getState();
+            const threadExists = state.dmThreads.some((t) => t.id === threadId);
+
+            if (threadExists) {
+              state.setDMThreads(
+                state.dmThreads.map((t) => {
+                  if (t.id !== threadId) return t;
+                  const alreadyHas = (t.messages || []).some((m) => m.id === message.id);
+                  return alreadyHas ? t : { ...t, messages: [...(t.messages || []), message] };
+                })
+              );
+            } else {
+              // Thread belum ada di state pengguna ini, tarik seluruh threads terbaru dari cache
+              fetch("/api/dm", { cache: "no-store" })
+                .then((r) => r.json())
+                .then((json) => {
+                  if (json?.dmThreads && Array.isArray(json.dmThreads)) {
+                    state.setDMThreads(json.dmThreads);
+                  }
+                })
+                .catch(() => {});
+            }
+          } catch (err) {
+            console.warn("[Realtime dm_message error]", err);
+          }
+        });
+
         es.onerror = () => {
           if (es.readyState === EventSource.CLOSED) {
             // Reconnect setelah 3 detik jika koneksi terputus
@@ -144,13 +178,24 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
 
     connectSSE();
 
+    // Fetch initial DMs
+    fetch("/api/dm", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((json) => {
+        if (json?.dmThreads && Array.isArray(json.dmThreads) && json.dmThreads.length > 0) {
+          useStore.getState().setDMThreads(json.dmThreads);
+        }
+      })
+      .catch(() => {});
+
     // Fast Silent Polling Fallback (setiap 3 detik) ke fast memory cache
     // Menjamin data selalu sinkron seketika di semua perangkat bahkan jika browser tidak mendukung SSE
     const pollInterval = setInterval(async () => {
       try {
-        const [resTasks, resUsers] = await Promise.all([
+        const [resTasks, resUsers, resDMs] = await Promise.all([
           fetch("/api/tasks", { cache: "no-store" }),
           fetch("/api/users", { cache: "no-store" }),
+          fetch("/api/dm", { cache: "no-store" }),
         ]);
 
         if (resTasks.ok) {
@@ -183,7 +228,6 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
             const state = useStore.getState();
             state.setUsers(remoteUsers);
 
-
             // Verifikasi status saya: jika tidak active, langsung auto-kick
             if (
               state.currentUser &&
@@ -198,6 +242,35 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
                 } catch {}
                 window.location.replace("/login");
               }
+            }
+          }
+        }
+
+        if (resDMs.ok) {
+          const dmJson = await resDMs.json();
+          const remoteThreads = dmJson?.dmThreads || [];
+          if (Array.isArray(remoteThreads) && remoteThreads.length > 0) {
+            const state = useStore.getState();
+            let changed = false;
+            const currentThreads = [...state.dmThreads];
+
+            remoteThreads.forEach((remThread: any) => {
+              const idx = currentThreads.findIndex((loc) => loc.id === remThread.id);
+              if (idx === -1) {
+                currentThreads.push(remThread);
+                changed = true;
+              } else {
+                const locMsgCount = currentThreads[idx].messages?.length || 0;
+                const remMsgCount = remThread.messages?.length || 0;
+                if (remMsgCount > locMsgCount) {
+                  currentThreads[idx] = remThread;
+                  changed = true;
+                }
+              }
+            });
+
+            if (changed) {
+              state.setDMThreads(currentThreads);
             }
           }
         }

@@ -63,9 +63,11 @@ export interface ChatMessage {
   id: string;
   senderId: string;
   senderName: string;
+  senderEmail?: string;
   text: string;
   timestamp: string;
 }
+
 
 
 export interface DirectMessageThread {
@@ -73,6 +75,7 @@ export interface DirectMessageThread {
   participantId: string;
   participantName: string;
   participantEmail?: string;
+  participantEmails?: string[];
   messages: ChatMessage[];
 }
 
@@ -163,8 +166,10 @@ interface AppState {
   addSpace: (space: Omit<Space, 'id'>) => void;
 
   // Direct Message Actions
+  setDMThreads: (dmThreads: DirectMessageThread[]) => void;
   createOrSelectDMThread: (participant: User) => string;
-  sendDMMessage: (threadId: string, message: { text: string; senderId: string; senderName: string }) => void;
+  sendDMMessage: (threadId: string, message: { text: string; senderId: string; senderName: string; senderEmail?: string }) => void;
+
 
   // Teams & User Actions
   setUsers: (users: User[]) => void;
@@ -367,37 +372,91 @@ export const useStore = create<AppState>()(
       },
 
 
+      setDMThreads: (dmThreads) => set({ dmThreads }),
+
       createOrSelectDMThread: (participant: User) => {
         const state = get();
+        const currentUser = state.currentUser;
+        const myEmail = (currentUser?.email || 'user_me').toLowerCase().trim();
+        const theirEmail = (participant.email || participant.id).toLowerCase().trim();
+
+        // Buat ID kanonikal yang sama persis di kedua belah pihak
+        const sorted = [myEmail, theirEmail].sort();
+        const canonicalId = `dm_${sorted[0].replace(/[^a-zA-Z0-9]/g, '_')}_${sorted[1].replace(/[^a-zA-Z0-9]/g, '_')}`;
+
         const existing = state.dmThreads.find(
-          (t) => t.participantId === participant.id || (participant.email && t.participantEmail === participant.email)
+          (t) =>
+            t.id === canonicalId ||
+            (t.participantEmails && t.participantEmails.includes(myEmail) && t.participantEmails.includes(theirEmail)) ||
+            (t.participantEmail && t.participantEmail.toLowerCase().trim() === theirEmail) ||
+            t.participantId === participant.id
         );
+
         if (existing) {
-          return existing.id;
+          if (existing.id !== canonicalId || !existing.participantEmails) {
+            set((s) => ({
+              dmThreads: s.dmThreads.map((t) =>
+                t.id === existing.id
+                  ? {
+                      ...t,
+                      id: canonicalId,
+                      participantEmail: participant.email,
+                      participantName: participant.name,
+                      participantEmails: [myEmail, theirEmail],
+                    }
+                  : t
+              ),
+            }));
+          }
+          return canonicalId;
         }
+
         const newThread: DirectMessageThread = {
-          id: `dm_${participant.id}`,
+          id: canonicalId,
           participantId: participant.id,
           participantName: participant.name,
           participantEmail: participant.email,
+          participantEmails: [myEmail, theirEmail],
           messages: [],
         };
+
         set((s) => ({ dmThreads: [newThread, ...s.dmThreads] }));
         return newThread.id;
       },
 
       sendDMMessage: (threadId, message) => {
+        const currentUser = get().currentUser;
         const newMsg: ChatMessage = {
           id: `dm_msg_${Date.now()}`,
           ...message,
+          senderEmail: message.senderEmail || currentUser?.email || '',
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         };
+
         set((state) => ({
           dmThreads: state.dmThreads.map((dm) =>
-            dm.id === threadId ? { ...dm, messages: [...dm.messages, newMsg] } : dm
+            dm.id === threadId ? { ...dm, messages: [...(dm.messages || []), newMsg] } : dm
           ),
         }));
+
+        // Sinkronkan ke API /api/dm secara realtime (< 10ms)
+        if (typeof fetch !== 'undefined') {
+          const thread = get().dmThreads.find((dm) => dm.id === threadId);
+          fetch('/api/dm', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              threadId,
+              message: newMsg,
+              participantEmail: thread?.participantEmail,
+              participantName: thread?.participantName,
+              participantId: thread?.participantId,
+              participantEmails: thread?.participantEmails || [],
+            }),
+          }).catch((err) => console.warn('[DM Sync Warning]', err));
+        }
       },
+
 
       setUsers: (users) => set({ users }),
       updateUserRole: (userId, role) =>

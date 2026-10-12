@@ -1,24 +1,19 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, Suspense } from "react";
+import React, { useState, useEffect, useMemo, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { useStore, User } from "@/store/useStore";
+import { useStore, User, DirectMessageThread } from "@/store/useStore";
 import { 
   MessageSquare, 
   Send, 
   Users, 
   Search, 
-  Sparkles, 
-  UserCheck, 
   ShieldCheck,
-  CheckCircle2,
-  Clock,
   ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card } from "@/components/ui/card";
-import { triggerDebouncedAutoSync, performAutoCloudSync } from "@/lib/sync";
+import { triggerDebouncedAutoSync } from "@/lib/sync";
 
 function DirectMessagesContent() {
   const searchParams = useSearchParams();
@@ -30,17 +25,17 @@ function DirectMessagesContent() {
     currentUser, 
     createOrSelectDMThread, 
     sendDMMessage, 
-    language 
   } = useStore();
 
   const [selectedThreadId, setSelectedThreadId] = useState<string>("");
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // All teammates in workspace except current user
   const teammates = useMemo(() => {
     return users.filter(
-      (u) => u.id !== currentUser?.id && u.email?.toLowerCase() !== currentUser?.email?.toLowerCase()
+      (u) => u.id !== currentUser?.id && u.email?.toLowerCase().trim() !== currentUser?.email?.toLowerCase().trim()
     );
   }, [users, currentUser]);
 
@@ -68,6 +63,86 @@ function DirectMessagesContent() {
 
   const currentThread = dmThreads.find((dm) => dm.id === selectedThreadId);
 
+  // Auto-scroll to bottom of chat when new messages arrive
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [currentThread?.messages?.length, selectedThreadId]);
+
+  // Helper untuk menentukan identitas lawan bicara secara tepat
+  const getThreadPartner = (thread: DirectMessageThread) => {
+    const myEmail = currentUser?.email?.toLowerCase().trim();
+    const myId = currentUser?.id;
+
+    // 1. Cek apakah thread.participantEmail adalah rekan (bukan diri saya)
+    const isParticipantOther =
+      (thread.participantEmail && thread.participantEmail.toLowerCase().trim() !== myEmail) ||
+      (thread.participantId && thread.participantId !== myId);
+
+    if (isParticipantOther && thread.participantName) {
+      return {
+        name: thread.participantName,
+        email: thread.participantEmail || "",
+        avatar: thread.participantName.substring(0, 2).toUpperCase(),
+      };
+    }
+
+    // 2. Cek dari pesan-pesan: cari pesan yang dikirim oleh rekan
+    const otherMsg = (thread.messages || []).find(
+      (m) =>
+        (m.senderEmail && m.senderEmail.toLowerCase().trim() !== myEmail) ||
+        (m.senderId && m.senderId !== myId)
+    );
+    if (otherMsg) {
+      const foundUser = users.find(
+        (u) =>
+          (otherMsg.senderEmail && u.email?.toLowerCase().trim() === otherMsg.senderEmail.toLowerCase().trim()) ||
+          u.id === otherMsg.senderId
+      );
+      if (foundUser) {
+        return {
+          name: foundUser.name,
+          email: foundUser.email,
+          avatar: foundUser.avatar || foundUser.name.substring(0, 2).toUpperCase(),
+        };
+      }
+      return {
+        name: otherMsg.senderName || "Rekan Tim",
+        email: otherMsg.senderEmail || "",
+        avatar: (otherMsg.senderName || "Rekan").substring(0, 2).toUpperCase(),
+      };
+    }
+
+    // 3. Cek dari participantEmails array
+    if (thread.participantEmails && thread.participantEmails.length > 0) {
+      const counterpartEmail = thread.participantEmails.find(
+        (em) => em.toLowerCase().trim() !== myEmail
+      );
+      if (counterpartEmail) {
+        const foundUser = users.find(
+          (u) => u.email?.toLowerCase().trim() === counterpartEmail.toLowerCase().trim()
+        );
+        if (foundUser) {
+          return {
+            name: foundUser.name,
+            email: foundUser.email,
+            avatar: foundUser.avatar || foundUser.name.substring(0, 2).toUpperCase(),
+          };
+        }
+        return {
+          name: counterpartEmail.split("@")[0],
+          email: counterpartEmail,
+          avatar: counterpartEmail.substring(0, 2).toUpperCase(),
+        };
+      }
+    }
+
+    return {
+      name: thread.participantName || "Rekan Tim",
+      email: thread.participantEmail || "",
+      avatar: (thread.participantName || "RT").substring(0, 2).toUpperCase(),
+    };
+  };
+
   const handleStartChatWithUser = (user: User) => {
     const threadId = createOrSelectDMThread(user);
     setSelectedThreadId(threadId);
@@ -80,6 +155,7 @@ function DirectMessagesContent() {
     sendDMMessage(currentThread.id, {
       senderId: currentUser?.id || "u_curr",
       senderName: currentUser?.name || "User",
+      senderEmail: currentUser?.email || "",
       text: inputText.trim(),
     });
 
@@ -88,6 +164,8 @@ function DirectMessagesContent() {
     // Trigger cloud synchronization so messages reach other team members
     triggerDebouncedAutoSync(1000);
   };
+
+  const currentPartner = currentThread ? getThreadPartner(currentThread) : null;
 
   return (
     <div className="flex h-[calc(100vh-4rem)] overflow-hidden select-none transition-colors duration-200">
@@ -131,8 +209,11 @@ function DirectMessagesContent() {
                 Percakapan Aktif ({dmThreads.length})
               </div>
               {dmThreads.map((thread) => {
+                const partner = getThreadPartner(thread);
                 const isActive = thread.id === currentThread?.id;
-                const lastMsg = thread.messages[thread.messages.length - 1];
+                const lastMsg = thread.messages && thread.messages.length > 0
+                  ? thread.messages[thread.messages.length - 1]
+                  : null;
                 return (
                   <button
                     key={thread.id}
@@ -144,11 +225,11 @@ function DirectMessagesContent() {
                     }`}
                   >
                     <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center font-bold text-xs text-white shadow shrink-0">
-                      {thread.participantName.substring(0, 2).toUpperCase()}
+                      {partner.avatar}
                     </div>
                     <div className="truncate flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-foreground truncate">{thread.participantName}</span>
+                        <span className="font-bold text-foreground truncate">{partner.name}</span>
                         {lastMsg && (
                           <span className="text-[9px] text-muted-foreground font-normal">{lastMsg.timestamp}</span>
                         )}
@@ -175,7 +256,10 @@ function DirectMessagesContent() {
             ) : (
               filteredTeammates.map((teammate) => {
                 const existingThread = dmThreads.find(
-                  (t) => t.participantId === teammate.id || (teammate.email && t.participantEmail === teammate.email)
+                  (t) =>
+                    t.participantId === teammate.id ||
+                    (teammate.email && t.participantEmail?.toLowerCase().trim() === teammate.email.toLowerCase().trim()) ||
+                    (t.participantEmails && teammate.email && t.participantEmails.includes(teammate.email.toLowerCase().trim()))
                 );
                 const isActive = existingThread?.id === currentThread?.id;
 
@@ -210,19 +294,19 @@ function DirectMessagesContent() {
       </div>
 
       {/* Main Chat Area */}
-      {currentThread ? (
+      {currentThread && currentPartner ? (
         <div className="flex-1 flex flex-col bg-background">
           {/* Active Conversation Top Bar */}
           <div className="h-16 border-b border-border px-6 flex items-center justify-between bg-card/60 backdrop-blur-sm">
             <div className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center font-bold text-xs text-white shadow ring-2 ring-[#EE3726]/30">
-                {currentThread.participantName.substring(0, 2).toUpperCase()}
+                {currentPartner.avatar}
               </div>
               <div>
                 <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
-                  <span>{currentThread.participantName}</span>
-                  {currentThread.participantEmail && (
-                    <span className="text-[10px] font-normal text-muted-foreground">({currentThread.participantEmail})</span>
+                  <span>{currentPartner.name}</span>
+                  {currentPartner.email && (
+                    <span className="text-[10px] font-normal text-muted-foreground">({currentPartner.email})</span>
                   )}
                 </h3>
                 <span className="text-[10px] text-emerald-500 flex items-center gap-1 font-semibold">
@@ -247,16 +331,16 @@ function DirectMessagesContent() {
                 <div>
                   <h4 className="font-bold text-sm text-foreground">Mulai Percakapan Baru</h4>
                   <p className="text-xs text-muted-foreground mt-1">
-                    Kirim pesan pertama Anda kepada <strong>{currentThread.participantName}</strong> untuk berdiskusi tentang tugas, ide, atau proyek.
+                    Kirim pesan pertama Anda kepada <strong>{currentPartner.name}</strong> untuk berdiskusi tentang tugas, ide, atau proyek.
                   </p>
                 </div>
               </div>
             ) : (
               currentThread.messages.map((msg) => {
                 const isMe = 
-                  (currentUser && msg.senderId === currentUser.id) || 
-                  (currentUser && msg.senderName === currentUser.name) ||
-                  (currentUser?.email && msg.senderId === currentUser.email);
+                  (currentUser?.email && msg.senderEmail && msg.senderEmail.toLowerCase().trim() === currentUser.email.toLowerCase().trim()) ||
+                  (currentUser?.id && msg.senderId === currentUser.id) || 
+                  (currentUser?.name && msg.senderName === currentUser.name);
 
                 return (
                   <div
@@ -291,12 +375,13 @@ function DirectMessagesContent() {
                 );
               })
             )}
+            <div ref={messagesEndRef} />
           </div>
 
           {/* Input Chat */}
           <form onSubmit={handleSendMessage} className="p-4 border-t border-border bg-card flex gap-2">
             <Input
-              placeholder={`Tulis pesan untuk ${currentThread.participantName}...`}
+              placeholder={`Tulis pesan untuk ${currentPartner.name}...`}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               className="bg-secondary border-border text-xs h-11 text-foreground placeholder:text-muted-foreground focus-visible:ring-[#EE3726] rounded-xl"

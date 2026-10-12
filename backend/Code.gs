@@ -66,7 +66,7 @@ function doGet(e) {
         break;
 
       case 'getDMs':
-        result = { dmThreads: getJsonFieldRecords(SHEET_NAMES.DMS, ['messages']) };
+        result = { dmThreads: getJsonFieldRecords(SHEET_NAMES.DMS, ['messages', 'participantEmails']) };
         break;
 
       case 'getEvents':
@@ -82,7 +82,7 @@ function doGet(e) {
           teams: getRecords(SHEET_NAMES.TEAMS),
           spaces: getRecords(SHEET_NAMES.SPACES),
           channels: getJsonFieldRecords(SHEET_NAMES.CHANNELS, ['messages']),
-          dmThreads: getJsonFieldRecords(SHEET_NAMES.DMS, ['messages']),
+          dmThreads: getJsonFieldRecords(SHEET_NAMES.DMS, ['messages', 'participantEmails']),
           events: getRecords(SHEET_NAMES.EVENTS)
         };
         break;
@@ -201,6 +201,10 @@ function doPost(e) {
 
       case 'createCalendarEvent':
         result = createGoogleCalendarEvent(payload);
+        break;
+
+      case 'saveDM':
+        result = upsertDMThread(payload);
         break;
 
       default:
@@ -462,6 +466,59 @@ function upsertTask(task) {
 }
 
 /**
+ * Insert or Update a Direct Message Thread
+ */
+function upsertDMThread(thread) {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAMES.DMS);
+  if (!sheet) {
+    setupInitialDatabase();
+    sheet = ss.getSheetByName(SHEET_NAMES.DMS);
+  }
+
+  const id = thread.id;
+  if (!id) return { error: 'No thread id provided' };
+
+  const serializedThread = {
+    ...thread,
+    messages: JSON.stringify(thread.messages || []),
+    participantEmails: JSON.stringify(thread.participantEmails || []),
+    updatedAt: new Date().toISOString()
+  };
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const idIndex = headers.indexOf('id');
+
+  const data = sheet.getDataRange().getValues();
+  let foundRow = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idIndex]) === String(id)) {
+      foundRow = i + 1;
+      break;
+    }
+  }
+
+  if (foundRow > 0) {
+    for (let j = 0; j < headers.length; j++) {
+      const header = headers[j];
+      if (serializedThread.hasOwnProperty(header)) {
+        sheet.getRange(foundRow, j + 1).setValue(serializedThread[header]);
+      }
+    }
+  } else {
+    const newRow = [];
+    for (let j = 0; j < headers.length; j++) {
+      const header = headers[j];
+      newRow.push(serializedThread[header] !== undefined ? serializedThread[header] : '');
+    }
+    sheet.appendRow(newRow);
+  }
+
+  return { success: true, thread: thread };
+}
+
+/**
  * Delete a Task by ID
  */
 function deleteTask(id) {
@@ -637,7 +694,7 @@ function setupInitialDatabase() {
       'id', 'name', 'description', 'department', 'messages'
     ],
     [SHEET_NAMES.DMS]: [
-      'id', 'participantId', 'participantName', 'messages'
+      'id', 'participantId', 'participantName', 'participantEmail', 'participantEmails', 'messages', 'updatedAt'
     ],
     [SHEET_NAMES.EVENTS]: [
       'id', 'title', 'start', 'end', 'meetLink', 'taskId'
