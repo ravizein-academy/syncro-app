@@ -2,10 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { useStore, Task, CalendarEvent } from "@/store/useStore";
 import { 
-  GripVertical, 
   Clock, 
   Video, 
   Calendar as CalendarIcon, 
@@ -21,8 +19,7 @@ import {
   CheckCircle2,
   CalendarCheck,
   Sparkles,
-  LayoutGrid,
-  Columns
+  LayoutGrid
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,18 +41,6 @@ function GoogleCalendarLogo({ size = 20 }: { size?: number }) {
     </div>
   );
 }
-
-const TIME_SLOTS = [
-  "08:00 AM",
-  "09:00 AM",
-  "10:00 AM",
-  "11:00 AM",
-  "01:00 PM",
-  "02:00 PM",
-  "03:00 PM",
-  "04:00 PM",
-  "05:00 PM",
-];
 
 const WEEK_HOURS = [
   "08:00",
@@ -97,9 +82,6 @@ export default function PlannerPage() {
 
   const t = translations[language || 'id'];
 
-  // Planner Modes: "gcal" (Google Calendar) or "blocking" (Time Blocking)
-  const [plannerMode, setPlannerMode] = useState<"gcal" | "blocking">("gcal");
-  
   // Google Calendar View: "week" | "month" | "day" | "agenda"
   const [gcalView, setGcalView] = useState<"week" | "month" | "day" | "agenda">("week");
 
@@ -285,27 +267,6 @@ export default function PlannerPage() {
     return map;
   }, [myCalendarEvents, myTasks]);
 
-  const unscheduledTasks = myTasks.filter((t) => !t.scheduledSlot || t.scheduledSlot === "unscheduled");
-
-  const getTasksForSlot = (slot: string) => {
-    return myTasks.filter((t) => t.scheduledSlot === slot);
-  };
-
-  const onDragEnd = (result: any) => {
-    const { destination, draggableId } = result;
-    if (!destination) return;
-
-    const targetSlot = destination.droppableId;
-    updateTask(draggableId, {
-      scheduledSlot: targetSlot === "unscheduled" ? undefined : targetSlot,
-    });
-  };
-
-  const handleGenerateMeet = (taskTitle: string) => {
-    const meetCode = Math.random().toString(36).substring(2, 5) + "-" + Math.random().toString(36).substring(2, 6) + "-" + Math.random().toString(36).substring(2, 5);
-    const meetUrl = `https://meet.google.com/${meetCode}`;
-    window.open(meetUrl, "_blank");
-  };
 
 
   const handleCreateNewEvent = async (e: React.FormEvent) => {
@@ -429,39 +390,13 @@ export default function PlannerPage() {
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-foreground flex items-center gap-2 mt-0.5">
-              <span>{language === 'en' ? "Google Calendar & Planner" : "Google Calendar & Syncro Planner"}</span>
+              <span>{language === 'en' ? "Google Calendar" : "Kalender Google"}</span>
             </h1>
           </div>
         </div>
 
         {/* Action Controls & Navigation */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          {/* Main Mode Toggle: Google Calendar vs Time-Blocking */}
-          <div className="flex bg-secondary/80 border border-border p-1 rounded-xl shadow-xs">
-            <button
-              onClick={() => setPlannerMode("gcal")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                plannerMode === "gcal" 
-                  ? "bg-[#4285F4] text-white shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <GoogleCalendarLogo size={14} />
-              <span>Google Calendar</span>
-            </button>
-            <button
-              onClick={() => setPlannerMode("blocking")}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 ${
-                plannerMode === "blocking" 
-                  ? "bg-[#EE3726] text-white shadow-sm" 
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Columns size={13} />
-              <span>Time-Blocking</span>
-            </button>
-          </div>
-
           {/* + New Event Button */}
           <Button
             size="sm"
@@ -488,10 +423,9 @@ export default function PlannerPage() {
       )}
 
       {/* ============================================================== */}
-      {/* MODE 1: GOOGLE CALENDAR VIEW (WEEK / MONTH / DAY / AGENDA) */}
+      {/* GOOGLE CALENDAR VIEW (WEEK / MONTH / DAY / AGENDA) */}
       {/* ============================================================== */}
-      {plannerMode === "gcal" && (
-        <div className="flex-1 flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+      <div className="flex-1 flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
           {/* Google Calendar Toolbar: Month/Year navigation, Today, and View Switcher */}
           <div className="p-3 sm:p-4 border-b border-border bg-secondary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3">
@@ -889,172 +823,6 @@ export default function PlannerPage() {
             </div>
           )}
         </div>
-      )}
-
-      {/* ============================================================== */}
-      {/* MODE 2: TIME BLOCKING PLANNER (CLICKUP STYLE DRAG & DROP) */}
-      {/* ============================================================== */}
-      {plannerMode === "blocking" && (
-        <DragDropContext onDragEnd={onDragEnd}>
-          <div className="flex flex-col lg:flex-row flex-1 gap-4 lg:gap-6 overflow-hidden min-h-0">
-            {/* Left Drawer: Unscheduled Tasks Panel */}
-            <div className="w-full lg:w-80 max-h-48 sm:max-h-56 lg:max-h-none shrink-0 flex flex-col bg-card border border-border rounded-xl overflow-hidden shadow-sm">
-              <div className="p-3.5 border-b border-border flex items-center justify-between bg-secondary/50">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-xs text-foreground">{t.unscheduledTasksTitle}</span>
-                  <span className="bg-rose-500/10 text-rose-600 dark:text-rose-300 border border-rose-500/30 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
-                    {unscheduledTasks.length}
-                  </span>
-                </div>
-                <span className="text-[10px] text-muted-foreground">{language === 'en' ? "Drag to slot" : "Tarik ke Jam"}</span>
-              </div>
-
-              <Droppable droppableId="unscheduled">
-                {(provided, snapshot) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.droppableProps}
-                    className={`flex-1 p-3 overflow-y-auto space-y-2.5 transition-colors ${
-                      snapshot.isDraggingOver ? "bg-rose-500/10" : ""
-                    }`}
-                  >
-                    {unscheduledTasks.length === 0 ? (
-                      <div className="text-center py-12 text-muted-foreground text-xs">
-                        {language === 'en' ? "All tasks scheduled!" : "Semua tugas telah dijadwalkan!"}
-                      </div>
-                    ) : (
-                      unscheduledTasks.map((task, index) => (
-                        <Draggable key={task.id} draggableId={task.id} index={index}>
-                          {(provided, snapshot) => (
-                            <div
-                              ref={provided.innerRef}
-                              {...provided.draggableProps}
-                              className={`p-3 rounded-lg border flex flex-col gap-2 transition-all ${
-                                snapshot.isDragging
-                                  ? "bg-rose-500/20 border-rose-500 shadow-xl"
-                                  : "bg-secondary/40 border-border hover:border-rose-500/50"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <Link
-                                  href={`/tasks/${task.id}`}
-                                  className="text-xs font-semibold text-foreground hover:text-[#EE3726] transition line-clamp-1"
-                                >
-                                  {task.title}
-                                </Link>
-                                <div
-                                  {...provided.dragHandleProps}
-                                  className="text-muted-foreground hover:text-rose-500 cursor-grab active:cursor-grabbing p-1"
-                                >
-                                  <GripVertical size={14} />
-                                </div>
-                              </div>
-
-                              <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                  <Clock size={11} className="text-rose-500" />
-                                  {task.timeEstimate || 60}m
-                                </span>
-                                <span className="capitalize text-[10px] bg-secondary border border-border px-2 py-0.5 rounded text-rose-600 dark:text-rose-300 font-medium">
-                                  {task.priority || "normal"}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </Draggable>
-                      ))
-                    )}
-                    {provided.placeholder}
-                  </div>
-                )}
-              </Droppable>
-            </div>
-
-            {/* Right: Time Blocking Grid by Hours */}
-            <div className="flex-1 flex flex-col bg-card/60 border border-border rounded-xl overflow-y-auto p-4 space-y-3 shadow-sm">
-              {TIME_SLOTS.map((slot) => {
-                const slotTasks = getTasksForSlot(slot);
-
-                return (
-                  <div key={slot} className="flex gap-4 items-start group">
-                    <div className="w-20 pt-2 text-right text-xs font-mono font-bold text-muted-foreground shrink-0">
-                      {slot}
-                    </div>
-
-                    <Droppable droppableId={slot}>
-                      {(provided, snapshot) => (
-                        <div
-                          ref={provided.innerRef}
-                          {...provided.droppableProps}
-                          className={`flex-1 min-h-[72px] p-2.5 rounded-xl border border-dashed transition-all flex flex-col gap-2 ${
-                            snapshot.isDraggingOver
-                              ? "bg-rose-500/10 border-rose-500"
-                              : "bg-secondary/30 border-border hover:border-rose-500/40"
-                          }`}
-                        >
-                          {slotTasks.map((task, index) => {
-                            return (
-                              <Draggable key={task.id} draggableId={task.id} index={index}>
-                                {(provided, snapshot) => (
-                                  <div
-                                    ref={provided.innerRef}
-                                    {...provided.draggableProps}
-                                    className={`p-3 rounded-lg border flex items-center justify-between gap-3 ${
-                                      snapshot.isDragging
-                                        ? "bg-rose-500/20 border-rose-500 shadow-xl"
-                                        : "bg-card border-border shadow-sm"
-                                    }`}
-                                  >
-                                    <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                                      <div
-                                        {...provided.dragHandleProps}
-                                        className="text-muted-foreground hover:text-rose-500 cursor-grab p-0.5"
-                                      >
-                                        <GripVertical size={14} />
-                                      </div>
-                                      <div className="min-w-0">
-                                        <Link
-                                          href={`/tasks/${task.id}`}
-                                          className="text-xs font-bold text-foreground hover:text-[#EE3726] transition truncate block"
-                                        >
-                                          {task.title}
-                                        </Link>
-                                        <span className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                                          <Clock size={11} className="text-rose-500" />
-                                          {task.timeEstimate || 60}m
-                                        </span>
-                                      </div>
-                                    </div>
-
-                                    {/* Action Buttons: Meet & Sync to GCal */}
-                                    <div className="flex items-center gap-2">
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => handleGenerateMeet(task.title)}
-                                        className="h-7 px-2.5 text-[11px] gap-1.5 border-border text-rose-600 dark:text-rose-300 hover:bg-rose-500/10 rounded-lg"
-                                        title={language === 'en' ? "Open Google Meet" : "Buka Google Meet untuk sesi ini"}
-                                      >
-                                        <Video size={12} className="text-rose-500" />
-                                        <span>Meet</span>
-                                      </Button>
-                                    </div>
-                                  </div>
-                                )}
-                              </Draggable>
-                            );
-                          })}
-                          {provided.placeholder}
-                        </div>
-                      )}
-                    </Droppable>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </DragDropContext>
-      )}
 
       {/* ============================================================== */}
       {/* DIALOG: BUAT ACARA GOOGLE CALENDAR BARU */}

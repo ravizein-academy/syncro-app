@@ -630,7 +630,7 @@ export default function Home() {
 
                 <Link href="/planner">
                   <Button size="sm" variant="outline" className="h-7 text-xs border-border text-[#EE3726] hover:bg-[#EE3726]/10">
-                    Buka Planner
+                    {t.openPlanner}
                   </Button>
                 </Link>
               </CardHeader>
@@ -638,7 +638,7 @@ export default function Home() {
               <CardContent className="p-4 space-y-2.5">
                 {scheduledTasks.length === 0 ? (
                   <div className="text-center py-6 text-xs text-muted-foreground italic bg-secondary/30 rounded-xl">
-                    {language === 'en' ? 'No tasks scheduled in calendar yet. Drag tasks in Planner to schedule.' : 'Belum ada jadwal hari ini. Buka Planner untuk time blocking.'}
+                    {language === 'en' ? 'No events scheduled for today. Open Calendar to view schedule.' : 'Belum ada agenda hari ini. Buka Kalender untuk melihat jadwal.'}
                   </div>
                 ) : (
                   scheduledTasks.slice(0, 4).map((task) => (
