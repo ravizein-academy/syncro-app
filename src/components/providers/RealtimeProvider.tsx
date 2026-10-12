@@ -144,8 +144,57 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
 
     connectSSE();
 
+    // Fast Silent Polling Fallback (setiap 3 detik) ke fast memory cache
+    // Menjamin data selalu sinkron seketika di semua perangkat bahkan jika browser tidak mendukung SSE
+    const pollInterval = setInterval(async () => {
+      try {
+        const [resTasks, resUsers] = await Promise.all([
+          fetch("/api/tasks", { cache: "no-store" }),
+          fetch("/api/users", { cache: "no-store" }),
+        ]);
+
+        if (resTasks.ok) {
+          const tJson = await resTasks.json();
+          const remoteTasks = tJson?.tasks || [];
+          if (Array.isArray(remoteTasks) && remoteTasks.length > 0) {
+            const state = useStore.getState();
+            const taskMap = new Map();
+            state.tasks.forEach((t) => taskMap.set(t.id, t));
+            remoteTasks.forEach((t) => taskMap.set(t.id, t));
+            state.setTasks(Array.from(taskMap.values()));
+          }
+        }
+
+        if (resUsers.ok) {
+          const uJson = await resUsers.json();
+          const remoteUsers = uJson?.users || [];
+          if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
+            const state = useStore.getState();
+            state.setUsers(remoteUsers);
+
+            // Verifikasi status saya: jika tidak active, langsung auto-kick
+            if (
+              state.currentUser &&
+              state.currentUser.email?.toLowerCase().trim() !== "ravizein@itsecacademy.com"
+            ) {
+              const myEmail = state.currentUser.email.toLowerCase().trim();
+              const found = remoteUsers.find((u: any) => u.email && u.email.toLowerCase().trim() === myEmail);
+              if (!found || found.status !== "active") {
+                state.logout();
+                try {
+                  localStorage.removeItem("syncro_remembered_device_account");
+                } catch {}
+                window.location.replace("/login");
+              }
+            }
+          }
+        }
+      } catch (e) {}
+    }, 3000);
+
     return () => {
       isMounted = false;
+      clearInterval(pollInterval);
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);
       }
@@ -159,3 +208,4 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
 
   return <>{children}</>;
 }
+
