@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStore, User } from "@/store/useStore";
@@ -47,7 +47,7 @@ function GoogleGLogo({ size = 18 }: { size?: number }) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { users, login, loginWithGoogle, language, setLanguage } = useStore();
+  const { users, currentUser, isAuthenticated, login, loginWithGoogle, language, setLanguage } = useStore();
   const t = translations[language || "id"];
 
   const [email, setEmail] = useState("");
@@ -57,14 +57,44 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"google" | "email" | null>(null);
 
-  // Google Account Chooser Modal State
+  // Perangkat ini mengingat akun pemiliknya sendiri (Auto-Remember Device)
+  const [rememberedAccount, setRememberedAccount] = useState<{ email: string; name: string; avatar?: string } | null>(null);
+
+  useEffect(() => {
+    // 1. Jika sesi sudah aktif, langsung alihkan ke Dashboard
+    if (isAuthenticated && currentUser) {
+      router.replace("/");
+      return;
+    }
+
+    // 2. Baca akun yang diingat khusus di perangkat/browser ini
+    try {
+      const saved = localStorage.getItem("syncro_remembered_device_account");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.email) {
+          setRememberedAccount(parsed);
+          setEmail(parsed.email);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to load remembered device account:", e);
+    }
+  }, [isAuthenticated, currentUser, router]);
+
+  // Google Account Chooser Modal State (Hanya untuk perangkat baru yang belum ada akun tersimpan)
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
   const [customGoogleEmail, setCustomGoogleEmail] = useState("");
   const [customGoogleName, setCustomGoogleName] = useState("");
 
-  // Google OAuth 2.0 Single Sign-On - Buka Pilihan Akun
+  // Google OAuth 2.0 Single Sign-On
   const handleGoogleSSO = () => {
-    // Tampilkan modal pemilih akun Google sehingga pengguna bisa memilih akun mana yang diinginkan
+    // Jika perangkat ini sudah mengingat akun, langsung login otomatis tanpa perlu mengetik ulang!
+    if (rememberedAccount?.email) {
+      handleConfirmGoogleAccount(rememberedAccount.email, rememberedAccount.name);
+      return;
+    }
+    // Jika belum pernah login di perangkat ini, buka modal pengisian email pertama kali
     setIsGoogleModalOpen(true);
   };
 
@@ -76,6 +106,21 @@ export default function LoginPage() {
     setIsLoading(true);
     setLoginMethod("google");
     setIsGoogleModalOpen(false);
+
+    // Simpan ke memori perangkat ini agar berikutnya otomatis tanpa ketik lagi
+    if (rememberMe) {
+      try {
+        localStorage.setItem(
+          "syncro_remembered_device_account",
+          JSON.stringify({
+            email: cleanEmail,
+            name: targetName || cleanEmail.split("@")[0],
+          })
+        );
+      } catch (e) {
+        console.warn("Failed to persist remembered device account:", e);
+      }
+    }
 
     // Kirim notifikasi keamanan ke email via backend
     fetch("/api/auth/notify-login", {
@@ -93,7 +138,7 @@ export default function LoginPage() {
       loginWithGoogle(cleanEmail, targetName);
       setIsLoading(false);
       router.push("/");
-    }, 700);
+    }, 600);
   };
 
   // Standard Email & Password Login
@@ -108,6 +153,22 @@ export default function LoginPage() {
       const existingUser = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
       const namePart = email.split("@")[0] || "User";
       const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+      const finalName = existingUser?.name || formattedName;
+
+      // Simpan ke memori perangkat ini jika rememberMe aktif
+      if (rememberMe) {
+        try {
+          localStorage.setItem(
+            "syncro_remembered_device_account",
+            JSON.stringify({
+              email: email.trim(),
+              name: finalName,
+            })
+          );
+        } catch (e) {
+          console.warn("Failed to persist remembered device account:", e);
+        }
+      }
 
       // Kirim notifikasi keamanan ke email via backend
       fetch("/api/auth/notify-login", {
@@ -115,7 +176,7 @@ export default function LoginPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
-          name: existingUser?.name || formattedName,
+          name: finalName,
           time: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }) + " WIB",
           device: typeof navigator !== "undefined" ? navigator.userAgent : "Browser"
         }),
@@ -137,7 +198,7 @@ export default function LoginPage() {
       }
       setIsLoading(false);
       router.push("/");
-    }, 700);
+    }, 600);
   };
 
   return (
@@ -194,31 +255,85 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="p-6 pt-2 space-y-5">
-            {/* 1. Google OAuth 2.0 (SSO) Primary Button - Sesuai PRD Section 3 & 4.5 */}
-            <div className="space-y-1.5">
-              <Button
-                type="button"
-                onClick={handleGoogleSSO}
-                disabled={isLoading}
-                variant="outline"
-                className="w-full h-11 text-xs font-bold bg-secondary/60 hover:bg-secondary border-border hover:border-[#4285F4] text-foreground rounded-xl flex items-center justify-center gap-2.5 transition shadow-xs group"
-              >
-                {isLoading && loginMethod === "google" ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin text-[#4285F4]" />
-                    <span>Mengautentikasi Google OAuth 2.0...</span>
-                  </>
-                ) : (
-                  <>
-                    <GoogleGLogo size={18} />
-                    <span>{t.googleSignInBtn}</span>
-                  </>
-                )}
-              </Button>
-              <p className="text-[10px] text-center text-muted-foreground">
-                Satu klik akun Google Workspace atau Gmail personal (Google SSO)
-              </p>
-            </div>
+            {/* Auto-Remembered Device Account Banner */}
+            {rememberedAccount ? (
+              <div className="p-3.5 bg-gradient-to-br from-[#4285F4]/10 via-[#34A853]/10 to-transparent border border-[#4285F4]/30 rounded-2xl space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#4285F4] to-[#34A853] flex items-center justify-center text-xs font-bold text-white shadow-sm shrink-0">
+                    {rememberedAccount.avatar || rememberedAccount.name.substring(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-foreground truncate">{rememberedAccount.name}</p>
+                      <span className="text-[9px] bg-[#4285F4]/15 text-[#4285F4] font-semibold px-1.5 py-0.5 rounded-full border border-[#4285F4]/20">
+                        {language === 'en' ? 'This Device' : 'Perangkat Ini'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">{rememberedAccount.email}</p>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  onClick={() => handleConfirmGoogleAccount(rememberedAccount.email, rememberedAccount.name)}
+                  disabled={isLoading}
+                  className="w-full h-10 text-xs font-bold bg-[#4285F4] hover:bg-[#3367D6] text-white rounded-xl flex items-center justify-center gap-2 shadow-sm transition"
+                >
+                  {isLoading && loginMethod === "google" ? (
+                    <>
+                      <Loader2 size={15} className="animate-spin text-white" />
+                      <span>{language === 'en' ? 'Signing in...' : 'Masuk ke Akun...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <GoogleGLogo size={16} />
+                      <span>{language === 'en' ? `Continue as ${rememberedAccount.name}` : `Masuk Cepat sebagai ${rememberedAccount.name}`}</span>
+                    </>
+                  )}
+                </Button>
+
+                <div className="text-center pt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      localStorage.removeItem("syncro_remembered_device_account");
+                      setRememberedAccount(null);
+                    }}
+                    className="text-[11px] text-muted-foreground hover:text-foreground hover:underline transition"
+                  >
+                    {language === 'en' ? 'Not you? Use another account' : 'Bukan akun Anda? Gunakan akun lain'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* 1. Google OAuth 2.0 (SSO) Primary Button */
+              <div className="space-y-1.5">
+                <Button
+                  type="button"
+                  onClick={handleGoogleSSO}
+                  disabled={isLoading}
+                  variant="outline"
+                  className="w-full h-11 text-xs font-bold bg-secondary/60 hover:bg-secondary border-border hover:border-[#4285F4] text-foreground rounded-xl flex items-center justify-center gap-2.5 transition shadow-xs group"
+                >
+                  {isLoading && loginMethod === "google" ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin text-[#4285F4]" />
+                      <span>Mengautentikasi Google Workspace...</span>
+                    </>
+                  ) : (
+                    <>
+                      <GoogleGLogo size={18} />
+                      <span>{t.googleSignInBtn}</span>
+                    </>
+                  )}
+                </Button>
+                <p className="text-[10px] text-center text-muted-foreground">
+                  {language === 'en'
+                    ? 'Automatic sign-in remembered on this device'
+                    : 'Masuk otomatis & diingat khusus di perangkat ini'}
+                </p>
+              </div>
+            )}
 
             {/* Divider */}
             <div className="relative flex items-center justify-center">
