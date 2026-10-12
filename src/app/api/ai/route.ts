@@ -26,11 +26,18 @@ export async function POST(req: Request) {
     const genAI = new GoogleGenerativeAI(apiKey);
 
     async function generateWithFallback(promptText: string) {
-      const candidateModels = ["gemini-flash-latest", "gemini-3.8-flash", "gemini-pro-latest"];
+      // Ultra-fast lightweight models prioritized (1.5-2s response time)
+      const candidateModels = ["gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"];
       let lastErr: any = null;
       for (const modelName of candidateModels) {
         try {
-          const model = genAI.getGenerativeModel({ model: modelName });
+          const model = genAI.getGenerativeModel({ 
+            model: modelName,
+            generationConfig: {
+              maxOutputTokens: 800,
+              temperature: 0.7
+            }
+          });
           const res = await model.generateContent(promptText);
           return res.response.text();
         } catch (err: any) {
