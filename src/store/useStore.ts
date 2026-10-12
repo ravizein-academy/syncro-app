@@ -70,6 +70,7 @@ export interface DirectMessageThread {
   id: string;
   participantId: string;
   participantName: string;
+  participantEmail?: string;
   messages: ChatMessage[];
 }
 
@@ -160,6 +161,7 @@ interface AppState {
   addSpace: (space: Omit<Space, 'id'>) => void;
 
   // Direct Message Actions
+  createOrSelectDMThread: (participant: User) => string;
   sendDMMessage: (threadId: string, message: { text: string; senderId: string; senderName: string }) => void;
 
   // Teams & User Actions
@@ -359,6 +361,25 @@ export const useStore = create<AppState>()(
       },
 
 
+      createOrSelectDMThread: (participant: User) => {
+        const state = get();
+        const existing = state.dmThreads.find(
+          (t) => t.participantId === participant.id || (participant.email && t.participantEmail === participant.email)
+        );
+        if (existing) {
+          return existing.id;
+        }
+        const newThread: DirectMessageThread = {
+          id: `dm_${participant.id}`,
+          participantId: participant.id,
+          participantName: participant.name,
+          participantEmail: participant.email,
+          messages: [],
+        };
+        set((s) => ({ dmThreads: [newThread, ...s.dmThreads] }));
+        return newThread.id;
+      },
+
       sendDMMessage: (threadId, message) => {
         const newMsg: ChatMessage = {
           id: `dm_msg_${Date.now()}`,
@@ -450,6 +471,15 @@ export const useStore = create<AppState>()(
           users: found ? get().users : [...get().users, userObj],
           integrations: { ...get().integrations, googleAuth: true },
         });
+
+        // Auto-register user in Google Sheets backend
+        if (typeof fetch !== 'undefined') {
+          fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userObj),
+          }).catch((err) => console.warn('[Auth Sync] Backend user registration error:', err));
+        }
       },
 
       logout: () =>

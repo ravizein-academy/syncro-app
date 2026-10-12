@@ -63,9 +63,8 @@ export async function pullCloudData(specificEmail?: string): Promise<{
     const store = useStore.getState();
     const userEmail = (specificEmail || store.currentUser?.email || '').trim().toLowerCase();
 
-    const url = userEmail
-      ? `/api/sync?userEmail=${encodeURIComponent(userEmail)}`
-      : '/api/sync';
+    // Pull all shared workspace data (users, tasks, spaces, DMs)
+    const url = '/api/sync';
 
     const res = await fetch(url, {
       method: 'GET',
@@ -82,38 +81,78 @@ export async function pullCloudData(specificEmail?: string): Promise<{
     const remoteTasks: Task[] = remoteData?.tasks || [];
     const remoteSpaces = remoteData?.spaces || [];
     const remoteUsers = remoteData?.users || [];
+    const remoteDMs = remoteData?.dmThreads || [];
 
-    // Automatically sync initial spaces and users from backend
-    if (Array.isArray(remoteSpaces) && remoteSpaces.length > 0 && store.spaces.length === 0) {
-      store.setSpaces(remoteSpaces);
-    }
-    if (Array.isArray(remoteUsers) && remoteUsers.length > 0 && store.users.length === 0) {
-      store.setUsers(remoteUsers);
+    // 1. Sync & Merge All Team Members from Cloud
+    if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
+      const userMap = new Map<string, any>();
+      remoteUsers.forEach((u) => {
+        if (u && (u.id || u.email)) {
+          const key = (u.email || u.id).toLowerCase().trim();
+          userMap.set(key, u);
+        }
+      });
+      store.users.forEach((u) => {
+        if (u && (u.id || u.email)) {
+          const key = (u.email || u.id).toLowerCase().trim();
+          const existing = userMap.get(key);
+          userMap.set(key, existing ? { ...existing, ...u } : u);
+        }
+      });
+      store.setUsers(Array.from(userMap.values()));
     }
 
+    // 2. Sync & Merge All Spaces from Cloud
+    if (Array.isArray(remoteSpaces) && remoteSpaces.length > 0) {
+      const spaceMap = new Map<string, any>();
+      remoteSpaces.forEach((s) => {
+        if (s && s.id) spaceMap.set(s.id, s);
+      });
+      store.spaces.forEach((s) => {
+        if (s && s.id) spaceMap.set(s.id, s);
+      });
+      store.setSpaces(Array.from(spaceMap.values()));
+    }
+
+    // 3. Sync & Merge All Direct Message Threads from Cloud
+    if (Array.isArray(remoteDMs) && remoteDMs.length > 0) {
+      const dmMap = new Map<string, any>();
+      remoteDMs.forEach((dm) => {
+        if (dm && dm.id) dmMap.set(dm.id, dm);
+      });
+      store.dmThreads.forEach((dm) => {
+        if (dm && dm.id) {
+          const remote = dmMap.get(dm.id);
+          if (remote) {
+            const msgMap = new Map<string, any>();
+            (remote.messages || []).forEach((m: any) => msgMap.set(m.id, m));
+            (dm.messages || []).forEach((m: any) => msgMap.set(m.id, m));
+            dmMap.set(dm.id, { ...remote, messages: Array.from(msgMap.values()) });
+          } else {
+            dmMap.set(dm.id, dm);
+          }
+        }
+      });
+      useStore.setState({ dmThreads: Array.from(dmMap.values()) });
+    }
+
+    // 4. Sync & Merge Shared Workspace Tasks
     if (Array.isArray(remoteTasks) && remoteTasks.length > 0) {
       const currentTasks = store.tasks;
-
-      // Smart merge: Include all remote tasks while preserving unique local ones
       const taskMap = new Map<string, Task>();
       
       // Populate remote tasks first
       remoteTasks.forEach((t) => {
         if (t && t.id) {
-          taskMap.set(t.id, {
-            ...t,
-            userEmail: t.userEmail || userEmail,
-          });
+          taskMap.set(t.id, t);
         }
       });
 
-      // Overwrite/merge with current local tasks (local holds latest user interactions)
+      // Preserve local updates without overwriting original creator's userEmail
       currentTasks.forEach((t) => {
         if (t && t.id) {
-          taskMap.set(t.id, {
-            ...t,
-            userEmail: t.userEmail || userEmail,
-          });
+          const remote = taskMap.get(t.id);
+          taskMap.set(t.id, remote ? { ...remote, ...t } : t);
         }
       });
 
@@ -123,7 +162,7 @@ export async function pullCloudData(specificEmail?: string): Promise<{
       return {
         success: true,
         pulledCount: remoteTasks.length,
-        message: `Berhasil memuat ${remoteTasks.length} tugas untuk ${userEmail || 'akun Anda'}`,
+        message: `Berhasil memuat ${remoteTasks.length} tugas tim untuk workspace`,
       };
     }
 
@@ -177,6 +216,8 @@ export async function performAutoCloudSync(options: { force?: boolean } = {}): P
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tasks: tasksWithUserEmail,
+        users: store.users,
+        dmThreads: store.dmThreads,
         userEmail,
         userName,
         userId,

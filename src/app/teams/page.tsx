@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useStore, User } from "@/store/useStore";
+import Link from "next/link";
 import { 
   Users, 
   ShieldCheck, 
   Activity, 
   AlertTriangle, 
-  Plus 
+  Plus,
+  MessageSquare
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -219,6 +221,17 @@ export default function TeamsPage() {
                     <span>{t.burnoutWarning}</span>
                   </div>
                 )}
+              </div>
+
+              {/* Quick Communication Action */}
+              <div className="pt-2 flex justify-end">
+                <Link
+                  href={`/dm?userId=${user.id}`}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#EE3726] hover:text-white bg-[#EE3726]/10 hover:bg-[#EE3726] px-3 py-1.5 rounded-lg border border-[#EE3726]/20 transition-all shadow-2xs"
+                >
+                  <MessageSquare size={13} />
+                  <span>Kirim Pesan (DM)</span>
+                </Link>
               </div>
             </Card>
           );
