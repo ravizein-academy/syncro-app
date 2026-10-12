@@ -65,13 +65,6 @@ export interface ChatMessage {
   timestamp: string;
 }
 
-export interface Channel {
-  id: string;
-  name: string;
-  description: string;
-  department: string;
-  messages: ChatMessage[];
-}
 
 export interface DirectMessageThread {
   id: string;
@@ -108,7 +101,6 @@ interface AppState {
   tasks: Task[];
   users: User[];
   spaces: Space[];
-  channels: Channel[];
   dmThreads: DirectMessageThread[];
   notifications: NotificationItem[];
   calendarEvents: CalendarEvent[];
@@ -167,8 +159,7 @@ interface AppState {
   setSpaces: (spaces: Space[]) => void;
   addSpace: (space: Omit<Space, 'id'>) => void;
 
-  // Chat Actions
-  sendChannelMessage: (channelId: string, message: { text: string; senderId: string; senderName: string }) => void;
+  // Direct Message Actions
   sendDMMessage: (threadId: string, message: { text: string; senderId: string; senderName: string }) => void;
 
   // Teams & User Actions
@@ -203,7 +194,6 @@ interface AppState {
 const INITIAL_USERS: User[] = [];
 const INITIAL_SPACES: Space[] = [];
 const INITIAL_TASKS: Task[] = [];
-const INITIAL_CHANNELS: Channel[] = [];
 const INITIAL_DMS: DirectMessageThread[] = [];
 const INITIAL_NOTIFICATIONS: NotificationItem[] = [];
 
@@ -213,7 +203,6 @@ export const useStore = create<AppState>()(
       tasks: [],
       users: [],
       spaces: [],
-      channels: [],
       dmThreads: [],
       notifications: [],
       calendarEvents: [],
@@ -369,18 +358,6 @@ export const useStore = create<AppState>()(
         set((state) => ({ spaces: [...state.spaces, newSpace] }));
       },
 
-      sendChannelMessage: (channelId, message) => {
-        const newMsg: ChatMessage = {
-          id: `msg_${Date.now()}`,
-          ...message,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        };
-        set((state) => ({
-          channels: state.channels.map((ch) =>
-            ch.id === channelId ? { ...ch, messages: [...ch.messages, newMsg] } : ch
-          ),
-        }));
-      },
 
       sendDMMessage: (threadId, message) => {
         const newMsg: ChatMessage = {

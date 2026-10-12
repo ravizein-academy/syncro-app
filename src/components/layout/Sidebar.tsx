@@ -6,7 +6,6 @@ import { usePathname } from 'next/navigation';
 import { 
   Inbox, 
   CheckSquare, 
-  Hash, 
   MessageSquare, 
   Briefcase, 
   Calendar, 
@@ -34,7 +33,6 @@ export function Sidebar() {
     { name: t.navPlanner, href: '/planner', icon: Calendar },
     { name: t.navSpaces, href: '/spaces', icon: Briefcase },
     { name: t.navTeams, href: '/teams', icon: Users },
-    { name: t.navChannels, href: '/channels', icon: Hash },
     { name: t.navDM, href: '/dm', icon: MessageSquare },
     { name: t.navAI, href: '/ai', icon: Sparkles, badge: 'AI' },
     { name: t.navIntegrations, href: '/integrations', icon: Layers },
