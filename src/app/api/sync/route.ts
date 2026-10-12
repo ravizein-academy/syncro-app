@@ -45,9 +45,13 @@ export async function POST(req: Request) {
     const userEmail = (payload?.userEmail || '').toLowerCase().trim();
 
     // Validasi Keamanan: Jika user telah dihapus atau ditandai nonaktif, tolak sinkronisasi
+    const cachedUsers = await getCachedUsers();
     if (userEmail && userEmail !== 'ravizein@itsecacademy.com') {
       const override = userStatusOverrides.get(userEmail);
-      if (override?.status === 'deleted') {
+      const isKnownUser = cachedUsers.some(
+        (u: any) => u.email && u.email.toLowerCase().trim() === userEmail
+      );
+      if (override?.status === 'deleted' || (cachedUsers.length > 0 && !isKnownUser)) {
         return NextResponse.json(
           {
             status: 'error',
@@ -65,8 +69,42 @@ export async function POST(req: Request) {
       serverCache.tasksLastFetch = Date.now();
     }
 
-    if (payload?.dmThreads && Array.isArray(payload.dmThreads)) {
-      serverCache.dmThreads = payload.dmThreads;
+    // Filter DM threads agar tidak menyertakan user yang sudah dihapus/tidak terdaftar
+    let sanitizedDMs = payload?.dmThreads;
+    if (Array.isArray(sanitizedDMs) && cachedUsers.length > 0) {
+      const activeEmails = new Set(
+        cachedUsers
+          .filter((u: any) => u.status !== 'deleted' && u.status !== 'rejected')
+          .map((u: any) => (u.email || '').toLowerCase().trim())
+          .filter(Boolean)
+      );
+      const activeIds = new Set(
+        cachedUsers
+          .filter((u: any) => u.status !== 'deleted' && u.status !== 'rejected')
+          .map((u: any) => u.id)
+          .filter(Boolean)
+      );
+
+      sanitizedDMs = sanitizedDMs.filter((t: any) => {
+        let pEmail = '';
+        if (t.participantEmails && Array.isArray(t.participantEmails)) {
+          pEmail = (t.participantEmails.find((e: string) => e.toLowerCase().trim() !== userEmail) || '').toLowerCase().trim();
+        }
+        if (!pEmail && t.participantEmail && t.participantEmail.toLowerCase().trim() !== userEmail) {
+          pEmail = t.participantEmail.toLowerCase().trim();
+        }
+        const pId = t.participantId;
+
+        if (pEmail || pId) {
+          const isValid = (pEmail && activeEmails.has(pEmail)) || (pId && activeIds.has(pId));
+          if (!isValid) return false;
+        }
+        return true;
+      });
+    }
+
+    if (Array.isArray(sanitizedDMs)) {
+      serverCache.dmThreads = sanitizedDMs;
       serverCache.dmThreadsLastFetch = Date.now();
     }
 
@@ -74,14 +112,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ status: 'success', localOnly: true, timestamp: new Date().toISOString() });
     }
 
-    // 2. Kirim ke Google Apps Script secara Asynchronous / Background (Non-blocking)
-    // Supaya respons ke browser instan (< 15ms) tanpa menunggu Google Sheets 3-4 detik!
+    // 2. Kirim payload yang sudah disanitasi ke Google Apps Script di background
+    const sanitizedPayload = {
+      ...payload,
+      dmThreads: sanitizedDMs,
+    };
+
     fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action: 'syncAll',
-        payload,
+        payload: sanitizedPayload,
       }),
     }).catch((err) => {
       console.warn('[Background syncAll warning]', err?.message || err);

@@ -115,6 +115,17 @@ function doGet(e) {
         result = deleteUser(e && e.parameter);
         break;
 
+      case 'deleteDMThread':
+        result = deleteDMThread((e && e.parameter && e.parameter.id) || '');
+        break;
+
+      case 'deleteDMMessage':
+        result = deleteDMMessage(
+          (e && e.parameter && e.parameter.threadId) || '',
+          (e && e.parameter && e.parameter.messageId) || ''
+        );
+        break;
+
       default:
         return jsonResponse({
           status: 'error',
@@ -449,16 +460,25 @@ function deleteDMThread(id) {
   if (!sheet) return { success: false, message: 'Sheet not found' };
 
   const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { success: false, message: 'Sheet is empty' };
+
   const headers = data[0];
   const idIndex = headers.indexOf('id');
+  if (idIndex === -1) return { success: false, message: 'id header not found' };
 
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][idIndex]) === String(id)) {
+  const cleanId = String(id || '').trim();
+  if (!cleanId) return { success: false, message: 'Invalid id' };
+
+  let deletedCount = 0;
+  for (let i = data.length - 1; i >= 1; i--) {
+    const rowId = String(data[i][idIndex] || '').trim();
+    if (rowId === cleanId || (cleanId.length > 5 && rowId.indexOf(cleanId) !== -1)) {
       sheet.deleteRow(i + 1);
-      return { success: true, deletedId: id };
+      deletedCount++;
     }
   }
-  return { success: false, message: 'Thread not found: ' + id };
+
+  return { success: true, deletedId: id, deletedCount: deletedCount };
 }
 
 /**
@@ -589,16 +609,35 @@ function syncAllData(state) {
   const userEmail = (state.userEmail || '').toLowerCase().trim();
   const userName = state.userName || '';
 
-  // Auto-register user in Users sheet if email provided
-  if (userEmail) {
-    upsertUserRecord({
-      email: userEmail,
-      name: userName || userEmail.split('@')[0],
-      role: 'member',
-      department: userEmail.includes('itsec') ? 'Cyber Security' : 'Product & Tech'
-    });
+  const ss = getSpreadsheet();
+  const userSheet = ss.getSheetByName(SHEET_NAMES.USERS);
+
+  // 1. Validasi: Jika userEmail dikirim dan bukan master admin,
+  // pastikan akun terdaftar di sheet Users. Jika sudah dihapus, tolak sinkronisasi!
+  // JANGAN PERNAH auto-register akun baru di sini agar user yang dihapus tidak hidup lagi!
+  if (userSheet && userEmail && userEmail !== 'ravizein@itsecacademy.com') {
+    const userData = userSheet.getDataRange().getValues();
+    if (userData.length > 1) {
+      const uHeaders = userData[0];
+      const uEmailIdx = uHeaders.indexOf('email');
+      let isRegistered = false;
+      for (let i = 1; i < userData.length; i++) {
+        if (uEmailIdx >= 0 && String(userData[i][uEmailIdx]).toLowerCase().trim() === userEmail) {
+          isRegistered = true;
+          break;
+        }
+      }
+      if (!isRegistered) {
+        return {
+          status: 'error',
+          rejected: true,
+          message: 'Akun ' + userEmail + ' tidak terdaftar atau telah dihapus. Sinkronisasi ditolak.'
+        };
+      }
+    }
   }
 
+  // 2. Sinkronisasi Tasks
   if (state.tasks && Array.isArray(state.tasks)) {
     state.tasks.forEach(task => {
       if (!task.userEmail && userEmail) {
@@ -608,8 +647,39 @@ function syncAllData(state) {
     });
   }
 
+  // 3. Sinkronisasi DM Threads (Hanya jika partner masih terdaftar di sheet Users)
   if (state.dmThreads && Array.isArray(state.dmThreads)) {
+    const activeEmails = {};
+    if (userSheet) {
+      const uData = userSheet.getDataRange().getValues();
+      if (uData.length > 1) {
+        const emailIdx = uData[0].indexOf('email');
+        for (let i = 1; i < uData.length; i++) {
+          if (emailIdx >= 0) {
+            const em = String(uData[i][emailIdx]).toLowerCase().trim();
+            if (em) activeEmails[em] = true;
+          }
+        }
+      }
+    }
+
     state.dmThreads.forEach(thread => {
+      let partnerEmail = (thread.participantEmail || '').toLowerCase().trim();
+      if (!partnerEmail && thread.participantEmails && Array.isArray(thread.participantEmails)) {
+        for (let k = 0; k < thread.participantEmails.length; k++) {
+          const em = String(thread.participantEmails[k]).toLowerCase().trim();
+          if (em !== userEmail) {
+            partnerEmail = em;
+            break;
+          }
+        }
+      }
+
+      // Jangan simpan thread jika lawan bicaranya sudah dihapus dari sheet Users
+      if (partnerEmail && partnerEmail !== 'ravizein@itsecacademy.com' && !activeEmails[partnerEmail]) {
+        return;
+      }
+
       upsertDMThread(thread);
     });
   }

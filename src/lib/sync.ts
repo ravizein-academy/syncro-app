@@ -224,13 +224,41 @@ export async function performAutoCloudSync(options: { force?: boolean } = {}): P
       userEmail: task.userEmail || userEmail,
     }));
 
+    // Bersihkan thread yang rekan bicaranya sudah dihapus atau tidak terdaftar di workspace
+    const validUsers = store.users.filter(
+      (u) => (u.status as string) !== 'deleted' && (u.status as string) !== 'rejected'
+    );
+    const validEmails = new Set(validUsers.map((u) => u.email?.toLowerCase().trim()).filter(Boolean));
+    const validIds = new Set(validUsers.map((u) => u.id).filter(Boolean));
+
+    const cleanDMThreads = store.dmThreads.filter((t) => {
+      let partnerEmail = '';
+      if (t.participantEmails && t.participantEmails.length > 0) {
+        partnerEmail = (t.participantEmails.find((e: string) => e.toLowerCase().trim() !== userEmail) || '').toLowerCase().trim();
+      }
+      if (!partnerEmail && t.participantEmail && t.participantEmail.toLowerCase().trim() !== userEmail) {
+        partnerEmail = t.participantEmail.toLowerCase().trim();
+      }
+      const partnerId = t.participantId !== userId ? t.participantId : '';
+
+      if (validUsers.length > 0 && (partnerEmail || partnerId)) {
+        const isPartnerValid = (partnerEmail && validEmails.has(partnerEmail)) || (partnerId && validIds.has(partnerId));
+        if (!isPartnerValid) return false;
+      }
+      return true;
+    });
+
+    if (cleanDMThreads.length !== store.dmThreads.length) {
+      useStore.setState({ dmThreads: cleanDMThreads });
+    }
+
     const res = await fetch('/api/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tasks: tasksWithUserEmail,
         users: store.users,
-        dmThreads: store.dmThreads,
+        dmThreads: cleanDMThreads,
         userEmail,
         userName,
         userId,

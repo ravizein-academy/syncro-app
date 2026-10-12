@@ -299,25 +299,38 @@ export async function getCachedDMs(forceFresh = false): Promise<any[]> {
       const json = await res.json();
       const threads = json?.data?.dmThreads || json?.dmThreads || [];
       if (Array.isArray(threads)) {
-        const threadMap = new Map();
-        threads.forEach((t) => threadMap.set(t.id, t));
-        // Pertahankan pesan yang ada di memori yang belum sempat tersimpan di sheet
-        (serverCache.dmThreads || []).forEach((mem) => {
-          const remote = threadMap.get(mem.id);
-          if (!remote) {
-            threadMap.set(mem.id, mem);
-          } else {
-            const msgMap = new Map();
-            (remote.messages || []).forEach((m: any) => msgMap.set(m.id, m));
-            (mem.messages || []).forEach((m: any) => msgMap.set(m.id, m));
-            threadMap.set(mem.id, {
-              ...remote,
-              ...mem,
-              messages: Array.from(msgMap.values()),
-            });
+        // Hanya pertahankan thread yang ada di database Google Sheets
+        const activeEmails = new Set(
+          (serverCache.users || [])
+            .filter((u: any) => u.status !== 'deleted' && u.status !== 'rejected')
+            .map((u: any) => (u.email || '').toLowerCase().trim())
+            .filter(Boolean)
+        );
+        const activeIds = new Set(
+          (serverCache.users || [])
+            .filter((u: any) => u.status !== 'deleted' && u.status !== 'rejected')
+            .map((u: any) => u.id)
+            .filter(Boolean)
+        );
+
+        const sanitizedThreads = threads.filter((t: any) => {
+          let pEmail = '';
+          if (t.participantEmails && Array.isArray(t.participantEmails)) {
+            pEmail = (t.participantEmails.find((e: string) => e.toLowerCase().trim() !== 'ravizein@itsecacademy.com') || '').toLowerCase().trim();
           }
+          if (!pEmail && t.participantEmail) {
+            pEmail = t.participantEmail.toLowerCase().trim();
+          }
+          const pId = t.participantId;
+
+          if ((activeEmails.size > 0 || activeIds.size > 0) && (pEmail || pId)) {
+            const isValid = (pEmail && activeEmails.has(pEmail)) || (pId && activeIds.has(pId));
+            if (!isValid) return false;
+          }
+          return true;
         });
-        serverCache.dmThreads = Array.from(threadMap.values());
+
+        serverCache.dmThreads = sanitizedThreads;
         serverCache.dmThreadsLastFetch = Date.now();
       }
     }

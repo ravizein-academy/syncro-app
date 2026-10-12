@@ -119,6 +119,17 @@ function doGet(e) {
         result = deleteUser(e && e.parameter);
         break;
 
+      case 'deleteDMThread':
+        result = deleteDMThread((e && e.parameter && e.parameter.id) || '');
+        break;
+
+      case 'deleteDMMessage':
+        result = deleteDMMessage(
+          (e && e.parameter && e.parameter.threadId) || '',
+          (e && e.parameter && e.parameter.messageId) || ''
+        );
+        break;
+
       default:
         return jsonResponse({
           status: 'error',
@@ -535,16 +546,25 @@ function deleteDMThread(id) {
   if (!sheet) return { success: false, message: 'Sheet not found' };
 
   const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { success: false, message: 'Sheet is empty' };
+
   const headers = data[0];
   const idIndex = headers.indexOf('id');
+  if (idIndex === -1) return { success: false, message: 'id header not found' };
 
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][idIndex]) === String(id)) {
+  const cleanId = String(id || '').trim();
+  if (!cleanId) return { success: false, message: 'Invalid id' };
+
+  let deletedCount = 0;
+  for (let i = data.length - 1; i >= 1; i--) {
+    const rowId = String(data[i][idIndex] || '').trim();
+    if (rowId === cleanId || (cleanId.length > 5 && rowId.indexOf(cleanId) !== -1)) {
       sheet.deleteRow(i + 1);
-      return { success: true, deletedId: id };
+      deletedCount++;
     }
   }
-  return { success: false, message: 'Thread not found: ' + id };
+
+  return { success: true, deletedId: id, deletedCount: deletedCount };
 }
 
 /**
@@ -721,7 +741,39 @@ function syncAllData(state) {
   }
 
   if (state.dmThreads && Array.isArray(state.dmThreads)) {
+    const activeEmails = {};
+    const ss = getSpreadsheet();
+    const uSheet = ss.getSheetByName(SHEET_NAMES.USERS);
+    if (uSheet) {
+      const uData = uSheet.getDataRange().getValues();
+      if (uData.length > 1) {
+        const emailIdx = uData[0].indexOf('email');
+        for (let i = 1; i < uData.length; i++) {
+          if (emailIdx >= 0) {
+            const em = String(uData[i][emailIdx]).toLowerCase().trim();
+            if (em) activeEmails[em] = true;
+          }
+        }
+      }
+    }
+
     state.dmThreads.forEach(thread => {
+      let partnerEmail = (thread.participantEmail || '').toLowerCase().trim();
+      if (!partnerEmail && thread.participantEmails && Array.isArray(thread.participantEmails)) {
+        for (let k = 0; k < thread.participantEmails.length; k++) {
+          const em = String(thread.participantEmails[k]).toLowerCase().trim();
+          if (em !== userEmail) {
+            partnerEmail = em;
+            break;
+          }
+        }
+      }
+
+      // Jangan simpan thread jika partnernya sudah dihapus dari sheet Users
+      if (partnerEmail && partnerEmail !== 'ravizein@itsecacademy.com' && !activeEmails[partnerEmail]) {
+        return;
+      }
+
       upsertDMThread(thread);
     });
   }
