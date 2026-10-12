@@ -50,7 +50,7 @@ function doGet(e) {
         break;
 
       case 'getUsers':
-        result = { users: getRecords(SHEET_NAMES.USERS) };
+        result = { users: getUsersRecords() };
         break;
 
       case 'getTeams':
@@ -78,7 +78,7 @@ function doGet(e) {
         const filterEmail = (e && e.parameter && e.parameter.userEmail) || '';
         result = {
           tasks: getTasksRecords(filterEmail),
-          users: getRecords(SHEET_NAMES.USERS),
+          users: getUsersRecords(),
           teams: getRecords(SHEET_NAMES.TEAMS),
           spaces: getRecords(SHEET_NAMES.SPACES),
           channels: getJsonFieldRecords(SHEET_NAMES.CHANNELS, ['messages']),
@@ -234,6 +234,56 @@ function jsonResponse(data, statusCode) {
   const responseOutput = ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
   return responseOutput;
+}
+
+/**
+ * Ensure Users Sheet has 'status' and 'requestedAt' headers
+ */
+function ensureUserSheetHeaders(sheet) {
+  if (!sheet) return;
+  const lastCol = sheet.getLastColumn();
+  if (lastCol === 0) return;
+  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (headers.indexOf('status') === -1) {
+    sheet.getRange(1, sheet.getLastColumn() + 1).setValue('status');
+  }
+  if (headers.indexOf('requestedAt') === -1) {
+    sheet.getRange(1, sheet.getLastColumn() + 1).setValue('requestedAt');
+  }
+}
+
+/**
+ * Read Users from Users sheet with guaranteed status ('active' for admin, 'pending' for waiting approval)
+ */
+function getUsersRecords() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAMES.USERS);
+  if (!sheet) return [];
+
+  ensureUserSheetHeaders(sheet);
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return [];
+
+  const headers = data[0];
+  const records = [];
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    const record = {};
+    for (let j = 0; j < headers.length; j++) {
+      record[headers[j]] = row[j];
+    }
+    const email = String(record.email || '').toLowerCase().trim();
+    if (email === 'ravizein@itsecacademy.com') {
+      record.role = 'admin';
+      record.status = 'active';
+    } else if (!record.status) {
+      record.status = 'pending';
+    }
+    records.push(record);
+  }
+  return records;
 }
 
 /**
@@ -406,6 +456,10 @@ function createRecord(sheetName, recordData) {
 
   if (!recordData.id) {
     recordData.id = 'id_' + Math.random().toString(36).substring(2, 9);
+  }
+
+  if (sheetName === SHEET_NAMES.USERS) {
+    ensureUserSheetHeaders(sheet);
   }
 
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
@@ -668,6 +722,8 @@ function updateUserRecord(user) {
   const ss = getSpreadsheet();
   const sheet = ss.getSheetByName(SHEET_NAMES.USERS);
   if (!sheet) return { success: false, message: 'Users sheet not found' };
+
+  ensureUserSheetHeaders(sheet);
 
   const data = sheet.getDataRange().getValues();
   const headers = data[0];

@@ -35,14 +35,26 @@ export async function POST(req: Request) {
       requestedAt: timeStr
     };
 
-    fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'createUser',
-        payload: pendingUser
-      })
-    }).catch((err) => console.warn('Failed to persist pending user in Google Sheets:', err));
+    // 1. Simpan user dengan status 'pending' ke database Google Sheets (Awaited with GET & POST)
+    const createUrl = `${APPS_SCRIPT_URL}?action=createUser&id=${encodeURIComponent(pendingUser.id)}&name=${encodeURIComponent(pendingUser.name)}&email=${encodeURIComponent(pendingUser.email)}&role=member&department=${encodeURIComponent(pendingUser.department)}&avatar=${encodeURIComponent(pendingUser.avatar)}&status=pending&requestedAt=${encodeURIComponent(timeStr)}`;
+    try {
+      await fetch(createUrl, { method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store' });
+    } catch (e) {
+      console.warn('GET createUser fallback error:', e);
+    }
+
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'createUser',
+          payload: pendingUser
+        })
+      });
+    } catch (err) {
+      console.warn('Failed to persist pending user via POST:', err);
+    }
 
     // 2. Kirim notifikasi email ke Admin (Ravi Zein)
     // Metode A: GET Query Parameter (Paling reliabel untuk Apps Script Web App tanpa isu drop body 302)

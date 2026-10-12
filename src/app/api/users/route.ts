@@ -22,7 +22,31 @@ export async function GET() {
     }
 
     const json = await res.json();
-    const users = json?.data?.users || json?.users || [];
+    const rawUsers = json?.data?.users || json?.users || [];
+    
+    // Pastikan setiap user memiliki status yang valid (Admin = active, pemohon baru = pending)
+    const users = rawUsers.map((u: any) => {
+      const email = (u.email || '').toLowerCase().trim();
+      const isMasterAdmin = email === 'ravizein@itsecacademy.com' || u.role === 'admin';
+
+      if (isMasterAdmin) {
+        return {
+          ...u,
+          role: 'admin',
+          status: 'active'
+        };
+      }
+
+      // Jika user sudah disetujui (active) atau dinonaktifkan (inactive), pertahankan
+      // Jika status kosong atau 'pending', jadikan 'pending' agar muncul di Inbox Admin
+      const status = u.status === 'active' ? 'active' : (u.status === 'inactive' ? 'inactive' : 'pending');
+      return {
+        ...u,
+        status,
+        requestedAt: u.requestedAt || 'Menunggu persetujuan'
+      };
+    });
+
     return NextResponse.json({ status: 'success', users });
   } catch (error: any) {
     console.error('Error fetching users from Apps Script:', error);

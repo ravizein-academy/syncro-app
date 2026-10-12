@@ -57,6 +57,10 @@ export default function InboxPage() {
 
   useEffect(() => {
     refreshUsers();
+    const timer = setInterval(() => {
+      refreshUsers();
+    }, 8000);
+    return () => clearInterval(timer);
   }, []);
 
   const pendingRequests = users.filter((u) => u.status === "pending");
