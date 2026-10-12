@@ -170,8 +170,8 @@ interface AppState {
   setUsers: (users: User[]) => void;
   updateUserRole: (userId: string, role: 'admin' | 'member' | 'guest') => void;
   addUser: (user: Omit<User, 'id'>) => void;
-  approveUser: (userId: string, role: 'admin' | 'member' | 'guest', department?: string) => void;
-  rejectUser: (userId: string) => void;
+  approveUser: (userId: string, role: 'admin' | 'member' | 'guest', department?: string, userEmail?: string) => void;
+  rejectUser: (userId: string, userEmail?: string) => void;
   updateUser: (userId: string, updates: Partial<User>) => void;
   deleteUser: (userId: string) => void;
 
@@ -433,17 +433,30 @@ export const useStore = create<AppState>()(
           },
         })),
 
-      approveUser: (userId, role, department) => {
-        const target = get().users.find((u) => u.id === userId);
+      approveUser: (userId, role, department, userEmail) => {
+        const target = get().users.find((u) =>
+          (userEmail && u.email?.toLowerCase().trim() === userEmail.toLowerCase().trim()) ||
+          (userId && userId !== '' && u.id === userId)
+        );
         if (!target) return;
+
+        const targetEmail = target.email?.toLowerCase().trim() || '';
+        const isMaster = targetEmail === 'ravizein@itsecacademy.com';
+        const finalRole = isMaster ? 'admin' : role;
+
         const updated: User = {
           ...target,
-          role,
+          role: finalRole,
           department: department || target.department || 'Product & Tech',
           status: 'active',
         };
+
         set((state) => ({
-          users: state.users.map((u) => (u.id === userId ? updated : u)),
+          users: state.users.map((u) => {
+            const isMatch = (targetEmail && u.email?.toLowerCase().trim() === targetEmail) ||
+                            (userId && userId !== '' && u.id === userId);
+            return isMatch ? updated : u;
+          }),
         }));
 
         if (typeof fetch !== 'undefined') {
@@ -458,10 +471,19 @@ export const useStore = create<AppState>()(
         }
       },
 
-      rejectUser: (userId) => {
-        const target = get().users.find((u) => u.id === userId);
+      rejectUser: (userId, userEmail) => {
+        const target = get().users.find((u) =>
+          (userEmail && u.email?.toLowerCase().trim() === userEmail.toLowerCase().trim()) ||
+          (userId && userId !== '' && u.id === userId)
+        );
+        const targetEmail = target?.email || userEmail || '';
+
         set((state) => ({
-          users: state.users.filter((u) => u.id !== userId),
+          users: state.users.filter((u) => {
+            if (targetEmail && u.email?.toLowerCase().trim() === targetEmail.toLowerCase().trim()) return false;
+            if (userId && userId !== '' && u.id === userId) return false;
+            return true;
+          }),
         }));
 
         if (typeof fetch !== 'undefined') {
@@ -470,7 +492,7 @@ export const useStore = create<AppState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               action: 'deleteUser',
-              payload: { id: userId, email: target?.email },
+              payload: { id: userId, email: targetEmail },
             }),
           }).catch((err) => console.warn('Failed to delete rejected user:', err));
         }

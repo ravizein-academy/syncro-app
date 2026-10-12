@@ -250,7 +250,7 @@ export default function InboxPage() {
                             type="button"
                             size="sm"
                             onClick={() => {
-                              approveUser(pUser.id, config.role, config.department);
+                              approveUser(pUser.id, config.role, config.department, pUser.email);
                             }}
                             className="h-8 text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg shadow-sm gap-1.5 px-3"
                           >
@@ -263,7 +263,7 @@ export default function InboxPage() {
                             size="sm"
                             onClick={() => {
                               if (confirm(`Tolak dan hapus permintaan izin dari ${pUser.name}?`)) {
-                                rejectUser(pUser.id);
+                                rejectUser(pUser.id, pUser.email);
                               }
                             }}
                             className="h-8 text-xs font-semibold text-red-500 border-red-500/30 hover:bg-red-500/10 rounded-lg px-2.5"

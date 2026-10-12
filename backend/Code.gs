@@ -800,13 +800,33 @@ function updateUserRecord(user) {
 
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  const idIdx = headers.indexOf('id');
+  let idIdx = headers.indexOf('id');
+  if (idIdx === -1) idIdx = headers.indexOf('sta');
   const emailIdx = headers.indexOf('email');
 
+  const targetEmail = String(user.email || '').toLowerCase().trim();
+  const targetId = String(user.id || '').trim();
+
+  // PROTEKSI MASTER ADMIN
+  if (targetEmail === 'ravizein@itsecacademy.com') {
+    user.role = 'admin';
+    user.status = 'active';
+  }
+
   for (let i = 1; i < data.length; i++) {
-    const rowId = String(data[i][idIdx]);
-    const rowEmail = String(data[i][emailIdx]).toLowerCase().trim();
-    if ((user.id && rowId === String(user.id)) || (user.email && rowEmail === String(user.email).toLowerCase().trim())) {
+    const rowId = idIdx >= 0 ? String(data[i][idIdx]).trim() : '';
+    const rowEmail = emailIdx >= 0 ? String(data[i][emailIdx]).toLowerCase().trim() : '';
+
+    // Prioritas pencocokan berdasarkan email unik, atau ID jika tidak kosong
+    const isMatch = (targetEmail && rowEmail === targetEmail) ||
+                    (targetId && targetId !== '' && rowId === targetId);
+
+    if (isMatch) {
+      if (rowEmail === 'ravizein@itsecacademy.com') {
+        user.role = 'admin';
+        user.status = 'active';
+      }
+
       for (let j = 0; j < headers.length; j++) {
         const header = headers[j];
         if (user[header] !== undefined) {
