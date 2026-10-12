@@ -371,15 +371,24 @@ export async function fetchGoogleCalendarEvents(specificEmail?: string): Promise
     const data = await res.json();
     const remoteEvents: CalendarEvent[] = data?.events || [];
 
-    if (Array.isArray(remoteEvents) && remoteEvents.length > 0) {
-      // Merge with existing events
-      const eventMap = new Map<string, CalendarEvent>();
-      store.calendarEvents.forEach((ev) => eventMap.set(ev.id, ev));
-      remoteEvents.forEach((ev) => eventMap.set(ev.id, ev));
+    if (Array.isArray(remoteEvents)) {
+      // Pastikan semua event dari cloud diberi label userEmail
+      const taggedRemote = remoteEvents.map((ev) => ({
+        ...ev,
+        userEmail: ev.userEmail || userEmail,
+      }));
 
-      const merged = Array.from(eventMap.values());
-      store.setCalendarEvents(merged);
-      return { success: true, events: merged, message: `Tersinkron ${remoteEvents.length} agenda Google Calendar` };
+      // Pisahkan agenda akun lain agar tidak tertimpa/tercampur
+      const otherAccountsEvents = store.calendarEvents.filter(
+        (ev) => ev.userEmail && userEmail && ev.userEmail.toLowerCase().trim() !== userEmail
+      );
+
+      const eventMap = new Map<string, CalendarEvent>();
+      taggedRemote.forEach((ev) => eventMap.set(ev.id, ev));
+
+      const updated = [...otherAccountsEvents, ...Array.from(eventMap.values())];
+      store.setCalendarEvents(updated);
+      return { success: true, events: updated, message: `Tersinkron ${taggedRemote.length} agenda Google Calendar` };
     }
 
     return { success: true, events: store.calendarEvents, message: 'Google Calendar up to date' };

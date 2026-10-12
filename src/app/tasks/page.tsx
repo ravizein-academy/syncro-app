@@ -160,6 +160,13 @@ export default function TasksPage() {
       // Me Mode (Assigned to current user)
       if (meModeOnly && currentUser && task.assigneeId !== currentUser.id && !task.isPersonal) return false;
 
+      // Isolasi Tugas Personal: jika tugas personal, hanya tampilkan untuk pemiliknya
+      if (task.isPersonal && task.userEmail && currentUser?.email) {
+        if (task.userEmail.toLowerCase().trim() !== currentUser.email.toLowerCase().trim()) {
+          return false;
+        }
+      }
+
       // Priority Filter
       if (filterPriority !== "all" && task.priority !== filterPriority) return false;
 
@@ -171,7 +178,7 @@ export default function TasksPage() {
 
       return true;
     });
-  }, [tasks, searchQuery, showClosedTasks, meModeOnly, filterPriority, filterSpace, filterAssignee]);
+  }, [tasks, searchQuery, showClosedTasks, meModeOnly, currentUser, filterPriority, filterSpace, filterAssignee]);
 
   // Priority Helpers
   const getPriorityBadge = (priority?: string) => {

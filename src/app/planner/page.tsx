@@ -222,16 +222,35 @@ export default function PlannerPage() {
     };
   }, [weekDays, todayDateStr, language]);
 
+  // Filter agenda & tugas spesifik untuk akun yang sedang aktif (currentUser)
+  const currentEmail = currentUser?.email?.toLowerCase().trim();
+
+  const myCalendarEvents = useMemo(() => {
+    if (!currentEmail) return calendarEvents;
+    return (calendarEvents || []).filter(
+      (ev) => !ev.userEmail || ev.userEmail.toLowerCase().trim() === currentEmail
+    );
+  }, [calendarEvents, currentEmail]);
+
+  const myTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      if (t.isPersonal && t.userEmail && currentEmail) {
+        if (t.userEmail.toLowerCase().trim() !== currentEmail) return false;
+      }
+      return true;
+    });
+  }, [tasks, currentEmail]);
+
   // Map all events (Google Calendar + Syncro tasks) by dateStr for Month View
   const allEventsByDate = useMemo(() => {
     const map: Record<string, { id: string; title: string; color?: string; isGoogleEvent?: boolean; isTask?: boolean; taskId?: string }[]> = {};
 
-    (calendarEvents || []).forEach((ev) => {
+    (myCalendarEvents || []).forEach((ev) => {
       if (!map[ev.dateStr]) map[ev.dateStr] = [];
       map[ev.dateStr].push(ev);
     });
 
-    (tasks || []).forEach((task) => {
+    (myTasks || []).forEach((task) => {
       if (task.dueDate) {
         if (!map[task.dueDate]) map[task.dueDate] = [];
         map[task.dueDate].push({
@@ -245,12 +264,12 @@ export default function PlannerPage() {
     });
 
     return map;
-  }, [calendarEvents, tasks]);
+  }, [myCalendarEvents, myTasks]);
 
-  const unscheduledTasks = tasks.filter((t) => !t.scheduledSlot || t.scheduledSlot === "unscheduled");
+  const unscheduledTasks = myTasks.filter((t) => !t.scheduledSlot || t.scheduledSlot === "unscheduled");
 
   const getTasksForSlot = (slot: string) => {
-    return tasks.filter((t) => t.scheduledSlot === slot);
+    return myTasks.filter((t) => t.scheduledSlot === slot);
   };
 
   const onDragEnd = (result: any) => {
@@ -336,7 +355,7 @@ export default function PlannerPage() {
     const list: (CalendarEvent & { isTask?: boolean; taskId?: string; dayIndex: number })[] = [];
 
     // 1. Google Calendar events matching this week's dates
-    (calendarEvents || []).forEach((ev) => {
+    (myCalendarEvents || []).forEach((ev) => {
       const dayIdx = weekDays.findIndex((w) => w.dateStr === ev.dateStr);
       if (dayIdx !== -1) {
         list.push({
@@ -347,7 +366,7 @@ export default function PlannerPage() {
     });
 
     // 2. Syncro tasks matching this week's dates
-    tasks.forEach((t) => {
+    myTasks.forEach((t) => {
       if (t.scheduledSlot && t.scheduledSlot !== "unscheduled") {
         let dayIdx = -1;
         if (t.dueDate) {
@@ -384,7 +403,7 @@ export default function PlannerPage() {
     });
 
     return list;
-  }, [calendarEvents, tasks, weekDays, currentWeekOffset]);
+  }, [myCalendarEvents, myTasks, weekDays, currentWeekOffset]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] p-3 sm:p-5 md:p-6 space-y-3 sm:space-y-4 max-w-[1600px] mx-auto select-none transition-colors duration-200">

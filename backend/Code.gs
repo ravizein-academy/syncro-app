@@ -1135,45 +1135,71 @@ function deleteUser(payload) {
 function getGoogleCalendarEvents(e) {
   try {
     const filterEmail = (e && e.parameter && e.parameter.userEmail) || '';
+    const cleanEmail = filterEmail.toLowerCase().trim();
     let cal = null;
 
-    if (filterEmail) {
+    if (cleanEmail) {
       try {
-        cal = CalendarApp.getCalendarById(filterEmail);
+        cal = CalendarApp.getCalendarById(cleanEmail);
       } catch (err) {}
     }
-    if (!cal) {
+
+    // HANYA gunakan getDefaultCalendar jika tidak ada filterEmail ATAU filterEmail adalah akun pemilik default script (ravizein@itsecacademy.com)
+    if (!cal && (!cleanEmail || cleanEmail === 'ravizein@itsecacademy.com')) {
       cal = CalendarApp.getDefaultCalendar();
     }
 
-    if (!cal) return [];
+    // Jika calendar untuk email ini ditemukan di Google Calendar (baik default atau shared calendar):
+    if (cal) {
+      const now = new Date();
+      const startTime = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+      const endTime = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
-    // Range: 14 days before to 30 days after today
-    const now = new Date();
-    const startTime = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-    const endTime = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const events = cal.getEvents(startTime, endTime);
+      const pad = function(n) { return String(n).padStart(2, '0'); };
 
-    const events = cal.getEvents(startTime, endTime);
-    const pad = function(n) { return String(n).padStart(2, '0'); };
+      return events.map(function(ev) {
+        const start = ev.getStartTime();
+        const end = ev.getEndTime();
+        const dateStr = start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate());
+        const startHour = pad(start.getHours()) + ':' + pad(start.getMinutes());
+        const endHour = pad(end.getHours()) + ':' + pad(end.getMinutes());
 
-    return events.map(function(ev) {
-      const start = ev.getStartTime();
-      const end = ev.getEndTime();
-      const dateStr = start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate());
-      const startHour = pad(start.getHours()) + ':' + pad(start.getMinutes());
-      const endHour = pad(end.getHours()) + ':' + pad(end.getMinutes());
+        return {
+          id: 'gcal_' + ev.getId(),
+          title: ev.getTitle() || 'Acara Google Calendar',
+          dateStr: dateStr,
+          startHour: startHour,
+          endHour: endHour,
+          timeRange: startHour + ' - ' + endHour,
+          description: ev.getDescription() || '',
+          meetUrl: 'https://meet.google.com/new',
+          isGoogleEvent: true,
+          userEmail: cleanEmail || 'ravizein@itsecacademy.com'
+        };
+      });
+    }
 
+    // Jika cal null (misal akun @gmail.com belum dibagikan ke akun workspace):
+    // JANGAN bocorkan agenda akun academy!
+    // Ambil agenda yang khusus tersimpan untuk akun ini di sheet Events:
+    const savedRecords = getRecords(SHEET_NAMES.EVENTS);
+    const userEvents = savedRecords.filter(function(r) {
+      return r.userEmail && String(r.userEmail).toLowerCase().trim() === cleanEmail;
+    });
+
+    return userEvents.map(function(ev) {
       return {
-        id: 'gcal_' + ev.getId(),
-        title: ev.getTitle() || 'Acara Google Calendar',
-        dateStr: dateStr,
-        startHour: startHour,
-        endHour: endHour,
-        timeRange: startHour + ' - ' + endHour,
-        description: ev.getDescription() || '',
-        meetUrl: 'https://meet.google.com/new',
-        isGoogleEvent: true,
-        userEmail: filterEmail || ''
+        id: ev.id || ('ev_' + Date.now()),
+        title: ev.title || 'Agenda',
+        dateStr: ev.dateStr || (ev.start ? String(ev.start).split('T')[0] : ''),
+        startHour: ev.startHour || '09:00',
+        endHour: ev.endHour || '10:00',
+        timeRange: ev.timeRange || '09:00 - 10:00',
+        description: ev.description || '',
+        meetUrl: ev.meetLink || 'https://meet.google.com/new',
+        isGoogleEvent: false,
+        userEmail: cleanEmail
       };
     });
   } catch (error) {
@@ -1183,12 +1209,22 @@ function getGoogleCalendarEvents(e) {
 }
 
 /**
- * Create a new event in Google Calendar (CalendarApp)
+ * Create a new event in Google Calendar (CalendarApp) or Events sheet
  */
 function createGoogleCalendarEvent(payload) {
   try {
-    const cal = CalendarApp.getDefaultCalendar();
-    if (!cal) throw new Error('Default calendar not available');
+    const userEmail = (payload.userEmail || '').toLowerCase().trim();
+    let cal = null;
+
+    if (userEmail) {
+      try {
+        cal = CalendarApp.getCalendarById(userEmail);
+      } catch (e) {}
+    }
+
+    if (!cal && (!userEmail || userEmail === 'ravizein@itsecacademy.com')) {
+      cal = CalendarApp.getDefaultCalendar();
+    }
 
     const title = payload.title || 'Syncro Event';
     const dateStr = payload.dateStr || new Date().toISOString().split('T')[0];
@@ -1211,23 +1247,46 @@ function createGoogleCalendarEvent(payload) {
     const startDate = new Date(year, month - 1, day, sH, sM);
     const endDate = new Date(year, month - 1, day, eH, eM);
 
-    const event = cal.createEvent(title, startDate, endDate, {
-      description: payload.description || 'Dibuat otomatis dari aplikasi Syncro'
+    let eventId = 'ev_' + Date.now();
+    let isGoogleEvent = false;
+
+    if (cal) {
+      const event = cal.createEvent(title, startDate, endDate, {
+        description: payload.description || 'Dibuat otomatis dari aplikasi Syncro'
+      });
+      eventId = 'gcal_' + event.getId();
+      isGoogleEvent = true;
+    }
+
+    // Selalu simpan juga ke sheet Events agar data tersimpan aman di cloud
+    createRecord(SHEET_NAMES.EVENTS, {
+      id: eventId,
+      title: title,
+      start: startDate.toISOString(),
+      end: endDate.toISOString(),
+      dateStr: dateStr,
+      startHour: startHour,
+      endHour: endHour,
+      timeRange: startHour + ' - ' + endHour,
+      meetLink: payload.meetUrl || 'https://meet.google.com/new',
+      userEmail: userEmail,
+      taskId: payload.taskId || ''
     });
 
     return {
       success: true,
-      id: 'gcal_' + event.getId(),
+      id: eventId,
       title: title,
       dateStr: dateStr,
       startHour: startHour,
       endHour: endHour,
       timeRange: startHour + ' - ' + endHour,
-      isGoogleEvent: true
+      isGoogleEvent: isGoogleEvent,
+      userEmail: userEmail
     };
   } catch (error) {
     console.error('createGoogleCalendarEvent error:', error);
-    return { success: false, message: error.toString() };
+    return { success: false, error: error.toString() };
   }
 }
 
