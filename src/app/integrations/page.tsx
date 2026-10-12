@@ -179,15 +179,13 @@ export default function IntegrationsPage() {
             >
               {isAutoSyncEnabled ? (language === 'en' ? 'Pause Auto-Sync' : 'Jeda Otomatis') : (language === 'en' ? 'Enable Auto-Sync' : 'Aktifkan Otomatis')}
             </Button>
-            <Button
-              size="sm"
-              onClick={handleManualSync}
-              disabled={isSyncingNow || cloudSyncStatus === 'syncing'}
-              className="text-xs h-8 bg-[#EE3726] hover:bg-[#EE3726]/90 text-white shadow-sm gap-1.5"
-            >
-              <RefreshCw size={12} className={isSyncingNow || cloudSyncStatus === 'syncing' ? "animate-spin" : ""} />
-              <span>{t.autoSyncNowBtn}</span>
-            </Button>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>{language === 'en' ? 'Syncs Automatically' : 'Tersinkron Otomatis'}</span>
+            </div>
           </div>
         </CardContent>
       </Card>

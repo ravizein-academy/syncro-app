@@ -104,7 +104,6 @@ export default function PlannerPage() {
   const [gcalView, setGcalView] = useState<"week" | "month" | "day" | "agenda">("week");
 
   // Sync state
-  const [isSyncing, setIsSyncing] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
   // Helper to format Date to YYYY-MM-DD
@@ -308,24 +307,6 @@ export default function PlannerPage() {
     window.open(meetUrl, "_blank");
   };
 
-  // Real 2-way Google Calendar synchronization
-  const handleSyncWithGoogleCalendar = async () => {
-    setIsSyncing(true);
-    try {
-      const res = await fetchGoogleCalendarEvents(currentUser?.email);
-      setSyncNotice(
-        language === 'en'
-          ? `Synced with Google Calendar successfully (${res.events.length} items connected)`
-          : `Sinkronisasi Google Calendar berhasil (${res.events.length} agenda terhubung)`
-      );
-      setTimeout(() => setSyncNotice(null), 4000);
-    } catch {
-      setSyncNotice(language === 'en' ? "Synced with Google Calendar" : "Sinkronisasi Google Calendar berhasil");
-      setTimeout(() => setSyncNotice(null), 3000);
-    } finally {
-      setIsSyncing(false);
-    }
-  };
 
   const handleCreateNewEvent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -439,9 +420,12 @@ export default function PlannerPage() {
                 Google Workspace
               </span>
               <span className="h-1 w-1 rounded-full bg-border" />
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-500 bg-emerald-500/10 px-2 py-0.2 rounded-full border border-emerald-500/20">
-                <CheckCircle2 size={10} />
-                <span>Google Calendar Terhubung</span>
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold text-emerald-500 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                </span>
+                <span>Auto-Sync Google Otomatis Aktif</span>
               </span>
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-foreground flex items-center gap-2 mt-0.5">
@@ -478,7 +462,6 @@ export default function PlannerPage() {
             </button>
           </div>
 
-
           {/* + New Event Button */}
           <Button
             size="sm"
@@ -487,17 +470,6 @@ export default function PlannerPage() {
           >
             <Plus size={14} />
             <span>{language === 'en' ? "+ New Event" : "+ Buat Acara"}</span>
-          </Button>
-
-          {/* External Google Calendar Link */}
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={openGoogleCalendarExternal}
-            className="h-9 w-9 p-0 text-muted-foreground hover:text-[#4285F4] rounded-xl border border-border/80"
-            title="Buka Google Calendar Web (calendar.google.com)"
-          >
-            <ExternalLink size={14} />
           </Button>
         </div>
       </div>

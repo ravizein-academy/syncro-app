@@ -198,17 +198,11 @@ export function TopNavbar() {
                   {isAutoSyncEnabled ? 'Matikan Auto-Sync' : 'Aktifkan Auto-Sync'}
                 </button>
 
-                {/* Force Manual Sync Button */}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleManualSync}
-                  disabled={isCurrentlySyncing}
-                  className="h-7 text-xs px-2.5 gap-1.5 bg-[#EE3726] hover:bg-[#EE3726]/90 text-white border-transparent shadow-sm"
-                >
-                  <RefreshCw size={11} className={isCurrentlySyncing ? "animate-spin" : ""} />
-                  <span>{t.autoSyncNowBtn}</span>
-                </Button>
+                {/* Automated Status Indicator */}
+                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20">
+                  <CheckCircle2 size={12} />
+                  <span>Otomatis Aktif</span>
+                </div>
               </div>
             </div>
           )}
