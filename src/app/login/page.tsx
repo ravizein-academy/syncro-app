@@ -81,6 +81,54 @@ export default function LoginPage() {
     }
   }, []);
 
+  // Polling Real-time: Jika sedang menunggu persetujuan (pendingNotice),
+  // cek status ke backend setiap 3 detik. Begitu di-ACC Admin (dari email atau aplikasi),
+  // akun langsung otomatis masuk tanpa perlu refresh atau klik ulang!
+  useEffect(() => {
+    if (!pendingNotice?.email) return;
+
+    const targetEmail = pendingNotice.email.toLowerCase().trim();
+    const interval = setInterval(async () => {
+      try {
+        const latestUsers = await getLatestUsersList();
+        const approvedUser = latestUsers.find(
+          (u) => u.email && u.email.toLowerCase().trim() === targetEmail && u.status === "active"
+        );
+        if (approvedUser) {
+          clearInterval(interval);
+          setPendingNotice(null);
+          setSuccessMessage(
+            language === "en"
+              ? `Access Granted! Welcome, ${approvedUser.name} (${approvedUser.role})`
+              : `Akses Disetujui! Selamat datang, ${approvedUser.name} (${approvedUser.role})`
+          );
+          if (rememberMe) {
+            try {
+              localStorage.setItem(
+                "syncro_remembered_device_account",
+                JSON.stringify({
+                  email: approvedUser.email,
+                  name: approvedUser.name,
+                  avatar: approvedUser.avatar,
+                })
+              );
+            } catch (e) {
+              console.warn("Failed to persist remembered device account:", e);
+            }
+          }
+          login(approvedUser);
+          setTimeout(() => {
+            router.push("/");
+          }, 800);
+        }
+      } catch (err) {
+        console.warn("Auto-login check error:", err);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [pendingNotice, language, rememberMe, router, login]);
+
   // Google Account Chooser Modal State (Hanya untuk perangkat baru yang belum ada akun tersimpan)
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
   const [customGoogleEmail, setCustomGoogleEmail] = useState("");

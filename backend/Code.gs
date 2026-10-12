@@ -680,22 +680,47 @@ function notifyAdminAccessRequest(payload) {
   var userName = (payload && payload.name) || userEmail.split('@')[0];
   var timeStr = (payload && payload.time) || new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB';
 
-  var subject = '🔔 [Syncro] Permintaan Akses Akun Baru: ' + userName + ' (' + userEmail + ')';
-  var htmlBody = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; padding: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">'
+  var approveDirectUrl = 'https://syncro-app-sable.vercel.app/api/auth/approve?email=' + encodeURIComponent(userEmail);
+  var inboxUrl = 'https://syncro-app-sable.vercel.app/inbox';
+
+  var subject = '🔔 [Syncro] Permintaan Izin Masuk: ' + userName + ' (' + userEmail + ')';
+  
+  var plainBody = 'Halo Admin Ravi Zein,\n\n'
+    + 'Pengguna baru ingin masuk ke workspace Syncro:\n'
+    + 'Nama: ' + userName + '\n'
+    + 'Email: ' + userEmail + '\n'
+    + 'Waktu: ' + timeStr + '\n\n'
+    + 'Untuk MENYETUJUI (ACC) langsung akun ini, klik tautan berikut:\n'
+    + approveDirectUrl + '\n\n'
+    + 'Atau buka Pusat Notifikasi & Inbox:\n'
+    + inboxUrl + '\n\n'
+    + 'Syncro Workspace Access Control';
+
+  var htmlBody = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 18px; overflow: hidden; padding: 28px; box-shadow: 0 4px 14px rgba(0,0,0,0.06);">'
     + '<div style="text-align: center; margin-bottom: 24px;">'
-    + '<div style="display: inline-block; background: #EE3726; color: #ffffff; font-weight: 900; font-size: 22px; width: 48px; height: 48px; line-height: 48px; border-radius: 14px; text-align: center;">S</div>'
-    + '<h2 style="color: #0f172a; margin: 14px 0 4px; font-size: 20px; font-weight: 800;">Permintaan Akses Masuk Baru</h2>'
+    + '<div style="display: inline-block; background: #EE3726; color: #ffffff; font-weight: 900; font-size: 24px; width: 52px; height: 52px; line-height: 52px; border-radius: 16px; text-align: center;">S</div>'
+    + '<h2 style="color: #0f172a; margin: 14px 0 4px; font-size: 20px; font-weight: 800;">Permintaan Izin Akses Akun Baru</h2>'
     + '<p style="color: #64748b; margin: 0; font-size: 13px;">Syncro Workspace Access Control</p>'
     + '</div>'
-    + '<div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 12px; padding: 16px; margin-bottom: 20px;">'
-    + '<p style="margin: 0 0 6px; color: #92400e; font-size: 14px; font-weight: 700;">Pengguna Baru Ingin Bergabung:</p>'
-    + '<p style="margin: 0; color: #78350f; font-size: 13px; line-height: 1.6;">'
-    + '<strong>' + userName + '</strong> (' + userEmail + ') mencoba masuk pertama kali ke workspace Syncro dan menunggu persetujuan Anda.'
-    + '</p>'
+    + '<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 18px; margin-bottom: 22px;">'
+    + '<p style="margin: 0 0 8px; color: #0f172a; font-size: 13px; font-weight: 700;">Detail Pengguna Pemohon:</p>'
+    + '<div style="font-size: 13px; color: #334155; line-height: 1.8;">'
+    + '• <strong>Nama:</strong> ' + userName + '<br>'
+    + '• <strong>Email:</strong> <span style="color: #EE3726; font-weight: 600;">' + userEmail + '</span><br>'
+    + '• <strong>Waktu Pengajuan:</strong> ' + timeStr + '<br>'
+    + '• <strong>Status:</strong> <span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 6px; font-weight: 700; font-size: 11px;">Menunggu Persetujuan Admin</span>'
     + '</div>'
-    + '<p style="font-size: 13px; color: #475569; margin-bottom: 20px;">Silakan buka menu <strong>Teams</strong> di aplikasi Syncro untuk menyetujui (ACC) akun ini dan menentukan rolenya (Admin, Member, atau Guest).</p>'
+    + '</div>'
+    + '<p style="font-size: 13px; color: #475569; margin-bottom: 20px; line-height: 1.5;">Anda dapat menyetujui akun ini secara instan hanya dengan 1 klik tombol di bawah, atau atur peran dan divisi lengkapnya melalui halaman Inbox aplikasi Syncro.</p>'
+    + '<div style="display: flex; gap: 12px; margin-bottom: 22px;">'
+    + '<a href="' + approveDirectUrl + '" style="display: block; width: 100%; text-align: center; background: #10b981; color: #ffffff; font-weight: 700; font-size: 14px; text-decoration: none; padding: 13px 20px; border-radius: 10px; box-shadow: 0 3px 10px rgba(16,185,129,0.3);">✓ Setujui (ACC) Langsung</a>'
+    + '</div>'
     + '<div style="text-align: center; margin-bottom: 24px;">'
-    + '<a href="https://syncro-app-sable.vercel.app/teams" style="display: inline-block; background: #EE3726; color: #ffffff; font-weight: 700; font-size: 13px; text-decoration: none; padding: 12px 24px; border-radius: 10px; box-shadow: 0 4px 12px rgba(238,55,38,0.3);">Buka Halaman Teams & Setujui (ACC)</a>'
+    + '<a href="' + inboxUrl + '" style="display: inline-block; background: #f1f5f9; color: #334155; font-weight: 600; font-size: 12px; text-decoration: none; padding: 9px 18px; border-radius: 8px; border: 1px solid #cbd5e1;">Atur Peran di Inbox Syncro &rarr;</a>'
+    + '</div>'
+    + '<div style="background: #f1f5f9; border-radius: 8px; padding: 10px; margin-bottom: 18px; word-break: break-all; font-size: 11px; color: #64748b;">'
+    + 'Jika tombol tidak dapat diklik (karena proteksi spam email), salin dan buka tautan persetujuan ini langsung di browser:<br>'
+    + '<a href="' + approveDirectUrl + '" style="color: #EE3726;">' + approveDirectUrl + '</a>'
     + '</div>'
     + '<div style="border-top: 1px solid #e2e8f0; padding-top: 14px; text-align: center;">'
     + '<p style="color: #94a3b8; font-size: 11px; margin: 0;">Syncro PWA • Workspace Access Control</p>'
@@ -706,7 +731,9 @@ function notifyAdminAccessRequest(payload) {
     MailApp.sendEmail({
       to: adminEmail,
       subject: subject,
-      htmlBody: htmlBody
+      body: plainBody,
+      htmlBody: htmlBody,
+      name: 'Syncro Workspace Security'
     });
     return { success: true, adminEmail: adminEmail };
   } catch (err) {
