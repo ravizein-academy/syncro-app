@@ -91,6 +91,10 @@ function doGet(e) {
         result = setupInitialDatabase();
         break;
 
+      case 'upgradeUserSchema':
+        result = upgradeUserSchema();
+        break;
+
       case 'clearAllData':
         result = clearAllData();
         break;
@@ -250,6 +254,38 @@ function ensureUserSheetHeaders(sheet) {
   if (headers.indexOf('requestedAt') === -1) {
     sheet.getRange(1, sheet.getLastColumn() + 1).setValue('requestedAt');
   }
+}
+
+/**
+ * Upgrade Users Sheet: Add 'status' and 'requestedAt' headers and set admin to 'active'
+ */
+function upgradeUserSchema() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAMES.USERS);
+  if (!sheet) return { success: false, message: 'Users sheet not found' };
+
+  ensureUserSheetHeaders(sheet);
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length <= 1) return { success: true, message: 'Schema ensured on empty sheet' };
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const emailIdx = headers.indexOf('email');
+  const statusIdx = headers.indexOf('status');
+
+  if (statusIdx >= 0) {
+    for (let i = 1; i < data.length; i++) {
+      const email = emailIdx >= 0 ? String(data[i][emailIdx]).toLowerCase().trim() : '';
+      const curStatus = String(data[i][statusIdx] || '').trim();
+      if (email === 'ravizein@itsecacademy.com') {
+        sheet.getRange(i + 1, statusIdx + 1).setValue('active');
+      } else if (!curStatus) {
+        sheet.getRange(i + 1, statusIdx + 1).setValue('pending');
+      }
+    }
+  }
+
+  return { success: true, message: 'Users table upgraded with status column and default active for admin!' };
 }
 
 /**
