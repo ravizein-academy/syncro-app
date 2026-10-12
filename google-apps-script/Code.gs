@@ -70,7 +70,8 @@ function doGet(e) {
         break;
 
       case 'getEvents':
-        result = { events: getRecords(SHEET_NAMES.EVENTS) };
+      case 'getCalendarEvents':
+        result = { events: getGoogleCalendarEvents(e) };
         break;
 
       case 'getAllData':
@@ -160,6 +161,10 @@ function doPost(e) {
 
       case 'notifyLogin':
         result = sendLoginNotificationEmail(payload);
+        break;
+
+      case 'createCalendarEvent':
+        result = createGoogleCalendarEvent(payload);
         break;
 
       default:
@@ -579,4 +584,113 @@ function sendLoginNotificationEmail(payload) {
     return { success: false, error: err.toString() };
   }
 }
+
+/**
+ * =========================================================================
+ * GOOGLE CALENDAR API INTEGRATION (2-Way Synchronization)
+ * =========================================================================
+ */
+
+/**
+ * Fetch events from Google Calendar (CalendarApp)
+ */
+function getGoogleCalendarEvents(e) {
+  try {
+    const filterEmail = (e && e.parameter && e.parameter.userEmail) || '';
+    let cal = null;
+
+    if (filterEmail) {
+      try {
+        cal = CalendarApp.getCalendarById(filterEmail);
+      } catch (err) {}
+    }
+    if (!cal) {
+      cal = CalendarApp.getDefaultCalendar();
+    }
+
+    if (!cal) return [];
+
+    // Range: 14 days before to 30 days after today
+    const now = new Date();
+    const startTime = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+    const endTime = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const events = cal.getEvents(startTime, endTime);
+    const pad = function(n) { return String(n).padStart(2, '0'); };
+
+    return events.map(function(ev) {
+      const start = ev.getStartTime();
+      const end = ev.getEndTime();
+      const dateStr = start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate());
+      const startHour = pad(start.getHours()) + ':' + pad(start.getMinutes());
+      const endHour = pad(end.getHours()) + ':' + pad(end.getMinutes());
+
+      return {
+        id: 'gcal_' + ev.getId(),
+        title: ev.getTitle() || 'Acara Google Calendar',
+        dateStr: dateStr,
+        startHour: startHour,
+        endHour: endHour,
+        timeRange: startHour + ' - ' + endHour,
+        description: ev.getDescription() || '',
+        meetUrl: 'https://meet.google.com/new',
+        isGoogleEvent: true,
+        userEmail: filterEmail || ''
+      };
+    });
+  } catch (error) {
+    console.error('getGoogleCalendarEvents error:', error);
+    return [];
+  }
+}
+
+/**
+ * Create a new event in Google Calendar (CalendarApp)
+ */
+function createGoogleCalendarEvent(payload) {
+  try {
+    const cal = CalendarApp.getDefaultCalendar();
+    if (!cal) throw new Error('Default calendar not available');
+
+    const title = payload.title || 'Syncro Event';
+    const dateStr = payload.dateStr || new Date().toISOString().split('T')[0];
+    const startHour = payload.startHour || '09:00';
+    const endHour = payload.endHour || '10:00';
+
+    const sParts = startHour.split(':');
+    const eParts = endHour.split(':');
+    const dParts = dateStr.split('-');
+
+    const sH = Number(sParts[0]) || 9;
+    const sM = Number(sParts[1]) || 0;
+    const eH = Number(eParts[0]) || 10;
+    const eM = Number(eParts[1]) || 0;
+
+    const year = Number(dParts[0]);
+    const month = Number(dParts[1]);
+    const day = Number(dParts[2]);
+
+    const startDate = new Date(year, month - 1, day, sH, sM);
+    const endDate = new Date(year, month - 1, day, eH, eM);
+
+    const event = cal.createEvent(title, startDate, endDate, {
+      description: payload.description || 'Dibuat otomatis dari aplikasi Syncro'
+    });
+
+    return {
+      success: true,
+      id: 'gcal_' + event.getId(),
+      title: title,
+      dateStr: dateStr,
+      startHour: startHour,
+      endHour: endHour,
+      timeRange: startHour + ' - ' + endHour,
+      isGoogleEvent: true
+    };
+  } catch (error) {
+    console.error('createGoogleCalendarEvent error:', error);
+    return { success: false, message: error.toString() };
+  }
+}
+
 

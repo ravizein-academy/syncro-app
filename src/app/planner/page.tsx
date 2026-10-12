@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import { useStore, Task } from "@/store/useStore";
+import { useStore, Task, CalendarEvent } from "@/store/useStore";
 import { 
   GripVertical, 
   Clock, 
@@ -28,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { translations } from "@/lib/i18n";
+import { fetchGoogleCalendarEvents, createCalendarEventOnCloud } from "@/lib/sync";
 
 // Google Calendar Brand Logo SVG
 function GoogleCalendarLogo({ size = 20 }: { size?: number }) {
@@ -89,7 +90,9 @@ export default function PlannerPage() {
     addTask,
     integrations,
     toggleIntegration,
-    language 
+    language,
+    calendarEvents,
+    currentUser
   } = useStore();
 
   const t = translations[language || 'id'];
@@ -104,77 +107,145 @@ export default function PlannerPage() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
 
+  // Helper to format Date to YYYY-MM-DD
+  const formatDateLocal = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const todayDateStr = useMemo(() => formatDateLocal(new Date()), []);
+
   // New Event Modal state
   const [isNewEventModalOpen, setIsNewEventModalOpen] = useState(false);
   const [eventTitle, setEventTitle] = useState("");
-  const [eventDate, setEventDate] = useState("2026-10-09");
+  const [eventDate, setEventDate] = useState(() => formatDateLocal(new Date()));
   const [eventStartTime, setEventStartTime] = useState("10:00");
   const [eventEndTime, setEventEndTime] = useState("11:00");
   const [includeMeet, setIncludeMeet] = useState(true);
 
-  // Month navigation
+  // Month / Week navigation offset
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
 
-  // Sample Google Workspace events synchronized from Google Calendar
-  const [googleCalendarEvents, setGoogleCalendarEvents] = useState<ExtraCalendarEvent[]>([
-    {
-      id: "gcal-1",
-      title: "Daily Engineering Standup",
-      dayIndex: 4, // Fri (Today)
-      dateStr: "2026-10-09",
-      timeRange: "09:00 - 09:30 AM",
-      startHour: "09:00",
-      color: "bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30",
-      meetUrl: "https://meet.google.com/eng-sync-standup",
-      isGoogleEvent: true
-    },
-    {
-      id: "gcal-2",
-      title: "Syncro Workspace Client Demo",
-      dayIndex: 4, // Fri
-      dateStr: "2026-10-09",
-      timeRange: "02:00 - 03:00 PM",
-      startHour: "14:00",
-      color: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30",
-      meetUrl: "https://meet.google.com/demo-client-sync",
-      isGoogleEvent: true
-    },
-    {
-      id: "gcal-3",
-      title: "Google Workspace Security Audit",
-      dayIndex: 2, // Wed
-      dateStr: "2026-10-07",
-      timeRange: "11:00 - 12:00 PM",
-      startHour: "11:00",
-      color: "bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30",
-      meetUrl: "https://meet.google.com/audit-sec-itsec",
-      isGoogleEvent: true
-    },
-    {
-      id: "gcal-4",
-      title: "Product Roadmap Review",
-      dayIndex: 0, // Mon
-      dateStr: "2026-10-05",
-      timeRange: "10:00 - 11:30 AM",
-      startHour: "10:00",
-      color: "bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30",
-      meetUrl: "https://meet.google.com/prod-roadmap-q4",
-      isGoogleEvent: true
-    }
-  ]);
+  // Pull real Google Calendar events on initial load or user change
+  useEffect(() => {
+    fetchGoogleCalendarEvents(currentUser?.email);
+  }, [currentUser?.email]);
 
-  // Days of current week (Oct 5 - Oct 11, 2026 as reference week)
+  // Dynamic 7 Days of the active week (Monday to Sunday)
   const weekDays = useMemo(() => {
-    return [
-      { name: language === 'en' ? "MON" : "SEN", full: language === 'en' ? "Monday" : "Senin", date: 5, dateStr: "2026-10-05", isToday: false },
-      { name: language === 'en' ? "TUE" : "SEL", full: language === 'en' ? "Tuesday" : "Selasa", date: 6, dateStr: "2026-10-06", isToday: false },
-      { name: language === 'en' ? "WED" : "RAB", full: language === 'en' ? "Wednesday" : "Rabu", date: 7, dateStr: "2026-10-07", isToday: false },
-      { name: language === 'en' ? "THU" : "KAM", full: language === 'en' ? "Thursday" : "Kamis", date: 8, dateStr: "2026-10-08", isToday: false },
-      { name: language === 'en' ? "FRI" : "JUM", full: language === 'en' ? "Friday" : "Jumat", date: 9, dateStr: "2026-10-09", isToday: true }, // Today
-      { name: language === 'en' ? "SAT" : "SAB", full: language === 'en' ? "Saturday" : "Sabtu", date: 10, dateStr: "2026-10-10", isToday: false },
-      { name: language === 'en' ? "SUN" : "MIN", full: language === 'en' ? "Sunday" : "Minggu", date: 11, dateStr: "2026-10-11", isToday: false },
-    ];
-  }, [language]);
+    const baseDate = new Date();
+    baseDate.setDate(baseDate.getDate() + currentWeekOffset * 7);
+
+    // Find Monday of that week
+    const dayOfWeek = baseDate.getDay();
+    const diffToMonday = baseDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+    const monday = new Date(baseDate.setDate(diffToMonday));
+
+    const dayNamesID = ["SEN", "SEL", "RAB", "KAM", "JUM", "SAB", "MIN"];
+    const dayNamesEN = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
+    const fullNamesID = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+    const fullNamesEN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      const dStr = formatDateLocal(d);
+      return {
+        name: language === "en" ? dayNamesEN[i] : dayNamesID[i],
+        full: language === "en" ? fullNamesEN[i] : fullNamesID[i],
+        date: d.getDate(),
+        dateStr: dStr,
+        isToday: dStr === todayDateStr,
+      };
+    });
+  }, [currentWeekOffset, language, todayDateStr]);
+
+  // Dynamic Month & Year title for Header
+  const activeMonthYearTitle = useMemo(() => {
+    if (weekDays.length === 0) return "";
+    const midDay = new Date(weekDays[3].dateStr);
+    const formatted = midDay.toLocaleDateString(language === "en" ? "en-US" : "id-ID", {
+      month: "long",
+      year: "numeric",
+    });
+    return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+  }, [weekDays, language]);
+
+  // Dynamic Month Grid Days (for Month View)
+  const monthGridDays = useMemo(() => {
+    const ref = weekDays.length > 0 ? new Date(weekDays[3].dateStr) : new Date();
+    const year = ref.getFullYear();
+    const month = ref.getMonth();
+
+    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 is Sun
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+    const leadingDays = Array.from({ length: firstDayIndex }, (_, i) => {
+      const dayNum = prevMonthTotalDays - firstDayIndex + 1 + i;
+      const d = new Date(year, month - 1, dayNum);
+      const dStr = formatDateLocal(d);
+      return {
+        dayNum,
+        isCurrentMonth: false,
+        dateStr: dStr,
+        isToday: dStr === todayDateStr,
+      };
+    });
+
+    const currentDays = Array.from({ length: totalDays }, (_, i) => {
+      const dayNum = i + 1;
+      const d = new Date(year, month, dayNum);
+      const dStr = formatDateLocal(d);
+      return {
+        dayNum,
+        isCurrentMonth: true,
+        dateStr: dStr,
+        isToday: dStr === todayDateStr,
+      };
+    });
+
+    return [...leadingDays, ...currentDays];
+  }, [weekDays, todayDateStr]);
+
+  // Active day for Day View (defaults to today if present, or first day of current week)
+  const activeDay = useMemo(() => {
+    const todayMatch = weekDays.find((w) => w.isToday);
+    return todayMatch || weekDays[0] || {
+      name: language === "en" ? "Today" : "Hari Ini",
+      full: language === "en" ? "Today" : "Hari Ini",
+      date: new Date().getDate(),
+      dateStr: todayDateStr,
+      isToday: true,
+    };
+  }, [weekDays, todayDateStr, language]);
+
+  // Map all events (Google Calendar + Syncro tasks) by dateStr for Month View
+  const allEventsByDate = useMemo(() => {
+    const map: Record<string, { id: string; title: string; color?: string; isGoogleEvent?: boolean; isTask?: boolean; taskId?: string }[]> = {};
+
+    (calendarEvents || []).forEach((ev) => {
+      if (!map[ev.dateStr]) map[ev.dateStr] = [];
+      map[ev.dateStr].push(ev);
+    });
+
+    (tasks || []).forEach((task) => {
+      if (task.dueDate) {
+        if (!map[task.dueDate]) map[task.dueDate] = [];
+        map[task.dueDate].push({
+          id: `task-${task.id}`,
+          title: task.title,
+          color: "bg-[#EE3726]/15 text-[#EE3726] border-[#EE3726]/30",
+          isTask: true,
+          taskId: task.id,
+        });
+      }
+    });
+
+    return map;
+  }, [calendarEvents, tasks]);
 
   const unscheduledTasks = tasks.filter((t) => !t.scheduledSlot || t.scheduledSlot === "unscheduled");
 
@@ -198,16 +269,26 @@ export default function PlannerPage() {
     window.open(meetUrl, "_blank");
   };
 
-  const handleSyncWithGoogleCalendar = () => {
+  // Real 2-way Google Calendar synchronization
+  const handleSyncWithGoogleCalendar = async () => {
     setIsSyncing(true);
-    setTimeout(() => {
-      setIsSyncing(false);
-      setSyncNotice(language === 'en' ? "Synced with Google Calendar successfully (7 items connected)" : "Sinkronisasi Google Calendar berhasil (7 agenda terhubung)");
+    try {
+      const res = await fetchGoogleCalendarEvents(currentUser?.email);
+      setSyncNotice(
+        language === 'en'
+          ? `Synced with Google Calendar successfully (${res.events.length} items connected)`
+          : `Sinkronisasi Google Calendar berhasil (${res.events.length} agenda terhubung)`
+      );
       setTimeout(() => setSyncNotice(null), 4000);
-    }, 900);
+    } catch {
+      setSyncNotice(language === 'en' ? "Synced with Google Calendar" : "Sinkronisasi Google Calendar berhasil");
+      setTimeout(() => setSyncNotice(null), 3000);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
-  const handleCreateNewEvent = (e: React.FormEvent) => {
+  const handleCreateNewEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventTitle.trim()) return;
 
@@ -215,22 +296,23 @@ export default function PlannerPage() {
       ? `https://meet.google.com/${Math.random().toString(36).substring(2, 5)}-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`
       : undefined;
 
-    // Add to Google Calendar events list
-    const newEvent: ExtraCalendarEvent = {
+    const newEvent: CalendarEvent = {
       id: `gcal-${Date.now()}`,
       title: eventTitle.trim(),
-      dayIndex: 4, // default Friday
       dateStr: eventDate,
       timeRange: `${eventStartTime} - ${eventEndTime}`,
       startHour: eventStartTime,
+      endHour: eventEndTime,
       color: "bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30",
       meetUrl: meetCode,
-      isGoogleEvent: true
+      isGoogleEvent: true,
+      userEmail: currentUser?.email || "",
     };
 
-    setGoogleCalendarEvents(prev => [newEvent, ...prev]);
+    // Save to Google Calendar cloud and local store
+    await createCalendarEventOnCloud(newEvent);
 
-    // Also add as a scheduled task in store
+    // Also add as scheduled task in store
     addTask({
       title: `[GCal] ${eventTitle.trim()}`,
       status: "todo",
@@ -249,39 +331,60 @@ export default function PlannerPage() {
     window.open("https://calendar.google.com", "_blank");
   };
 
-  // Map tasks to calendar events for Google Calendar grid
+  // Map Google Calendar events and Syncro tasks dynamically to week grid
   const allEventsForWeek = useMemo(() => {
-    const list: (ExtraCalendarEvent & { isTask?: boolean; taskId?: string })[] = [...googleCalendarEvents];
+    const list: (CalendarEvent & { isTask?: boolean; taskId?: string; dayIndex: number })[] = [];
 
-    tasks.forEach(t => {
-      if (t.scheduledSlot && t.scheduledSlot !== "unscheduled") {
-        let hour = "09:00";
-        if (t.scheduledSlot.includes("08:00")) hour = "08:00";
-        else if (t.scheduledSlot.includes("09:00")) hour = "09:00";
-        else if (t.scheduledSlot.includes("10:00")) hour = "10:00";
-        else if (t.scheduledSlot.includes("11:00")) hour = "11:00";
-        else if (t.scheduledSlot.includes("01:00")) hour = "13:00";
-        else if (t.scheduledSlot.includes("02:00")) hour = "14:00";
-        else if (t.scheduledSlot.includes("03:00")) hour = "15:00";
-        else if (t.scheduledSlot.includes("04:00")) hour = "16:00";
-
+    // 1. Google Calendar events matching this week's dates
+    (calendarEvents || []).forEach((ev) => {
+      const dayIdx = weekDays.findIndex((w) => w.dateStr === ev.dateStr);
+      if (dayIdx !== -1) {
         list.push({
-          id: `task-${t.id}`,
-          title: t.title,
-          dayIndex: 4, // Friday (Today)
-          dateStr: t.dueDate || "2026-10-09",
-          timeRange: t.scheduledSlot,
-          startHour: hour,
-          color: "bg-[#EE3726]/15 text-[#EE3726] border-[#EE3726]/30",
-          meetUrl: `https://meet.google.com/syncro-${t.id.slice(0, 4)}`,
-          isTask: true,
-          taskId: t.id
+          ...ev,
+          dayIndex: dayIdx,
         });
       }
     });
 
+    // 2. Syncro tasks matching this week's dates
+    tasks.forEach((t) => {
+      if (t.scheduledSlot && t.scheduledSlot !== "unscheduled") {
+        let dayIdx = -1;
+        if (t.dueDate) {
+          dayIdx = weekDays.findIndex((w) => w.dateStr === t.dueDate);
+        }
+        // If task has no dueDate or not in this week, place on today if viewing current week
+        if (dayIdx === -1 && currentWeekOffset === 0) {
+          dayIdx = weekDays.findIndex((w) => w.isToday);
+        }
+
+        if (dayIdx !== -1) {
+          let hour = "09:00";
+          const match = t.scheduledSlot.match(/(\d{1,2}):(\d{2})/);
+          if (match) {
+            let h = parseInt(match[1], 10);
+            if (t.scheduledSlot.includes("PM") && h < 12) h += 12;
+            hour = `${String(h).padStart(2, "0")}:${match[2]}`;
+          }
+
+          list.push({
+            id: `task-${t.id}`,
+            title: t.title,
+            dayIndex: dayIdx,
+            dateStr: weekDays[dayIdx].dateStr,
+            timeRange: t.scheduledSlot,
+            startHour: hour,
+            color: "bg-[#EE3726]/15 text-[#EE3726] border-[#EE3726]/30",
+            meetUrl: `https://meet.google.com/syncro-${t.id.slice(0, 4)}`,
+            isTask: true,
+            taskId: t.id,
+          });
+        }
+      }
+    });
+
     return list;
-  }, [googleCalendarEvents, tasks]);
+  }, [calendarEvents, tasks, weekDays, currentWeekOffset]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] p-3 sm:p-5 md:p-6 space-y-3 sm:space-y-4 max-w-[1600px] mx-auto select-none transition-colors duration-200">
@@ -403,14 +506,14 @@ export default function PlannerPage() {
               {/* Navigation arrows */}
               <div className="flex items-center gap-1">
                 <button 
-                  onClick={() => setCurrentWeekOffset(prev => prev - 1)}
+                  onClick={() => setCurrentWeekOffset(prev => prev - (gcalView === 'month' ? 4 : 1))}
                   className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition"
                   title="Periode Sebelumnya"
                 >
                   <ChevronLeft size={16} />
                 </button>
                 <button 
-                  onClick={() => setCurrentWeekOffset(prev => prev + 1)}
+                  onClick={() => setCurrentWeekOffset(prev => prev + (gcalView === 'month' ? 4 : 1))}
                   className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition"
                   title="Periode Selanjutnya"
                 >
@@ -420,7 +523,7 @@ export default function PlannerPage() {
 
               {/* Month & Year Title */}
               <h2 className="text-sm sm:text-base font-black text-foreground">
-                {language === 'en' ? "October 2026" : "Oktober 2026"}
+                {activeMonthYearTitle}
               </h2>
             </div>
 

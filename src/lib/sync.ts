@@ -7,7 +7,7 @@
  * - Offline-first caching with graceful recovery
  */
 
-import { Task, useStore } from '@/store/useStore';
+import { Task, CalendarEvent, useStore } from '@/store/useStore';
 
 export interface SyncStatus {
   lastSyncTime: string | null;
@@ -78,7 +78,18 @@ export async function pullCloudData(specificEmail?: string): Promise<{
     }
 
     const data = await res.json();
-    const remoteTasks: Task[] = data?.data?.tasks || data?.tasks || [];
+    const remoteData = data?.data || data || {};
+    const remoteTasks: Task[] = remoteData?.tasks || [];
+    const remoteSpaces = remoteData?.spaces || [];
+    const remoteUsers = remoteData?.users || [];
+
+    // Automatically sync initial spaces and users from backend
+    if (Array.isArray(remoteSpaces) && remoteSpaces.length > 0 && store.spaces.length === 0) {
+      store.setSpaces(remoteSpaces);
+    }
+    if (Array.isArray(remoteUsers) && remoteUsers.length > 0 && store.users.length === 0) {
+      store.setUsers(remoteUsers);
+    }
 
     if (Array.isArray(remoteTasks) && remoteTasks.length > 0) {
       const currentTasks = store.tasks;
@@ -250,4 +261,86 @@ export async function syncSingleTaskToBackend(task: Task, action: 'create' | 'up
     // Also trigger debounced full state sync
     triggerDebouncedAutoSync(1000);
   }
+}
+
+/**
+ * Fetch Google Calendar events for the current user from cloud backend
+ */
+export async function fetchGoogleCalendarEvents(specificEmail?: string): Promise<{
+  success: boolean;
+  events: CalendarEvent[];
+  message: string;
+}> {
+  try {
+    const store = useStore.getState();
+    const userEmail = (specificEmail || store.currentUser?.email || '').trim().toLowerCase();
+    const url = userEmail ? `/api/calendar?userEmail=${encodeURIComponent(userEmail)}` : '/api/calendar';
+
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      cache: 'no-store'
+    });
+
+    if (!res.ok) {
+      return { success: false, events: store.calendarEvents, message: `Status: ${res.status}` };
+    }
+
+    const data = await res.json();
+    const remoteEvents: CalendarEvent[] = data?.events || [];
+
+    if (Array.isArray(remoteEvents) && remoteEvents.length > 0) {
+      // Merge with existing events
+      const eventMap = new Map<string, CalendarEvent>();
+      store.calendarEvents.forEach((ev) => eventMap.set(ev.id, ev));
+      remoteEvents.forEach((ev) => eventMap.set(ev.id, ev));
+
+      const merged = Array.from(eventMap.values());
+      store.setCalendarEvents(merged);
+      return { success: true, events: merged, message: `Tersinkron ${remoteEvents.length} agenda Google Calendar` };
+    }
+
+    return { success: true, events: store.calendarEvents, message: 'Google Calendar up to date' };
+  } catch (err: any) {
+    console.warn('[Syncro Calendar Sync] Warning:', err);
+    return { success: false, events: useStore.getState().calendarEvents, message: err?.message || 'Gagal sinkron calendar' };
+  }
+}
+
+/**
+ * Create a new event on Google Calendar via cloud API
+ */
+export async function createCalendarEventOnCloud(event: CalendarEvent): Promise<{
+  success: boolean;
+  event: CalendarEvent;
+}> {
+  const store = useStore.getState();
+  const currentUser = store.currentUser;
+  const eventPayload = {
+    ...event,
+    userEmail: event.userEmail || currentUser?.email || '',
+  };
+
+  // Add to local state immediately
+  store.addCalendarEvent(eventPayload);
+
+  try {
+    const res = await fetch('/api/calendar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(eventPayload),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data?.event) {
+        store.addCalendarEvent(data.event);
+        return { success: true, event: data.event };
+      }
+    }
+  } catch (err) {
+    console.warn('[Syncro Calendar API] Event cloud push cached locally:', err);
+  }
+
+  return { success: true, event: eventPayload };
 }

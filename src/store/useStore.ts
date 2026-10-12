@@ -90,6 +90,20 @@ export interface NotificationItem {
   type: 'task' | 'mention' | 'system';
 }
 
+export interface CalendarEvent {
+  id: string;
+  title: string;
+  dateStr: string; // "YYYY-MM-DD"
+  timeRange?: string; // e.g. "09:00 - 10:00"
+  startHour?: string; // e.g. "09:00"
+  endHour?: string; // e.g. "10:00"
+  color?: string;
+  meetUrl?: string;
+  isGoogleEvent?: boolean;
+  userEmail?: string;
+  taskId?: string;
+}
+
 interface AppState {
   tasks: Task[];
   users: User[];
@@ -97,6 +111,7 @@ interface AppState {
   channels: Channel[];
   dmThreads: DirectMessageThread[];
   notifications: NotificationItem[];
+  calendarEvents: CalendarEvent[];
   activeTimerTaskId: string | null;
   timerSeconds: number;
   isTimerRunning: boolean;
@@ -143,7 +158,13 @@ interface AppState {
   addTaskComment: (taskId: string, comment: Omit<TaskComment, 'id' | 'createdAt'>) => void;
   deleteTaskComment: (taskId: string, commentId: string) => void;
 
+  // Google Calendar Actions
+  setCalendarEvents: (events: CalendarEvent[]) => void;
+  addCalendarEvent: (event: CalendarEvent) => void;
+  deleteCalendarEvent: (id: string) => void;
+
   // Space Actions
+  setSpaces: (spaces: Space[]) => void;
   addSpace: (space: Omit<Space, 'id'>) => void;
 
   // Chat Actions
@@ -151,6 +172,7 @@ interface AppState {
   sendDMMessage: (threadId: string, message: { text: string; senderId: string; senderName: string }) => void;
 
   // Teams & User Actions
+  setUsers: (users: User[]) => void;
   updateUserRole: (userId: string, role: 'admin' | 'member' | 'guest') => void;
   addUser: (user: Omit<User, 'id'>) => void;
 
@@ -194,6 +216,7 @@ export const useStore = create<AppState>()(
       channels: [],
       dmThreads: [],
       notifications: [],
+      calendarEvents: [],
       activeTimerTaskId: null,
       timerSeconds: 0,
       isTimerRunning: false,
@@ -329,6 +352,15 @@ export const useStore = create<AppState>()(
         }
       },
 
+      setCalendarEvents: (calendarEvents) => set({ calendarEvents }),
+      addCalendarEvent: (event) => set((state) => ({
+        calendarEvents: [event, ...state.calendarEvents.filter((e) => e.id !== event.id)],
+      })),
+      deleteCalendarEvent: (id) => set((state) => ({
+        calendarEvents: state.calendarEvents.filter((e) => e.id !== id),
+      })),
+
+      setSpaces: (spaces) => set({ spaces }),
       addSpace: (spaceData) => {
         const newSpace: Space = {
           ...spaceData,
@@ -363,6 +395,7 @@ export const useStore = create<AppState>()(
         }));
       },
 
+      setUsers: (users) => set({ users }),
       updateUserRole: (userId, role) =>
         set((state) => ({
           users: state.users.map((u) => (u.id === userId ? { ...u, role } : u)),
