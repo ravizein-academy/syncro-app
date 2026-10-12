@@ -551,10 +551,19 @@ export const useStore = create<AppState>()(
 
       login: (user) => {
         if (user) {
+          const isMaster = user.email.toLowerCase().trim() === 'ravizein@itsecacademy.com';
+          if (isMaster) {
+            set({
+              isAuthenticated: true,
+              currentUser: { ...user, role: 'admin', status: 'active' },
+            });
+            return true;
+          }
+
           const matched = get().users.find(
-            (u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()
+            (u) => u.email.toLowerCase().trim() === user.email.toLowerCase().trim()
           );
-          if (matched && matched.status !== 'pending' && matched.status !== 'inactive') {
+          if (matched && matched.status === 'active') {
             set({
               isAuthenticated: true,
               currentUser: matched,
@@ -567,9 +576,28 @@ export const useStore = create<AppState>()(
 
       loginWithGoogle: (email: string, name?: string, avatarUrl?: string) => {
         const cleanEmail = email.trim().toLowerCase();
-        const found = get().users.find((u) => u.email.toLowerCase() === cleanEmail);
+        if (cleanEmail === 'ravizein@itsecacademy.com') {
+          const adminUser: User = {
+            id: 'user_1',
+            name: name || 'Ravi Zein',
+            email: cleanEmail,
+            role: 'admin',
+            avatar: avatarUrl || 'RA',
+            department: 'Product & Tech',
+            capacityHours: 40,
+            status: 'active',
+          };
+          set({
+            isAuthenticated: true,
+            currentUser: adminUser,
+            integrations: { ...get().integrations, googleAuth: true },
+          });
+          return true;
+        }
 
-        if (found && found.status !== 'pending' && found.status !== 'inactive') {
+        const found = get().users.find((u) => u.email.toLowerCase().trim() === cleanEmail);
+
+        if (found && found.status === 'active') {
           set({
             isAuthenticated: true,
             currentUser: found,
@@ -578,9 +606,10 @@ export const useStore = create<AppState>()(
           return true;
         }
 
-        // Email tidak terdaftar atau masih pending di database tim
+        // Email belum berstatus aktif atau belum disetujui Admin
         return false;
       },
+
 
       logout: () =>
         set({

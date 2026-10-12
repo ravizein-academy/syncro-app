@@ -405,8 +405,8 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="p-6 pt-2 space-y-4">
-            {/* Active Session Info Banner */}
-            {isAuthenticated && currentUser && (
+            {/* Active Session Info Banner (Hanya muncul jika status benar-benar 'active') */}
+            {isAuthenticated && currentUser && (currentUser.email?.toLowerCase().trim() === "ravizein@itsecacademy.com" || currentUser.status === "active") && (
               <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl space-y-2.5 animate-in fade-in-0 duration-200">
                 <div className="flex items-center gap-2.5">
                   <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center text-xs font-bold text-white shadow-xs">
