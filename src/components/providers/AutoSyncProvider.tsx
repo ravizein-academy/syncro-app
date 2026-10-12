@@ -29,6 +29,11 @@ export function AutoSyncProvider({ children }: { children?: React.ReactNode }) {
 
     async function initCloudSync() {
       if (!isAutoSyncEnabled) return;
+      if (!isAuthenticated || !currentUser) return;
+      if (currentUser.email?.toLowerCase().trim() !== "ravizein@itsecacademy.com" && currentUser.status !== "active") {
+        return;
+      }
+
       try {
         // Step 1: Pull remote updates specifically for this Gmail account
         await pullCloudData(currentEmail);
@@ -46,7 +51,7 @@ export function AutoSyncProvider({ children }: { children?: React.ReactNode }) {
     return () => {
       isMounted = false;
     };
-  }, [currentEmail, isAuthenticated, isAutoSyncEnabled]);
+  }, [currentEmail, isAuthenticated, isAutoSyncEnabled, currentUser?.status]);
 
   // 2. Subscribe to task changes for automatic debounced saving
   useEffect(() => {
@@ -54,6 +59,10 @@ export function AutoSyncProvider({ children }: { children?: React.ReactNode }) {
 
     // Subscribe to store state changes
     const unsubscribe = useStore.subscribe((curr, prev) => {
+      if (!curr.isAuthenticated || !curr.currentUser) return;
+      if (curr.currentUser.email?.toLowerCase().trim() !== "ravizein@itsecacademy.com" && curr.currentUser.status !== "active") {
+        return;
+      }
       // If tasks changed, trigger debounced automatic sync
       if (curr.tasks !== prev.tasks) {
         // Skip firing during the very first render mount
@@ -74,20 +83,31 @@ export function AutoSyncProvider({ children }: { children?: React.ReactNode }) {
   useEffect(() => {
     if (!isAutoSyncEnabled) return;
 
+    const canSync = () => {
+      const state = useStore.getState();
+      if (!state.isAuthenticated || !state.currentUser) return false;
+      if (state.currentUser.email?.toLowerCase().trim() !== "ravizein@itsecacademy.com" && state.currentUser.status !== "active") {
+        return false;
+      }
+      return true;
+    };
+
     // Heartbeat interval every 60s
     const intervalId = setInterval(() => {
-      performAutoCloudSync();
+      if (canSync()) performAutoCloudSync();
     }, 60000);
 
     // Online event handler
     const handleOnline = () => {
-      console.log("[Syncro Auto-Sync] Reconnected to internet, initiating sync...");
-      performAutoCloudSync({ force: true });
+      if (canSync()) {
+        console.log("[Syncro Auto-Sync] Reconnected to internet, initiating sync...");
+        performAutoCloudSync({ force: true });
+      }
     };
 
     // Tab visibility/focus handler
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
+      if (document.visibilityState === "visible" && canSync()) {
         performAutoCloudSync();
       }
     };

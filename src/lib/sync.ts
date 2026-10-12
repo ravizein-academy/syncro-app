@@ -86,6 +86,23 @@ export async function pullCloudData(specificEmail?: string): Promise<{
     // 1. Sync All Team Members from Cloud (Single Source of Truth)
     if (Array.isArray(remoteUsers)) {
       store.setUsers(remoteUsers);
+
+      // Verifikasi sesi akun saat ini: Jika akun tidak aktif / dihapus, logout otomatis
+      if (store.currentUser && store.currentUser.email?.toLowerCase().trim() !== 'ravizein@itsecacademy.com') {
+        const myEmail = store.currentUser.email.toLowerCase().trim();
+        const matched = remoteUsers.find((u: any) => u.email && u.email.toLowerCase().trim() === myEmail);
+        if (!matched || matched.status !== 'active') {
+          console.warn('[Sync Security] Akun', myEmail, 'tidak aktif di cloud. Melakukan logout otomatis.');
+          store.logout();
+          if (typeof window !== 'undefined') {
+            try {
+              localStorage.removeItem('syncro_remembered_device_account');
+            } catch (e) {}
+            window.location.href = '/login';
+          }
+          return { success: false, pulledCount: 0, message: 'Sesi berakhir atau akun telah dicabut' };
+        }
+      }
     }
 
     // 2. Sync & Merge All Spaces from Cloud
@@ -190,6 +207,15 @@ export async function performAutoCloudSync(options: { force?: boolean } = {}): P
     const userEmail = (currentUser?.email || '').trim().toLowerCase();
     const userName = currentUser?.name || '';
     const userId = currentUser?.id || '';
+
+    // Validasi Keamanan: Jangan sinkronisasi jika user tidak login atau belum aktif
+    if (!store.isAuthenticated || !userEmail) {
+      return { success: false, message: 'Tidak terotentikasi' };
+    }
+    if (userEmail !== 'ravizein@itsecacademy.com' && currentUser?.status !== 'active') {
+      console.warn('[Sync Security] Akun belum berstatus aktif, sinkronisasi cloud dibatalkan.');
+      return { success: false, message: 'Akun belum aktif' };
+    }
 
     // Automatically tag all tasks with current user's Gmail if not already set
     const tasksWithUserEmail = store.tasks.map((task) => ({

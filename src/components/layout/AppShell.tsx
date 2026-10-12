@@ -9,18 +9,48 @@ import { TopNavbar } from "@/components/layout/TopNavbar";
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const { isAuthenticated } = useStore();
+  const { isAuthenticated, currentUser, logout } = useStore();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => {
     setMounted(true);
   }, []);
 
+  // Auth Guard & Active User Session Validator
   React.useEffect(() => {
-    if (mounted && !isAuthenticated && pathname !== "/login") {
+    if (!mounted) return;
+
+    if (!isAuthenticated && pathname !== "/login") {
       router.push("/login");
+      return;
     }
-  }, [mounted, isAuthenticated, pathname, router]);
+
+    // Validasi apakah akun yang sedang login masih terdaftar & berstatus 'active' di database
+    if (isAuthenticated && currentUser && currentUser.email?.toLowerCase().trim() !== "ravizein@itsecacademy.com") {
+      const targetEmail = currentUser.email.toLowerCase().trim();
+      fetch("/api/users", { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!data) return;
+          const userList = data?.users || data?.data?.users || [];
+          const found = userList.find(
+            (u: any) => u.email && u.email.toLowerCase().trim() === targetEmail
+          );
+
+          if (!found || found.status !== "active") {
+            console.warn("[AppShell] Sesi akun tidak valid atau akses telah dicabut:", targetEmail);
+            logout();
+            try {
+              localStorage.removeItem("syncro_remembered_device_account");
+            } catch (e) {}
+            router.push("/login");
+          }
+        })
+        .catch((err) => {
+          console.warn("[AppShell] Gagal memvalidasi status pengguna:", err);
+        });
+    }
+  }, [mounted, isAuthenticated, currentUser, pathname, router, logout]);
 
   const isLoginPage = pathname === "/login";
 

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { userStatusOverrides } from '@/lib/userOverrides';
 
 const APPS_SCRIPT_URL =
   process.env.NEXT_PUBLIC_APPS_SCRIPT_URL ||
@@ -6,6 +7,7 @@ const APPS_SCRIPT_URL =
   'https://script.google.com/macros/s/AKfycbzLlZLTfhcsMK6uh28XFvVQCzLbopK9I2v9-xiNBEjQZw0-lL1oPeXvlKbpp04I1AtS/exec';
 
 export async function GET(req: Request) {
+
   try {
     const { searchParams } = new URL(req.url);
     const userEmail = searchParams.get('userEmail') || '';
@@ -56,10 +58,24 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const payload = await req.json();
+    const userEmail = (payload?.userEmail || '').toLowerCase().trim();
+
+    // Validasi Keamanan: Jika user telah dihapus atau ditandai nonaktif, tolak sinkronisasi
+    if (userEmail && userEmail !== 'ravizein@itsecacademy.com') {
+      const override = userStatusOverrides.get(userEmail);
+      if (override?.status === 'deleted') {
+        return NextResponse.json({
+          status: 'error',
+          unauthorized: true,
+          message: 'Akun telah dihapus dan tidak diizinkan mengakses data.'
+        }, { status: 403 });
+      }
+    }
 
     if (!APPS_SCRIPT_URL) {
       return NextResponse.json({ status: 'success', localOnly: true, timestamp: new Date().toISOString() });
     }
+
 
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',

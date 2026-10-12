@@ -562,16 +562,38 @@ function upsertUserRecord(user) {
  */
 function syncAllData(state) {
   const userEmail = (state.userEmail || '').toLowerCase().trim();
-  const userName = state.userName || '';
 
-  // Auto-register user in Users sheet if email provided
-  if (userEmail) {
-    upsertUserRecord({
-      email: userEmail,
-      name: userName || userEmail.split('@')[0],
-      role: 'member',
-      department: userEmail.includes('itsec') ? 'Cyber Security' : 'Product & Tech'
-    });
+  // KEAMANAN: Jangan pernah meng-auto-register user dari sync!
+  // Pendaftaran akun baru HANYA boleh lewat flow permintaan akses resmi (request-access)
+  // dan harus disetujui secara sadar oleh Admin (status: 'active').
+  if (userEmail && userEmail !== 'ravizein@itsecacademy.com') {
+    const ss = getSpreadsheet();
+    const uSheet = ss.getSheetByName(SHEET_NAMES.USERS);
+    if (uSheet) {
+      const uData = uSheet.getDataRange().getValues();
+      const uHeaders = uData[0];
+      const emailIdx = uHeaders.indexOf('email');
+      const statusIdx = uHeaders.indexOf('status');
+      let isAllowed = false;
+      if (emailIdx !== -1) {
+        for (let i = 1; i < uData.length; i++) {
+          if (String(uData[i][emailIdx]).toLowerCase().trim() === userEmail) {
+            const st = statusIdx !== -1 ? String(uData[i][statusIdx]).toLowerCase().trim() : '';
+            if (st === 'active') {
+              isAllowed = true;
+            }
+            break;
+          }
+        }
+      }
+      if (!isAllowed) {
+        return {
+          status: 'error',
+          unauthorized: true,
+          message: 'Akun ' + userEmail + ' tidak diizinkan sinkronisasi data karena belum disetujui Admin.'
+        };
+      }
+    }
   }
 
   if (state.tasks && Array.isArray(state.tasks)) {

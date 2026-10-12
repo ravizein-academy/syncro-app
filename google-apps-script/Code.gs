@@ -50,7 +50,7 @@ function doGet(e) {
         break;
 
       case 'getUsers':
-        result = { users: getUsersRecords() };
+        result = { users: getRecords(SHEET_NAMES.USERS) };
         break;
 
       case 'getTeams':
@@ -78,7 +78,7 @@ function doGet(e) {
         const filterEmail = (e && e.parameter && e.parameter.userEmail) || '';
         result = {
           tasks: getTasksRecords(filterEmail),
-          users: getUsersRecords(),
+          users: getRecords(SHEET_NAMES.USERS),
           teams: getRecords(SHEET_NAMES.TEAMS),
           spaces: getRecords(SHEET_NAMES.SPACES),
           channels: getJsonFieldRecords(SHEET_NAMES.CHANNELS, ['messages']),
@@ -89,10 +89,6 @@ function doGet(e) {
 
       case 'initDatabase':
         result = setupInitialDatabase();
-        break;
-
-      case 'upgradeUserSchema':
-        result = upgradeUserSchema();
         break;
 
       case 'clearAllData':
@@ -238,88 +234,6 @@ function jsonResponse(data, statusCode) {
   const responseOutput = ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
   return responseOutput;
-}
-
-/**
- * Ensure Users Sheet has 'status' and 'requestedAt' headers
- */
-function ensureUserSheetHeaders(sheet) {
-  if (!sheet) return;
-  const lastCol = sheet.getLastColumn();
-  if (lastCol === 0) return;
-  const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
-  if (headers.indexOf('status') === -1) {
-    sheet.getRange(1, sheet.getLastColumn() + 1).setValue('status');
-  }
-  if (headers.indexOf('requestedAt') === -1) {
-    sheet.getRange(1, sheet.getLastColumn() + 1).setValue('requestedAt');
-  }
-}
-
-/**
- * Upgrade Users Sheet: Add 'status' and 'requestedAt' headers and set admin to 'active'
- */
-function upgradeUserSchema() {
-  const ss = getSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAMES.USERS);
-  if (!sheet) return { success: false, message: 'Users sheet not found' };
-
-  ensureUserSheetHeaders(sheet);
-
-  const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return { success: true, message: 'Schema ensured on empty sheet' };
-
-  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-  const emailIdx = headers.indexOf('email');
-  const statusIdx = headers.indexOf('status');
-
-  if (statusIdx >= 0) {
-    for (let i = 1; i < data.length; i++) {
-      const email = emailIdx >= 0 ? String(data[i][emailIdx]).toLowerCase().trim() : '';
-      const curStatus = String(data[i][statusIdx] || '').trim();
-      if (email === 'ravizein@itsecacademy.com') {
-        sheet.getRange(i + 1, statusIdx + 1).setValue('active');
-      } else if (!curStatus) {
-        sheet.getRange(i + 1, statusIdx + 1).setValue('pending');
-      }
-    }
-  }
-
-  return { success: true, message: 'Users table upgraded with status column and default active for admin!' };
-}
-
-/**
- * Read Users from Users sheet with guaranteed status ('active' for admin, 'pending' for waiting approval)
- */
-function getUsersRecords() {
-  const ss = getSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAMES.USERS);
-  if (!sheet) return [];
-
-  ensureUserSheetHeaders(sheet);
-
-  const data = sheet.getDataRange().getValues();
-  if (data.length <= 1) return [];
-
-  const headers = data[0];
-  const records = [];
-
-  for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    const record = {};
-    for (let j = 0; j < headers.length; j++) {
-      record[headers[j]] = row[j];
-    }
-    const email = String(record.email || '').toLowerCase().trim();
-    if (email === 'ravizein@itsecacademy.com') {
-      record.role = 'admin';
-      record.status = 'active';
-    } else if (!record.status) {
-      record.status = 'pending';
-    }
-    records.push(record);
-  }
-  return records;
 }
 
 /**
@@ -494,10 +408,6 @@ function createRecord(sheetName, recordData) {
     recordData.id = 'id_' + Math.random().toString(36).substring(2, 9);
   }
 
-  if (sheetName === SHEET_NAMES.USERS) {
-    ensureUserSheetHeaders(sheet);
-  }
-
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const newRow = [];
 
@@ -603,7 +513,7 @@ function setupInitialDatabase() {
       'subtasks', 'attachments', 'comments', 'tags', 'createdAt', 'updatedAt'
     ],
     [SHEET_NAMES.USERS]: [
-      'id', 'name', 'email', 'role', 'avatar', 'department', 'capacityHours', 'status', 'requestedAt'
+      'id', 'name', 'email', 'role', 'avatar', 'department', 'capacityHours'
     ],
     [SHEET_NAMES.TEAMS]: [
       'id', 'name', 'description'
@@ -716,74 +626,37 @@ function notifyAdminAccessRequest(payload) {
   var userName = (payload && payload.name) || userEmail.split('@')[0];
   var timeStr = (payload && payload.time) || new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB';
 
-  var inboxUrl = 'https://syncro-app-sable.vercel.app/inbox';
-  var subject = '🔔 [Syncro] Permintaan Izin Masuk: ' + userName + ' (' + userEmail + ')';
-  
-  var plainBody = 'Halo Admin Ravi Zein,\n\n'
-    + 'Ada pengguna baru yang ingin masuk ke workspace Syncro:\n\n'
-    + '• Nama: ' + userName + '\n'
-    + '• Email: ' + userEmail + '\n'
-    + '• Waktu: ' + timeStr + '\n'
-    + '• Status: Menunggu Persetujuan Admin\n\n'
-    + 'Untuk memeriksa, mengatur peran/divisi, dan menyetujui pengguna ini, silakan buka halaman Inbox aplikasi Syncro melalui tautan berikut:\n'
-    + inboxUrl + '\n\n'
-    + 'Syncro Workspace Access Control';
-
-  var htmlBody = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; max-width: 540px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; padding: 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.04);">'
-    + '<div style="margin-bottom: 20px;">'
-    + '<div style="display: inline-block; background: #EE3726; color: #ffffff; font-weight: 800; font-size: 18px; width: 38px; height: 38px; line-height: 38px; border-radius: 10px; text-align: center;">S</div>'
-    + '<h2 style="color: #0f172a; margin: 12px 0 4px; font-size: 18px; font-weight: 700;">Permintaan Izin Masuk Baru</h2>'
+  var subject = '🔔 [Syncro] Permintaan Akses Akun Baru: ' + userName + ' (' + userEmail + ')';
+  var htmlBody = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; padding: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">'
+    + '<div style="text-align: center; margin-bottom: 24px;">'
+    + '<div style="display: inline-block; background: #EE3726; color: #ffffff; font-weight: 900; font-size: 22px; width: 48px; height: 48px; line-height: 48px; border-radius: 14px; text-align: center;">S</div>'
+    + '<h2 style="color: #0f172a; margin: 14px 0 4px; font-size: 20px; font-weight: 800;">Permintaan Akses Masuk Baru</h2>'
     + '<p style="color: #64748b; margin: 0; font-size: 13px;">Syncro Workspace Access Control</p>'
     + '</div>'
-    + '<div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">'
-    + '<p style="margin: 0 0 6px; color: #0f172a; font-size: 13px; font-weight: 600;">Data Pengguna Pemohon:</p>'
-    + '<div style="font-size: 13px; color: #334155; line-height: 1.8;">'
-    + '• <strong>Nama:</strong> ' + userName + '<br>'
-    + '• <strong>Email:</strong> <span style="color: #EE3726; font-weight: 600;">' + userEmail + '</span><br>'
-    + '• <strong>Waktu Pengajuan:</strong> ' + timeStr + '<br>'
-    + '• <strong>Status:</strong> Menunggu Persetujuan Admin'
-    + '</div>'
-    + '</div>'
-    + '<p style="font-size: 13px; color: #475569; margin-bottom: 16px; line-height: 1.6;">'
-    + 'Untuk memeriksa dan memproses izin masuk akun ini, silakan buka menu Inbox di aplikasi Syncro:'
+    + '<div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 12px; padding: 16px; margin-bottom: 20px;">'
+    + '<p style="margin: 0 0 6px; color: #92400e; font-size: 14px; font-weight: 700;">Pengguna Baru Ingin Bergabung:</p>'
+    + '<p style="margin: 0; color: #78350f; font-size: 13px; line-height: 1.6;">'
+    + '<strong>' + userName + '</strong> (' + userEmail + ') mencoba masuk pertama kali ke workspace Syncro dan menunggu persetujuan Anda.'
     + '</p>'
-    + '<p style="font-size: 14px; margin-bottom: 24px;">'
-    + '👉 <a href="' + inboxUrl + '" style="color: #EE3726; font-weight: 600; text-decoration: underline;">' + inboxUrl + '</a>'
-    + '</p>'
-    + '<div style="border-top: 1px solid #e2e8f0; padding-top: 14px;">'
+    + '</div>'
+    + '<p style="font-size: 13px; color: #475569; margin-bottom: 20px;">Silakan buka menu <strong>Teams</strong> di aplikasi Syncro untuk menyetujui (ACC) akun ini dan menentukan rolenya (Admin, Member, atau Guest).</p>'
+    + '<div style="text-align: center; margin-bottom: 24px;">'
+    + '<a href="https://syncro-app-sable.vercel.app/teams" style="display: inline-block; background: #EE3726; color: #ffffff; font-weight: 700; font-size: 13px; text-decoration: none; padding: 12px 24px; border-radius: 10px; box-shadow: 0 4px 12px rgba(238,55,38,0.3);">Buka Halaman Teams & Setujui (ACC)</a>'
+    + '</div>'
+    + '<div style="border-top: 1px solid #e2e8f0; padding-top: 14px; text-align: center;">'
     + '<p style="color: #94a3b8; font-size: 11px; margin: 0;">Syncro PWA • Workspace Access Control</p>'
     + '</div>'
     + '</div>';
 
   try {
-    if (typeof GmailApp !== 'undefined') {
-      GmailApp.sendEmail(adminEmail, subject, plainBody, {
-        htmlBody: htmlBody,
-        name: 'Syncro Workspace Security'
-      });
-    } else {
-      MailApp.sendEmail({
-        to: adminEmail,
-        subject: subject,
-        body: plainBody,
-        htmlBody: htmlBody,
-        name: 'Syncro Workspace Security'
-      });
-    }
+    MailApp.sendEmail({
+      to: adminEmail,
+      subject: subject,
+      htmlBody: htmlBody
+    });
     return { success: true, adminEmail: adminEmail };
   } catch (err) {
-    try {
-      MailApp.sendEmail({
-        to: adminEmail,
-        subject: subject,
-        body: plainBody,
-        htmlBody: htmlBody,
-        name: 'Syncro Workspace Security'
-      });
-      return { success: true, adminEmail: adminEmail };
-    } catch (e2) {
-      return { success: false, error: err.toString() };
-    }
+    return { success: false, error: err.toString() };
   }
 }
 
@@ -796,37 +669,15 @@ function updateUserRecord(user) {
   const sheet = ss.getSheetByName(SHEET_NAMES.USERS);
   if (!sheet) return { success: false, message: 'Users sheet not found' };
 
-  ensureUserSheetHeaders(sheet);
-
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  let idIdx = headers.indexOf('id');
-  if (idIdx === -1) idIdx = headers.indexOf('sta');
+  const idIdx = headers.indexOf('id');
   const emailIdx = headers.indexOf('email');
 
-  const targetEmail = String(user.email || '').toLowerCase().trim();
-  const targetId = String(user.id || '').trim();
-
-  // PROTEKSI MASTER ADMIN
-  if (targetEmail === 'ravizein@itsecacademy.com') {
-    user.role = 'admin';
-    user.status = 'active';
-  }
-
   for (let i = 1; i < data.length; i++) {
-    const rowId = idIdx >= 0 ? String(data[i][idIdx]).trim() : '';
-    const rowEmail = emailIdx >= 0 ? String(data[i][emailIdx]).toLowerCase().trim() : '';
-
-    // Prioritas pencocokan berdasarkan email unik, atau ID jika tidak kosong
-    const isMatch = (targetEmail && rowEmail === targetEmail) ||
-                    (targetId && targetId !== '' && rowId === targetId);
-
-    if (isMatch) {
-      if (rowEmail === 'ravizein@itsecacademy.com') {
-        user.role = 'admin';
-        user.status = 'active';
-      }
-
+    const rowId = String(data[i][idIdx]);
+    const rowEmail = String(data[i][emailIdx]).toLowerCase().trim();
+    if ((user.id && rowId === String(user.id)) || (user.email && rowEmail === String(user.email).toLowerCase().trim())) {
       for (let j = 0; j < headers.length; j++) {
         const header = headers[j];
         if (user[header] !== undefined) {
@@ -976,5 +827,3 @@ function createGoogleCalendarEvent(payload) {
     return { success: false, message: error.toString() };
   }
 }
-
-
