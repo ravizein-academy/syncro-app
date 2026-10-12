@@ -549,10 +549,18 @@ function syncAllData(state) {
       upsertTask(task);
     });
   }
+
+  if (state.dmThreads && Array.isArray(state.dmThreads)) {
+    state.dmThreads.forEach(thread => {
+      upsertDMThread(thread);
+    });
+  }
+
   return {
     syncedAt: new Date().toISOString(),
     userEmail: userEmail,
-    taskCount: state.tasks ? state.tasks.length : 0
+    taskCount: state.tasks ? state.tasks.length : 0,
+    dmCount: state.dmThreads ? state.dmThreads.length : 0
   };
 }
 

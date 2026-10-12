@@ -3,6 +3,7 @@ import { userStatusOverrides } from '@/lib/userOverrides';
 import {
   getCachedTasks,
   getCachedUsers,
+  getCachedDMs,
   serverCache,
   broadcastRealtimeEvent,
 } from '@/lib/serverCache';
@@ -15,9 +16,10 @@ const APPS_SCRIPT_URL =
 export async function GET(req: Request) {
   try {
     // Ambil data instan dari fast memory cache (< 5ms)
-    const [tasks, users] = await Promise.all([
+    const [tasks, users, dmThreads] = await Promise.all([
       getCachedTasks(),
       getCachedUsers(),
+      getCachedDMs(),
     ]);
 
     return NextResponse.json({
@@ -26,7 +28,7 @@ export async function GET(req: Request) {
         tasks,
         users,
         spaces: [],
-        dmThreads: [],
+        dmThreads,
       },
     });
   } catch (error: any) {
@@ -61,6 +63,11 @@ export async function POST(req: Request) {
     if (payload?.tasks && Array.isArray(payload.tasks)) {
       serverCache.tasks = payload.tasks;
       serverCache.tasksLastFetch = Date.now();
+    }
+
+    if (payload?.dmThreads && Array.isArray(payload.dmThreads)) {
+      serverCache.dmThreads = payload.dmThreads;
+      serverCache.dmThreadsLastFetch = Date.now();
     }
 
     if (!APPS_SCRIPT_URL) {

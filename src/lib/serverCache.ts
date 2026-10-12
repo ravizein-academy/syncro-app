@@ -278,7 +278,25 @@ export async function getCachedDMs(forceFresh = false): Promise<any[]> {
       const json = await res.json();
       const threads = json?.data?.dmThreads || json?.dmThreads || [];
       if (Array.isArray(threads)) {
-        serverCache.dmThreads = threads;
+        const threadMap = new Map();
+        threads.forEach((t) => threadMap.set(t.id, t));
+        // Pertahankan pesan yang ada di memori yang belum sempat tersimpan di sheet
+        (serverCache.dmThreads || []).forEach((mem) => {
+          const remote = threadMap.get(mem.id);
+          if (!remote) {
+            threadMap.set(mem.id, mem);
+          } else {
+            const msgMap = new Map();
+            (remote.messages || []).forEach((m: any) => msgMap.set(m.id, m));
+            (mem.messages || []).forEach((m: any) => msgMap.set(m.id, m));
+            threadMap.set(mem.id, {
+              ...remote,
+              ...mem,
+              messages: Array.from(msgMap.values()),
+            });
+          }
+        });
+        serverCache.dmThreads = Array.from(threadMap.values());
         serverCache.dmThreadsLastFetch = Date.now();
       }
     }

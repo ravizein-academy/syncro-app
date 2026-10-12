@@ -48,6 +48,25 @@ function DirectMessagesContent() {
     );
   }, [teammates, searchQuery]);
 
+  // Filter percakapan aktif yang melibatkan akun saya
+  const myActiveThreads = useMemo(() => {
+    const myEmail = currentUser?.email?.toLowerCase().trim();
+    const myId = currentUser?.id;
+    if (!myEmail && !myId) return dmThreads;
+    return dmThreads.filter((t) => {
+      const inEmails = t.participantEmails && t.participantEmails.some((e) => e.toLowerCase().trim() === myEmail);
+      const inPartEmail = t.participantEmail && t.participantEmail.toLowerCase().trim() === myEmail;
+      const inPartId = t.participantId && t.participantId === myId;
+      const inMessages = (t.messages || []).some(
+        (m) =>
+          (m.senderEmail && m.senderEmail.toLowerCase().trim() === myEmail) ||
+          (m.senderId && m.senderId === myId)
+      );
+      const inId = myEmail ? t.id.includes(myEmail.replace(/[^a-zA-Z0-9]/g, '_')) : false;
+      return inEmails || inPartEmail || inPartId || inMessages || inId;
+    });
+  }, [dmThreads, currentUser]);
+
   // Handle URL query parameter ?userId=... to auto-open conversation
   useEffect(() => {
     if (targetUserId) {
@@ -56,10 +75,10 @@ function DirectMessagesContent() {
         const threadId = createOrSelectDMThread(targetUser);
         setSelectedThreadId(threadId);
       }
-    } else if (!selectedThreadId && dmThreads.length > 0) {
-      setSelectedThreadId(dmThreads[0].id);
+    } else if (!selectedThreadId && myActiveThreads.length > 0) {
+      setSelectedThreadId(myActiveThreads[0].id);
     }
-  }, [targetUserId, users, dmThreads, selectedThreadId, createOrSelectDMThread]);
+  }, [targetUserId, users, myActiveThreads, selectedThreadId, createOrSelectDMThread]);
 
   const currentThread = dmThreads.find((dm) => dm.id === selectedThreadId);
 
@@ -203,12 +222,12 @@ function DirectMessagesContent() {
         {/* Teammates List & Active Conversations */}
         <div className="p-2 space-y-4 overflow-y-auto flex-1">
           {/* Active Conversations Section */}
-          {dmThreads.length > 0 && (
+          {myActiveThreads.length > 0 && (
             <div className="space-y-1">
               <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Percakapan Aktif ({dmThreads.length})
+                Percakapan Aktif ({myActiveThreads.length})
               </div>
-              {dmThreads.map((thread) => {
+              {myActiveThreads.map((thread) => {
                 const partner = getThreadPartner(thread);
                 const isActive = thread.id === currentThread?.id;
                 const lastMsg = thread.messages && thread.messages.length > 0

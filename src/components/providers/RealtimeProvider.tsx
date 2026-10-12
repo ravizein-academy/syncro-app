@@ -260,10 +260,22 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
                 currentThreads.push(remThread);
                 changed = true;
               } else {
-                const locMsgCount = currentThreads[idx].messages?.length || 0;
-                const remMsgCount = remThread.messages?.length || 0;
-                if (remMsgCount > locMsgCount) {
-                  currentThreads[idx] = remThread;
+                const localThread = currentThreads[idx];
+                const msgMap = new Map();
+                (localThread.messages || []).forEach((m: any) => msgMap.set(m.id, m));
+                let newMsgsAdded = false;
+                (remThread.messages || []).forEach((m: any) => {
+                  if (!msgMap.has(m.id)) {
+                    msgMap.set(m.id, m);
+                    newMsgsAdded = true;
+                  }
+                });
+                if (newMsgsAdded) {
+                  currentThreads[idx] = {
+                    ...localThread,
+                    ...remThread,
+                    messages: Array.from(msgMap.values()),
+                  };
                   changed = true;
                 }
               }
