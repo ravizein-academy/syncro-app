@@ -14,7 +14,8 @@ import {
   Sparkles, 
   CheckCircle2, 
   Loader2,
-  Globe
+  Globe,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,6 +57,7 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"google" | "email" | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Perangkat ini mengingat akun pemiliknya sendiri (Auto-Remember Device)
   const [rememberedAccount, setRememberedAccount] = useState<{ email: string; name: string; avatar?: string } | null>(null);
@@ -87,8 +89,27 @@ export default function LoginPage() {
   const [customGoogleEmail, setCustomGoogleEmail] = useState("");
   const [customGoogleName, setCustomGoogleName] = useState("");
 
+  // Helper untuk mengambil data pengguna terbaru dari Google Sheets/Backend
+  const getLatestUsersList = async (): Promise<User[]> => {
+    try {
+      const res = await fetch("/api/users", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const fetchedUsers = data?.data?.users || data?.users || [];
+        if (Array.isArray(fetchedUsers) && fetchedUsers.length > 0) {
+          useStore.getState().setUsers(fetchedUsers);
+          return fetchedUsers;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch latest users from backend:", e);
+    }
+    return users;
+  };
+
   // Google OAuth 2.0 Single Sign-On
   const handleGoogleSSO = () => {
+    setErrorMessage(null);
     // Jika perangkat ini sudah mengingat akun, langsung login otomatis tanpa perlu mengetik ulang!
     if (rememberedAccount?.email) {
       handleConfirmGoogleAccount(rememberedAccount.email, rememberedAccount.name);
@@ -98,23 +119,46 @@ export default function LoginPage() {
     setIsGoogleModalOpen(true);
   };
 
-  // Konfirmasi Akun Google Terpilih
-  const handleConfirmGoogleAccount = (targetEmail: string, targetName?: string) => {
-    const cleanEmail = targetEmail.trim();
+  // Konfirmasi Akun Google Terpilih (Strict Database Check)
+  const handleConfirmGoogleAccount = async (targetEmail: string, targetName?: string) => {
+    const cleanEmail = targetEmail.trim().toLowerCase();
     if (!cleanEmail) return;
 
+    setErrorMessage(null);
     setIsLoading(true);
     setLoginMethod("google");
+
+    // 1. Validasi apakah email terdaftar di database tim
+    const currentUsers = await getLatestUsersList();
+    const matchedUser = currentUsers.find(
+      (u) => u.email && u.email.toLowerCase().trim() === cleanEmail
+    );
+
+    if (!matchedUser) {
+      setIsLoading(false);
+      setLoginMethod(null);
+      setErrorMessage(
+        language === "en"
+          ? `Access Denied: The email "${cleanEmail}" is not registered in the Syncro team database. Please contact an Admin to be invited.`
+          : `Akses Ditolak: Email "${cleanEmail}" belum terdaftar di database tim Syncro. Silakan hubungi Admin untuk didaftarkan terlebih dahulu.`
+      );
+      // Hapus memori akun jika ternyata tidak valid di database
+      localStorage.removeItem("syncro_remembered_device_account");
+      setRememberedAccount(null);
+      return;
+    }
+
     setIsGoogleModalOpen(false);
 
-    // Simpan ke memori perangkat ini agar berikutnya otomatis tanpa ketik lagi
+    // 2. Simpan ke memori perangkat ini jika rememberMe aktif
     if (rememberMe) {
       try {
         localStorage.setItem(
           "syncro_remembered_device_account",
           JSON.stringify({
-            email: cleanEmail,
-            name: targetName || cleanEmail.split("@")[0],
+            email: matchedUser.email,
+            name: matchedUser.name,
+            avatar: matchedUser.avatar,
           })
         );
       } catch (e) {
@@ -122,83 +166,83 @@ export default function LoginPage() {
       }
     }
 
-    // Kirim notifikasi keamanan ke email via backend
+    // 3. Kirim notifikasi keamanan ke email via backend
     fetch("/api/auth/notify-login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: cleanEmail,
-        name: targetName || cleanEmail.split("@")[0],
+        email: matchedUser.email,
+        name: matchedUser.name,
         time: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }) + " WIB",
         device: typeof navigator !== "undefined" ? navigator.userAgent : "Browser"
       }),
     }).catch((err) => console.warn("Failed to dispatch login notification:", err));
 
-    setTimeout(() => {
-      loginWithGoogle(cleanEmail, targetName);
-      setIsLoading(false);
-      router.push("/");
-    }, 600);
+    login(matchedUser);
+    setIsLoading(false);
+    router.push("/");
   };
 
-  // Standard Email & Password Login
-  const handleEmailLogin = (e: React.FormEvent) => {
+  // Standard Email & Password Login (Strict Database Check)
+  const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail) return;
 
+    setErrorMessage(null);
     setIsLoading(true);
     setLoginMethod("email");
 
-    setTimeout(() => {
-      const existingUser = users.find((u) => u.email.toLowerCase() === email.toLowerCase());
-      const namePart = email.split("@")[0] || "User";
-      const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-      const finalName = existingUser?.name || formattedName;
+    // 1. Validasi apakah email terdaftar di database tim
+    const currentUsers = await getLatestUsersList();
+    const matchedUser = currentUsers.find(
+      (u) => u.email && u.email.toLowerCase().trim() === cleanEmail
+    );
 
-      // Simpan ke memori perangkat ini jika rememberMe aktif
-      if (rememberMe) {
-        try {
-          localStorage.setItem(
-            "syncro_remembered_device_account",
-            JSON.stringify({
-              email: email.trim(),
-              name: finalName,
-            })
-          );
-        } catch (e) {
-          console.warn("Failed to persist remembered device account:", e);
-        }
-      }
-
-      // Kirim notifikasi keamanan ke email via backend
-      fetch("/api/auth/notify-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          name: finalName,
-          time: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }) + " WIB",
-          device: typeof navigator !== "undefined" ? navigator.userAgent : "Browser"
-        }),
-      }).catch((err) => console.warn("Failed to dispatch login notification:", err));
-
-      if (existingUser) {
-        login(existingUser);
-      } else {
-        const newUser: User = {
-          id: `u_${Date.now()}`,
-          name: formattedName,
-          email: email.trim(),
-          role: users.length === 0 ? "admin" : "member",
-          department: "Product & Tech",
-          capacityHours: 40,
-          avatar: formattedName.substring(0, 2).toUpperCase(),
-        };
-        login(newUser);
-      }
+    if (!matchedUser) {
       setIsLoading(false);
-      router.push("/");
-    }, 600);
+      setLoginMethod(null);
+      setErrorMessage(
+        language === "en"
+          ? `Access Denied: The email "${cleanEmail}" is not registered in the Syncro team database. Please contact an Admin to be invited.`
+          : `Akses Ditolak: Email "${cleanEmail}" belum terdaftar di database tim Syncro. Silakan hubungi Admin untuk didaftarkan terlebih dahulu.`
+      );
+      localStorage.removeItem("syncro_remembered_device_account");
+      setRememberedAccount(null);
+      return;
+    }
+
+    // 2. Simpan ke memori perangkat ini jika rememberMe aktif
+    if (rememberMe) {
+      try {
+        localStorage.setItem(
+          "syncro_remembered_device_account",
+          JSON.stringify({
+            email: matchedUser.email,
+            name: matchedUser.name,
+            avatar: matchedUser.avatar,
+          })
+        );
+      } catch (e) {
+        console.warn("Failed to persist remembered device account:", e);
+      }
+    }
+
+    // 3. Kirim notifikasi keamanan ke email via backend
+    fetch("/api/auth/notify-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: matchedUser.email,
+        name: matchedUser.name,
+        time: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }) + " WIB",
+        device: typeof navigator !== "undefined" ? navigator.userAgent : "Browser"
+      }),
+    }).catch((err) => console.warn("Failed to dispatch login notification:", err));
+
+    login(matchedUser);
+    setIsLoading(false);
+    router.push("/");
   };
 
   return (
@@ -254,7 +298,16 @@ export default function LoginPage() {
             </div>
           </CardHeader>
 
-          <CardContent className="p-6 pt-2 space-y-5">
+          <CardContent className="p-6 pt-2 space-y-4">
+            {/* Error Message Alert */}
+            {errorMessage && (
+              <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-start gap-2.5 text-xs text-red-600 dark:text-red-400 animate-in fade-in-0 duration-200">
+                <AlertCircle size={16} className="shrink-0 mt-0.5 text-red-500" />
+                <div className="flex-1">
+                  <p className="font-semibold leading-tight">{errorMessage}</p>
+                </div>
+              </div>
+            )}
             {/* Auto-Remembered Device Account Banner */}
             {rememberedAccount ? (
               <div className="p-3.5 bg-gradient-to-br from-[#4285F4]/10 via-[#34A853]/10 to-transparent border border-[#4285F4]/30 rounded-2xl space-y-3">
@@ -466,6 +519,14 @@ export default function LoginPage() {
                   : 'Masukkan email Google Anda untuk melanjutkan ke Syncro'}
               </p>
             </div>
+
+            {/* Modal Error Alert */}
+            {errorMessage && (
+              <div className="p-2.5 bg-red-500/10 border border-red-500/30 rounded-xl flex items-start gap-2 text-xs text-red-600 dark:text-red-400">
+                <AlertCircle size={15} className="shrink-0 mt-0.5 text-red-500" />
+                <p className="font-semibold text-[11px] leading-tight">{errorMessage}</p>
+              </div>
+            )}
 
             {/* Form to enter Google / Google Workspace account */}
             <form

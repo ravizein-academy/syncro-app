@@ -176,11 +176,11 @@ interface AppState {
   // Integration Actions
   toggleIntegration: (key: keyof AppState['integrations']) => void;
 
-  // Auth State & Actions (PRD: Google OAuth 2.0 & Team Login)
+  // Auth State & Actions (Strict Team Authentication)
   currentUser: User | null;
   isAuthenticated: boolean;
-  login: (user?: User) => void;
-  loginWithGoogle: (email: string, name?: string, avatarUrl?: string) => void;
+  login: (user?: User) => boolean | void;
+  loginWithGoogle: (email: string, name?: string, avatarUrl?: string) => boolean;
   logout: () => void;
 
   // Cloud Sync Backend State
@@ -429,57 +429,35 @@ export const useStore = create<AppState>()(
 
       login: (user) => {
         if (user) {
-          const exists = get().users.some((u) => u.id === user.id);
-          set({
-            isAuthenticated: true,
-            currentUser: user,
-            users: exists ? get().users : [...get().users, user],
-          });
+          const matched = get().users.find(
+            (u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()
+          );
+          if (matched) {
+            set({
+              isAuthenticated: true,
+              currentUser: matched,
+            });
+            return true;
+          }
         }
+        return false;
       },
 
       loginWithGoogle: (email: string, name?: string, avatarUrl?: string) => {
-        const cleanEmail = email.trim();
-        const found = get().users.find((u) => u.email.toLowerCase() === cleanEmail.toLowerCase());
-        const extractedName =
-          name?.trim() ||
-          cleanEmail
-            .split('@')[0]
-            .replace(/[._]/g, ' ')
-            .replace(/\b\w/g, (l) => l.toUpperCase());
+        const cleanEmail = email.trim().toLowerCase();
+        const found = get().users.find((u) => u.email.toLowerCase() === cleanEmail);
 
-        const initials = extractedName
-          .split(' ')
-          .map((n) => n[0])
-          .join('')
-          .substring(0, 2)
-          .toUpperCase() || 'U';
-
-        const userObj: User = found || {
-          id: `u_${Date.now()}`,
-          name: extractedName,
-          email: cleanEmail,
-          role: get().users.length === 0 ? 'admin' : 'member',
-          department: cleanEmail.toLowerCase().includes('itsec') ? 'Cyber Security' : 'Product & Tech',
-          capacityHours: 40,
-          avatar: avatarUrl || initials,
-        };
-
-        set({
-          isAuthenticated: true,
-          currentUser: userObj,
-          users: found ? get().users : [...get().users, userObj],
-          integrations: { ...get().integrations, googleAuth: true },
-        });
-
-        // Auto-register user in Google Sheets backend
-        if (typeof fetch !== 'undefined') {
-          fetch('/api/users', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(userObj),
-          }).catch((err) => console.warn('[Auth Sync] Backend user registration error:', err));
+        if (found) {
+          set({
+            isAuthenticated: true,
+            currentUser: found,
+            integrations: { ...get().integrations, googleAuth: true },
+          });
+          return true;
         }
+
+        // Email tidak terdaftar di database tim
+        return false;
       },
 
       logout: () =>
