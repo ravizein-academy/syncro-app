@@ -45,20 +45,40 @@ export async function POST(req: Request) {
     }).catch((err) => console.warn('Failed to persist pending user in Google Sheets:', err));
 
     // 2. Kirim notifikasi email ke Admin (Ravi Zein)
-    const notifyRes = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'notifyAdminAccessRequest',
-        payload: {
-          email: cleanEmail,
-          name: cleanName,
-          time: timeStr
-        }
-      })
-    });
+    // Metode A: GET Query Parameter (Paling reliabel untuk Apps Script Web App tanpa isu drop body 302)
+    const notifyGetUrl = `${APPS_SCRIPT_URL}?action=notifyAdminAccessRequest&email=${encodeURIComponent(cleanEmail)}&name=${encodeURIComponent(cleanName)}&time=${encodeURIComponent(timeStr)}`;
+    
+    let notifyResult: any = { status: 'sent' };
+    try {
+      const getRes = await fetch(notifyGetUrl, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store'
+      });
+      if (getRes.ok) {
+        notifyResult = await getRes.json().catch(() => ({ status: 'sent' }));
+      }
+    } catch (e) {
+      console.warn('GET notify to Apps Script error, fallback to POST:', e);
+    }
 
-    const notifyResult = await notifyRes.json().catch(() => ({ status: 'sent' }));
+    // Metode B: POST Payload sebagai cadangan
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'notifyAdminAccessRequest',
+          payload: {
+            email: cleanEmail,
+            name: cleanName,
+            time: timeStr
+          }
+        })
+      });
+    } catch (err) {
+      console.warn('POST notify fallback error:', err);
+    }
 
     return NextResponse.json({
       status: 'success',

@@ -95,6 +95,22 @@ function doGet(e) {
         result = clearAllData();
         break;
 
+      case 'notifyAdminAccessRequest':
+        result = notifyAdminAccessRequest(e && e.parameter);
+        break;
+
+      case 'notifyLogin':
+        result = sendLoginNotificationEmail(e && e.parameter);
+        break;
+
+      case 'createUser':
+        result = createRecord(SHEET_NAMES.USERS, e && e.parameter);
+        break;
+
+      case 'updateUser':
+        result = updateUserRecord(e && e.parameter);
+        break;
+
       default:
         return jsonResponse({
           status: 'error',
