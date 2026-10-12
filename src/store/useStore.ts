@@ -101,6 +101,11 @@ export interface CalendarEvent {
   isGoogleEvent?: boolean;
   userEmail?: string;
   taskId?: string;
+  location?: string;
+  description?: string;
+  guests?: string;
+  eventType?: 'event' | 'task' | 'focus' | 'reminder';
+  recurrence?: string;
 }
 
 interface AppState {

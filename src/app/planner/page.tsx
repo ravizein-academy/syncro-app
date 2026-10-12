@@ -19,7 +19,11 @@ import {
   CheckCircle2,
   CalendarCheck,
   Sparkles,
-  LayoutGrid
+  LayoutGrid,
+  AlignLeft,
+  Copy,
+  Trash2,
+  Globe
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,6 +45,48 @@ function GoogleCalendarLogo({ size = 20 }: { size?: number }) {
     </div>
   );
 }
+
+// Authentic Google 4-Color Plus Icon
+function GooglePlusIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 36 36" fill="none">
+      <path d="M16 4C16 2.89543 16.8954 2 18 2C19.1046 2 20 2.89543 20 4V16H16V4Z" fill="#EA4335" />
+      <path d="M16 20V32C16 33.1046 16.8954 34 18 34C19.1046 34 20 33.1046 20 32V20H16Z" fill="#34A853" />
+      <path d="M4 16C2.89543 16 2 16.8954 2 18C2 19.1046 2.89543 20 4 20H16V16H4Z" fill="#FBBC05" />
+      <path d="M20 16V20H32C33.1046 20 34 19.1046 34 18C34 16.8954 33.1046 16 32 16H20Z" fill="#4285F4" />
+      <rect x="16" y="16" width="4" height="4" fill="#4285F4" />
+    </svg>
+  );
+}
+
+// Google Meet Logo SVG
+function GoogleMeetLogo({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none">
+      <path d="M14 8H4a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2z" fill="#00832d" />
+      <path d="M14 9.5l6-4.5v14l-6-4.5v-5z" fill="#0066da" />
+      <path d="M2 14v-4l6-3 6 3v4l-6 3-6-3z" fill="#2684fc" opacity="0.15" />
+      <path d="M14 8h-4v8h4c1.1 0 2-.9 2-2v-4c0-1.1-.9-2-2-2z" fill="#00ac47" />
+      <path d="M20 5l-6 4.5V11l6-2V5z" fill="#ea4335" />
+      <path d="M14 14.5L20 19v-4l-6-2.5v2z" fill="#2684fc" />
+      <path d="M4 8h6v8H4c-1.1 0-2-.9-2-2v-4c0-1.1.9-2 2-2z" fill="#ffba00" />
+    </svg>
+  );
+}
+
+// Official Google Calendar 10 Color Palette
+const GCAL_COLORS = [
+  { id: "peacock", name: "Peacock (Biru)", hex: "#039be5", badgeClass: "bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30" },
+  { id: "flamingo", name: "Flamingo (Coral)", hex: "#e67c73", badgeClass: "bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30" },
+  { id: "sage", name: "Sage (Hijau)", hex: "#33b679", badgeClass: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30" },
+  { id: "grape", name: "Grape (Ungu)", hex: "#8e24aa", badgeClass: "bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30" },
+  { id: "banana", name: "Banana (Kuning)", hex: "#f6bf26", badgeClass: "bg-amber-500/15 text-amber-600 dark:text-amber-300 border-amber-500/30" },
+  { id: "tangerine", name: "Tangerine (Oranye)", hex: "#f4511e", badgeClass: "bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/30" },
+  { id: "basil", name: "Basil (Hijau Tua)", hex: "#0b8043", badgeClass: "bg-green-600/15 text-green-700 dark:text-green-300 border-green-600/30" },
+  { id: "blueberry", name: "Blueberry (Indigo)", hex: "#3f51b5", badgeClass: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border-indigo-500/30" },
+  { id: "tomato", name: "Tomato (Merah)", hex: "#d50000", badgeClass: "bg-red-500/15 text-red-600 dark:text-red-300 border-red-500/30" },
+  { id: "graphite", name: "Graphite (Abu-abu)", hex: "#616161", badgeClass: "bg-slate-500/15 text-slate-600 dark:text-slate-300 border-slate-500/30" },
+];
 
 const WEEK_HOURS = [
   "08:00",
@@ -98,13 +144,23 @@ export default function PlannerPage() {
 
   const todayDateStr = useMemo(() => formatDateLocal(new Date()), []);
 
-  // New Event Modal state
+  // New Event Modal state (Authentic Google Calendar experience)
   const [isNewEventModalOpen, setIsNewEventModalOpen] = useState(false);
+  const [eventType, setEventType] = useState<"event" | "task" | "focus" | "reminder">("event");
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState(() => formatDateLocal(new Date()));
   const [eventStartTime, setEventStartTime] = useState("10:00");
   const [eventEndTime, setEventEndTime] = useState("11:00");
+  const [isAllDay, setIsAllDay] = useState(false);
+  const [recurrence, setRecurrence] = useState("none");
   const [includeMeet, setIncludeMeet] = useState(true);
+  const [meetSlug, setMeetSlug] = useState(() => `${Math.random().toString(36).substring(2, 5)}-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`);
+  const [eventLocation, setEventLocation] = useState("");
+  const [eventDescription, setEventDescription] = useState("");
+  const [guests, setGuests] = useState<string[]>([]);
+  const [guestInput, setGuestInput] = useState("");
+  const [selectedColor, setSelectedColor] = useState(GCAL_COLORS[0]);
+  const [copiedMeet, setCopiedMeet] = useState(false);
 
   // Selected Date state (controls active view date for Day, Week, and Month)
   const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
@@ -360,43 +416,95 @@ export default function PlannerPage() {
 
 
 
+  const openCreateModalWithSlot = (dateStr: string, hourStr?: string) => {
+    setEventDate(dateStr);
+    if (hourStr) {
+      const h = parseInt(hourStr.split(":")[0], 10);
+      const nextH = Math.min(23, h + 1);
+      setEventStartTime(hourStr);
+      setEventEndTime(`${String(nextH).padStart(2, "0")}:00`);
+      setIsAllDay(false);
+    }
+    setMeetSlug(`${Math.random().toString(36).substring(2, 5)}-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`);
+    setIsNewEventModalOpen(true);
+  };
+
+  const handleAddGuest = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      const val = guestInput.trim().replace(",", "");
+      if (val && !guests.includes(val)) {
+        setGuests([...guests, val]);
+      }
+      setGuestInput("");
+    }
+  };
+
+  const handleRemoveGuest = (email: string) => {
+    setGuests(guests.filter((g) => g !== email));
+  };
+
+  const handleCopyMeetLink = (url: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(url);
+      setCopiedMeet(true);
+      setTimeout(() => setCopiedMeet(false), 2000);
+    }
+  };
+
   const handleCreateNewEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventTitle.trim()) return;
 
-    const meetCode = includeMeet 
-      ? `https://meet.google.com/${Math.random().toString(36).substring(2, 5)}-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`
-      : undefined;
+    const meetUrl = includeMeet ? `https://meet.google.com/${meetSlug}` : undefined;
 
     const newEvent: CalendarEvent = {
       id: `gcal-${Date.now()}`,
       title: eventTitle.trim(),
       dateStr: eventDate,
-      timeRange: `${eventStartTime} - ${eventEndTime}`,
-      startHour: eventStartTime,
-      endHour: eventEndTime,
-      color: "bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30",
-      meetUrl: meetCode,
+      timeRange: isAllDay 
+        ? (language === "en" ? "All day" : "Sepanjang hari") 
+        : `${eventStartTime} - ${eventEndTime}`,
+      startHour: isAllDay ? "08:00" : eventStartTime,
+      endHour: isAllDay ? "18:00" : eventEndTime,
+      color: selectedColor.badgeClass,
+      meetUrl: meetUrl,
       isGoogleEvent: true,
       userEmail: currentUser?.email || "",
+      location: eventLocation.trim() || undefined,
+      description: eventDescription.trim() || undefined,
+      guests: guests.length > 0 ? guests.join(", ") : undefined,
+      eventType: eventType,
+      recurrence: recurrence !== "none" ? recurrence : undefined,
     };
 
     // Save to Google Calendar cloud and local store
     await createCalendarEventOnCloud(newEvent);
     fetchGoogleCalendarEvents(currentUser?.email);
 
-    // Also add as scheduled task in store
-    addTask({
-      title: `[GCal] ${eventTitle.trim()}`,
-      status: "todo",
-      dueDate: eventDate,
-      timeEstimate: 60,
-      scheduledSlot: `${eventStartTime.startsWith("0") ? eventStartTime.slice(1) : eventStartTime} AM`,
-    });
+    // If task tab was selected, also register in tasks state
+    if (eventType === "task") {
+      addTask({
+        title: eventTitle.trim(),
+        status: "todo",
+        dueDate: eventDate,
+        timeEstimate: 60,
+        scheduledSlot: isAllDay ? undefined : `${eventStartTime} - ${eventEndTime}`,
+        description: eventDescription.trim() || undefined,
+      });
+    }
 
     setIsNewEventModalOpen(false);
+    // Reset form
     setEventTitle("");
-    setSyncNotice(language === 'en' ? "Event added to Google Calendar & Syncro" : "Acara berhasil ditambahkan ke Google Calendar & Syncro");
+    setEventLocation("");
+    setEventDescription("");
+    setGuests([]);
+    setGuestInput("");
+    setIsAllDay(false);
+    setRecurrence("none");
+    setEventType("event");
+    setSyncNotice(language === "en" ? "Event synchronized with Google Calendar & Syncro" : "Acara berhasil disinkronkan ke Google Calendar & Syncro");
     setTimeout(() => setSyncNotice(null), 3500);
   };
 
@@ -434,15 +542,18 @@ export default function PlannerPage() {
 
         {/* Action Controls & Navigation */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-          {/* + New Event Button */}
-          <Button
-            size="sm"
-            onClick={() => setIsNewEventModalOpen(true)}
-            className="h-9 px-3.5 text-xs gap-1.5 bg-[#EE3726] hover:bg-[#D32717] text-white font-bold rounded-xl shadow-sm shadow-[#EE3726]/20"
+          {/* Google Calendar Iconic "Buat" / "Create" FAB Pill Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setMeetSlug(`${Math.random().toString(36).substring(2, 5)}-${Math.random().toString(36).substring(2, 6)}-${Math.random().toString(36).substring(2, 5)}`);
+              setIsNewEventModalOpen(true);
+            }}
+            className="group inline-flex items-center gap-2.5 px-4 sm:px-5 py-2 rounded-full bg-card hover:bg-secondary/80 border border-border/80 shadow-md hover:shadow-lg transition-all duration-200 active:scale-95 text-foreground font-semibold text-xs sm:text-sm"
           >
-            <Plus size={14} />
-            <span>{language === 'en' ? "+ New Event" : "+ Buat Acara"}</span>
-          </Button>
+            <GooglePlusIcon className="w-5 h-5 shrink-0 transition-transform duration-300 group-hover:rotate-90" />
+            <span className="tracking-tight">{language === 'en' ? "Create" : "Buat"}</span>
+          </button>
         </div>
       </div>
 
@@ -603,7 +714,12 @@ export default function PlannerPage() {
                         return (
                           <div 
                             key={`${hour}-${dayIdx}`} 
-                            className={`p-1 flex flex-col gap-1.5 relative ${
+                            onClick={(e) => {
+                              if (e.target === e.currentTarget) {
+                                openCreateModalWithSlot(d.dateStr, hour);
+                              }
+                            }}
+                            className={`p-1 flex flex-col gap-1.5 relative min-h-[58px] transition-colors hover:bg-primary/5 cursor-pointer ${
                               dayIdx < 6 ? "border-r border-border/60" : ""
                             } ${d.isToday ? "bg-blue-500/5" : ""}`}
                           >
@@ -782,9 +898,14 @@ export default function PlannerPage() {
                         </span>
                         <div className="flex-1 space-y-2">
                           {hourEvents.length === 0 ? (
-                            <div className="text-xs text-muted-foreground/60 italic py-1">
-                              {language === "en" ? "Free slot - click + New Event to schedule" : "Slot kosong - klik + Buat Acara untuk menjadwalkan"}
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => openCreateModalWithSlot(selectedDateStr, hour)}
+                              className="w-full text-left text-xs text-muted-foreground/60 hover:text-foreground py-1.5 px-3 rounded-lg border border-dashed border-border/40 hover:border-primary/50 hover:bg-secondary/40 transition-all flex items-center gap-2 group"
+                            >
+                              <GooglePlusIcon className="w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+                              <span>{language === "en" ? `Create event at ${hour}` : `Buat acara pada pukul ${hour}`}</span>
+                            </button>
                           ) : (
                             hourEvents.map((ev) => (
                               <div
@@ -907,115 +1028,332 @@ export default function PlannerPage() {
         </div>
 
       {/* ============================================================== */}
-      {/* DIALOG: BUAT ACARA GOOGLE CALENDAR BARU */}
+      {/* DIALOG: BUAT ACARA GOOGLE CALENDAR (EXACT GOOGLE CALENDAR UI)  */}
       {/* ============================================================== */}
       <Dialog open={isNewEventModalOpen} onOpenChange={setIsNewEventModalOpen}>
-        <DialogContent className="bg-card border-border text-foreground sm:max-w-[480px] rounded-2xl shadow-2xl p-0 overflow-hidden">
-          <div className="p-4 sm:p-5 border-b border-border bg-secondary/30 flex items-center gap-2.5">
-            <GoogleCalendarLogo size={22} />
-            <div>
-              <DialogTitle className="text-sm font-bold text-foreground">
-                {language === 'en' ? "Create Google Calendar Event" : "Buat Acara Google Calendar"}
-              </DialogTitle>
-              <p className="text-[11px] text-muted-foreground">
-                {language === 'en' ? "Synchronizes instantly with your Google Calendar" : "Tersinkronisasi otomatis dengan Google Calendar Anda"}
-              </p>
+        <DialogContent 
+          showCloseButton={false}
+          className="bg-card border border-border text-foreground sm:max-w-[560px] max-h-[92vh] rounded-3xl shadow-2xl p-0 overflow-hidden flex flex-col"
+        >
+          <DialogHeader className="sr-only">
+            <DialogTitle>
+              {language === "en" ? "Create Google Calendar Event" : "Buat Acara Google Calendar"}
+            </DialogTitle>
+          </DialogHeader>
+
+          {/* Header Bar: Google Workspace Event Type Tabs & Close Button */}
+          <div className="p-3 sm:px-5 sm:py-3.5 border-b border-border/60 bg-secondary/20 flex items-center justify-between gap-3 shrink-0">
+            {/* Event Type Tabs */}
+            <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar">
+              {[
+                { id: "event", label: language === "en" ? "Event" : "Acara" },
+                { id: "task", label: language === "en" ? "Task" : "Tugas" },
+                { id: "focus", label: language === "en" ? "Focus time" : "Waktu fokus" },
+                { id: "reminder", label: language === "en" ? "Reminder" : "Pengingat" },
+              ].map((tab) => {
+                const isActive = eventType === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setEventType(tab.id as any)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all shrink-0 ${
+                      isActive
+                        ? "bg-[#1a73e8] text-white shadow-xs"
+                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
             </div>
+
+            {/* Close Button */}
+            <button
+              type="button"
+              onClick={() => setIsNewEventModalOpen(false)}
+              className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition shrink-0"
+            >
+              <X size={18} />
+            </button>
           </div>
 
-          <form onSubmit={handleCreateNewEvent} className="p-4 sm:p-5 space-y-4">
-            <div>
-              <label className="text-xs font-bold text-foreground mb-1 block">
-                {language === 'en' ? "Event Title" : "Nama Acara / Pertemuan"}
-              </label>
-              <Input
+          {/* Form Body */}
+          <form onSubmit={handleCreateNewEvent} className="p-4 sm:p-6 overflow-y-auto space-y-4 sm:space-y-5 flex-1 text-xs">
+            {/* 1. Title Input (Large Google Style) */}
+            <div className="pl-8 sm:pl-9 pr-1">
+              <input
                 required
+                autoFocus
                 value={eventTitle}
                 onChange={(e) => setEventTitle(e.target.value)}
-                placeholder={language === 'en' ? "e.g. Weekly Sync with Marketing" : "e.g. Rapat Koordinasi Mingguan Tim"}
-                className="bg-secondary/40 border-border text-xs focus-visible:ring-[#4285F4] rounded-xl h-10"
+                placeholder={
+                  eventType === "task"
+                    ? (language === "en" ? "Add task title" : "Tambahkan judul tugas")
+                    : (language === "en" ? "Add title" : "Tambahkan judul")
+                }
+                className="w-full text-xl sm:text-2xl font-normal text-foreground placeholder:text-muted-foreground/45 border-b border-border/70 focus:border-[#1a73e8] focus:outline-none py-1.5 bg-transparent transition"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="text-[11px] font-bold text-muted-foreground mb-1 block">
-                  {language === 'en' ? "Date" : "Tanggal Acara"}
-                </label>
-                <Input
-                  type="date"
-                  required
-                  value={eventDate}
-                  onChange={(e) => setEventDate(e.target.value)}
-                  className="bg-secondary/40 border-border text-xs rounded-xl h-9"
+            {/* 2. Date & Time Row */}
+            <div className="flex items-start gap-3 sm:gap-4">
+              <Clock className="w-5 h-5 text-muted-foreground/80 mt-1.5 shrink-0" />
+              <div className="flex-1 space-y-2.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <input
+                    type="date"
+                    required
+                    value={eventDate}
+                    onChange={(e) => setEventDate(e.target.value)}
+                    className="bg-secondary/40 border border-border text-xs rounded-xl h-8 px-2.5 font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-[#1a73e8]"
+                  />
+
+                  {!isAllDay && (
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="time"
+                        required
+                        value={eventStartTime}
+                        onChange={(e) => setEventStartTime(e.target.value)}
+                        className="bg-secondary/40 border border-border text-xs rounded-xl h-8 px-2 font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-[#1a73e8]"
+                      />
+                      <span className="text-muted-foreground">–</span>
+                      <input
+                        type="time"
+                        required
+                        value={eventEndTime}
+                        onChange={(e) => setEventEndTime(e.target.value)}
+                        className="bg-secondary/40 border border-border text-xs rounded-xl h-8 px-2 font-medium text-foreground focus:outline-none focus:ring-1 focus:ring-[#1a73e8]"
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* All day & Recurrence row */}
+                <div className="flex items-center gap-4 flex-wrap text-muted-foreground">
+                  <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={isAllDay}
+                      onChange={(e) => setIsAllDay(e.target.checked)}
+                      className="rounded accent-[#1a73e8] h-3.5 w-3.5 cursor-pointer"
+                    />
+                    <span>{language === "en" ? "All day" : "Sepanjang hari"}</span>
+                  </label>
+
+                  <select
+                    value={recurrence}
+                    onChange={(e) => setRecurrence(e.target.value)}
+                    className="bg-transparent border border-border/60 rounded-lg text-xs h-7 px-2 text-foreground focus:outline-none"
+                  >
+                    <option value="none">{language === "en" ? "Does not repeat" : "Tidak berulang"}</option>
+                    <option value="daily">{language === "en" ? "Daily" : "Setiap hari"}</option>
+                    <option value="weekly">{language === "en" ? "Weekly" : "Setiap minggu"}</option>
+                    <option value="monthly">{language === "en" ? "Monthly" : "Setiap bulan"}</option>
+                  </select>
+
+                  <span className="text-[11px] text-muted-foreground/80 hidden sm:inline">
+                    WIB (GMT+07:00)
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Google Meet Video Conferencing Row */}
+            <div className="flex items-start gap-3 sm:gap-4">
+              <GoogleMeetLogo className="w-5 h-5 mt-1 shrink-0" />
+              <div className="flex-1">
+                {!includeMeet ? (
+                  <button
+                    type="button"
+                    onClick={() => setIncludeMeet(true)}
+                    className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#1a73e8]/10 hover:bg-[#1a73e8]/20 text-[#1a73e8] dark:text-[#4285F4] font-semibold text-xs transition"
+                  >
+                    <Video size={13} />
+                    <span>{language === "en" ? "Add Google Meet video conferencing" : "Tambahkan konferensi video Google Meet"}</span>
+                  </button>
+                ) : (
+                  <div className="p-3 rounded-2xl bg-blue-500/10 border border-blue-500/25 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-foreground text-xs">
+                          {language === "en" ? "Join with Google Meet" : "Gabung dengan Google Meet"}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground bg-secondary px-1.5 py-0.5 rounded-md font-mono">
+                          Hingga 100 peserta
+                        </span>
+                      </div>
+                      <a
+                        href={`https://meet.google.com/${meetSlug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[#1a73e8] hover:underline font-mono text-[11px] truncate block mt-0.5"
+                      >
+                        meet.google.com/{meetSlug}
+                      </a>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyMeetLink(`https://meet.google.com/${meetSlug}`)}
+                        className="p-1.5 rounded-lg hover:bg-blue-500/15 text-muted-foreground hover:text-foreground transition"
+                        title={language === "en" ? "Copy conference link" : "Salin tautan Google Meet"}
+                      >
+                        {copiedMeet ? <Check size={14} className="text-emerald-500" /> : <Copy size={14} />}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIncludeMeet(false)}
+                        className="p-1.5 rounded-lg hover:bg-rose-500/15 text-muted-foreground hover:text-rose-500 transition"
+                        title={language === "en" ? "Remove Meet" : "Hapus Google Meet"}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 4. Guests / Tamu Row */}
+            <div className="flex items-start gap-3 sm:gap-4">
+              <Users className="w-5 h-5 text-muted-foreground/80 mt-1 shrink-0" />
+              <div className="flex-1 space-y-2">
+                <input
+                  value={guestInput}
+                  onChange={(e) => setGuestInput(e.target.value)}
+                  onKeyDown={handleAddGuest}
+                  placeholder={language === "en" ? "Add guests (press Enter to add email)" : "Tambahkan tamu (tekan Enter untuk tambah email)"}
+                  className="w-full bg-secondary/40 border border-border text-xs rounded-xl h-8 px-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-[#1a73e8]"
+                />
+
+                {guests.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    {guests.map((email) => (
+                      <span
+                        key={email}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary border border-border text-[11px] text-foreground font-medium"
+                      >
+                        <span className="w-4 h-4 rounded-full bg-[#1a73e8] text-white flex items-center justify-center text-[9px] font-bold">
+                          {email.charAt(0).toUpperCase()}
+                        </span>
+                        <span className="truncate max-w-[160px]">{email}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveGuest(email)}
+                          className="hover:text-rose-500 ml-0.5"
+                        >
+                          <X size={11} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 5. Location Row */}
+            <div className="flex items-center gap-3 sm:gap-4">
+              <MapPin className="w-5 h-5 text-muted-foreground/80 shrink-0" />
+              <div className="flex-1">
+                <input
+                  value={eventLocation}
+                  onChange={(e) => setEventLocation(e.target.value)}
+                  placeholder={language === "en" ? "Add location or room" : "Tambahkan lokasi atau ruangan"}
+                  className="w-full bg-secondary/40 border border-border text-xs rounded-xl h-8 px-3 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-[#1a73e8]"
                 />
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-1.5">
-                <div>
-                  <label className="text-[11px] font-bold text-muted-foreground mb-1 block">
-                    {language === 'en' ? "Start" : "Mulai"}
-                  </label>
-                  <Input
-                    type="time"
-                    required
-                    value={eventStartTime}
-                    onChange={(e) => setEventStartTime(e.target.value)}
-                    className="bg-secondary/40 border-border text-xs rounded-xl h-9"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-muted-foreground mb-1 block">
-                    {language === 'en' ? "End" : "Selesai"}
-                  </label>
-                  <Input
-                    type="time"
-                    required
-                    value={eventEndTime}
-                    onChange={(e) => setEventEndTime(e.target.value)}
-                    className="bg-secondary/40 border-border text-xs rounded-xl h-9"
-                  />
-                </div>
+            {/* 6. Description Row */}
+            <div className="flex items-start gap-3 sm:gap-4">
+              <AlignLeft className="w-5 h-5 text-muted-foreground/80 mt-1 shrink-0" />
+              <div className="flex-1">
+                <textarea
+                  rows={2}
+                  value={eventDescription}
+                  onChange={(e) => setEventDescription(e.target.value)}
+                  placeholder={language === "en" ? "Add description or agenda notes" : "Tambahkan deskripsi atau catatan agenda"}
+                  className="w-full bg-secondary/40 border border-border text-xs rounded-xl p-2.5 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-[#1a73e8] resize-none"
+                />
               </div>
             </div>
 
-            {/* Google Meet Toggle */}
-            <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Video size={16} className="text-[#4285F4]" />
-                <div>
-                  <span className="text-xs font-bold text-foreground block">
-                    Sertakan Google Meet Link
-                  </span>
-                  <span className="text-[10px] text-muted-foreground">
-                    Buat link video call otomatis untuk peserta
+            {/* 7. Google Calendar Account & Color Palette Picker */}
+            <div className="flex items-start gap-3 sm:gap-4 pt-1 border-t border-border/50">
+              <CalendarIcon className="w-5 h-5 text-muted-foreground/80 mt-1 shrink-0" />
+              <div className="flex-1 space-y-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded-full bg-[#1a73e8] text-white flex items-center justify-center text-[10px] font-bold">
+                      {(currentUser?.name || "U").charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <span className="text-xs font-semibold text-foreground block leading-tight">
+                        {currentUser?.name || "Syncro Workspace"}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground block font-mono">
+                        {currentUser?.email || "syncro@google.com"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <span className="text-[10px] text-muted-foreground font-medium">
+                    {selectedColor.name}
                   </span>
                 </div>
+
+                {/* 10 Google Calendar Color Dots */}
+                <div className="flex items-center gap-2 flex-wrap pt-0.5">
+                  {GCAL_COLORS.map((col) => {
+                    const isSelected = selectedColor.id === col.id;
+                    return (
+                      <button
+                        key={col.id}
+                        type="button"
+                        onClick={() => setSelectedColor(col)}
+                        title={col.name}
+                        className={`w-5 h-5 rounded-full transition-transform flex items-center justify-center relative ${
+                          isSelected ? "scale-125 ring-2 ring-foreground shadow-sm" : "hover:scale-110"
+                        }`}
+                        style={{ backgroundColor: col.hex }}
+                      >
+                        {isSelected && <Check size={10} className="text-white drop-shadow-xs" />}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
-              <input
-                type="checkbox"
-                checked={includeMeet}
-                onChange={(e) => setIncludeMeet(e.target.checked)}
-                className="h-4 w-4 rounded accent-[#4285F4] cursor-pointer"
-              />
             </div>
 
             {/* Footer Buttons */}
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-border">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsNewEventModalOpen(false)}
-                className="text-xs h-9 rounded-xl border-border"
-              >
-                {t.modalCancel}
-              </Button>
-              <Button
-                type="submit"
-                className="text-xs h-9 px-4 font-bold bg-[#4285F4] hover:bg-[#3367D6] text-white rounded-xl shadow-md shadow-[#4285F4]/20"
-              >
-                {language === 'en' ? "Save to Calendar" : "Simpan ke Calendar"}
-              </Button>
+            <div className="flex items-center justify-between pt-3 border-t border-border shrink-0">
+              <div className="flex items-center gap-1.5 text-muted-foreground text-[11px]">
+                <GoogleCalendarLogo size={14} />
+                <span className="hidden sm:inline">
+                  {language === "en" ? "Syncs with Google Calendar" : "Tersinkron otomatis ke Google"}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsNewEventModalOpen(false)}
+                  className="text-xs h-8 sm:h-9 px-3 rounded-full hover:bg-secondary text-foreground"
+                >
+                  {t.modalCancel}
+                </Button>
+                <Button
+                  type="submit"
+                  className="text-xs h-8 sm:h-9 px-5 sm:px-6 font-semibold bg-[#1a73e8] hover:bg-[#1557b0] text-white rounded-full shadow-md transition-all active:scale-95"
+                >
+                  {language === "en" ? "Save" : "Simpan"}
+                </Button>
+              </div>
             </div>
           </form>
         </DialogContent>

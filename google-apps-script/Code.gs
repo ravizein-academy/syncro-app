@@ -1098,9 +1098,12 @@ function createGoogleCalendarEvent(payload) {
     let isGoogleEvent = false;
 
     if (cal) {
-      const event = cal.createEvent(title, startDate, endDate, {
+      const options = {
         description: payload.description || 'Dibuat otomatis dari aplikasi Syncro'
-      });
+      };
+      if (payload.location) options.location = payload.location;
+      if (payload.guests) options.guests = payload.guests;
+      const event = cal.createEvent(title, startDate, endDate, options);
       eventId = 'gcal_' + event.getId();
       isGoogleEvent = true;
     }
@@ -1117,7 +1120,10 @@ function createGoogleCalendarEvent(payload) {
       timeRange: startHour + ' - ' + endHour,
       meetLink: payload.meetUrl || 'https://meet.google.com/new',
       userEmail: userEmail,
-      taskId: payload.taskId || ''
+      taskId: payload.taskId || '',
+      location: payload.location || '',
+      description: payload.description || '',
+      guests: payload.guests || ''
     });
 
     return {
