@@ -362,11 +362,11 @@ function DirectMessagesContent() {
               {/* Tombol Hapus Seluruh Obrolan */}
               <button
                 onClick={() => setShowClearConfirm(true)}
-                className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition flex items-center gap-1 text-xs"
+                className="px-2.5 py-1.5 rounded-lg border border-red-500/20 text-red-500 hover:bg-red-500/10 hover:border-red-500/40 transition flex items-center gap-1.5 text-xs font-semibold shadow-xs"
                 title="Hapus Seluruh Obrolan"
               >
-                <Trash2 size={15} />
-                <span className="hidden sm:inline text-[11px]">Hapus Obrolan</span>
+                <Trash2 size={13} />
+                <span>Hapus Obrolan</span>
               </button>
             </div>
           </div>
@@ -441,6 +441,16 @@ function DirectMessagesContent() {
                       <div className={`flex items-center gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                         <span className="text-xs font-bold text-foreground">{msg.senderName}</span>
                         <span className="text-[10px] text-muted-foreground">{msg.timestamp}</span>
+                        {/* Tombol Hapus Pesan yang Langsung Terlihat */}
+                        {canDelete && !isDeleting && (
+                          <button
+                            onClick={() => setDeletingMsgId(msg.id)}
+                            className="text-muted-foreground hover:text-red-500 p-0.5 rounded transition flex items-center gap-0.5"
+                            title="Hapus pesan ini"
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        )}
                       </div>
                       
                       <div className={`mt-1 flex items-center gap-1.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
@@ -454,34 +464,22 @@ function DirectMessagesContent() {
                           {msg.text}
                         </div>
 
-                        {/* Opsi Hapus Pesan Individu */}
-                        {canDelete && (
-                          <div className="flex items-center">
-                            {isDeleting ? (
-                              <div className="flex items-center gap-1.5 bg-background border border-red-500/30 shadow-md px-2 py-1 rounded-xl text-[10px] animate-in fade-in zoom-in-95 duration-150">
-                                <span className="text-red-500 font-semibold">Hapus?</span>
-                                <button
-                                  onClick={() => handleDeleteSingleMessage(msg.id)}
-                                  className="text-white bg-red-600 hover:bg-red-700 font-bold px-1.5 py-0.5 rounded-md"
-                                >
-                                  Ya
-                                </button>
-                                <button
-                                  onClick={() => setDeletingMsgId(null)}
-                                  className="text-muted-foreground hover:text-foreground px-1"
-                                >
-                                  <X size={12} />
-                                </button>
-                              </div>
-                            ) : (
-                              <button
-                                onClick={() => setDeletingMsgId(msg.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                                title="Hapus pesan ini"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            )}
+                        {/* Konfirmasi Hapus Pesan Individu */}
+                        {canDelete && isDeleting && (
+                          <div className="flex items-center gap-1.5 bg-background border border-red-500/30 shadow-md px-2 py-1 rounded-xl text-[10px] animate-in fade-in zoom-in-95 duration-150">
+                            <span className="text-red-500 font-semibold">Hapus?</span>
+                            <button
+                              onClick={() => handleDeleteSingleMessage(msg.id)}
+                              className="text-white bg-red-600 hover:bg-red-700 font-bold px-1.5 py-0.5 rounded-md"
+                            >
+                              Ya
+                            </button>
+                            <button
+                              onClick={() => setDeletingMsgId(null)}
+                              className="text-muted-foreground hover:text-foreground px-1"
+                            >
+                              <X size={12} />
+                            </button>
                           </div>
                         )}
                       </div>
