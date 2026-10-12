@@ -43,6 +43,39 @@ export async function POST(req: Request) {
       return NextResponse.json({ status: 'success', data: payload, localOnly: true });
     }
 
+    // Metode A (Failsafe): Untuk deleteUser & updateUser, kirim via GET parameter
+    // agar kebal terhadap issue Google Apps Script HTTP 302 drop body
+    if (action === 'deleteUser') {
+      const deleteUrl = `${APPS_SCRIPT_URL}?action=deleteUser&id=${encodeURIComponent(payload?.id || '')}&email=${encodeURIComponent(payload?.email || '')}`;
+      try {
+        const getRes = await fetch(deleteUrl, { method: 'GET', headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+        if (getRes.ok) {
+          const json = await getRes.json().catch(() => null);
+          if (json && json.status === 'success') {
+            return NextResponse.json({ status: 'success', data: json });
+          }
+        }
+      } catch (e) {
+        console.warn('GET deleteUser fallback failed:', e);
+      }
+    }
+
+    if (action === 'updateUser') {
+      const updateUrl = `${APPS_SCRIPT_URL}?action=updateUser&id=${encodeURIComponent(payload?.id || '')}&email=${encodeURIComponent(payload?.email || '')}&name=${encodeURIComponent(payload?.name || '')}&role=${encodeURIComponent(payload?.role || '')}&department=${encodeURIComponent(payload?.department || '')}&status=${encodeURIComponent(payload?.status || '')}`;
+      try {
+        const getRes = await fetch(updateUrl, { method: 'GET', headers: { 'Accept': 'application/json' }, cache: 'no-store' });
+        if (getRes.ok) {
+          const json = await getRes.json().catch(() => null);
+          if (json && json.status === 'success') {
+            return NextResponse.json({ status: 'success', data: json });
+          }
+        }
+      } catch (e) {
+        console.warn('GET updateUser fallback failed:', e);
+      }
+    }
+
+    // Metode B: Kirim via POST
     const res = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
