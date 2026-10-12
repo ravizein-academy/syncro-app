@@ -30,9 +30,12 @@ export async function GET() {
       const email = (u.email || '').toLowerCase().trim();
       const isMasterAdmin = email === 'ravizein@itsecacademy.com' || u.role === 'admin';
 
+      const userId = u.id || u.sta || 'user_1';
+
       if (isMasterAdmin) {
         return {
           ...u,
+          id: userId,
           role: 'admin',
           status: 'active'
         };
@@ -43,6 +46,7 @@ export async function GET() {
       if (override) {
         return {
           ...u,
+          id: userId,
           role: override.role || u.role,
           department: override.department || u.department,
           status: override.status,
@@ -54,6 +58,7 @@ export async function GET() {
       if (u.status === 'active' || u.status === 'inactive') {
         return {
           ...u,
+          id: userId,
           status: u.status,
           requestedAt: u.requestedAt || 'Menunggu persetujuan'
         };
@@ -62,6 +67,7 @@ export async function GET() {
       // 3. Jika belum di-ACC, status tetap pending
       return {
         ...u,
+        id: userId,
         status: 'pending',
         requestedAt: u.requestedAt || 'Menunggu persetujuan'
       };
