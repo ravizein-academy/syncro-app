@@ -15,7 +15,8 @@ import {
   CheckCircle2, 
   Loader2,
   Globe,
-  AlertCircle
+  AlertCircle,
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +60,7 @@ export default function LoginPage() {
   const [loginMethod, setLoginMethod] = useState<"google" | "email" | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [pendingNotice, setPendingNotice] = useState<{ email: string; name: string } | null>(null);
 
   // Perangkat ini mengingat akun pemiliknya sendiri (Auto-Remember Device)
   const [rememberedAccount, setRememberedAccount] = useState<{ email: string; name: string; avatar?: string } | null>(null);
@@ -114,38 +116,74 @@ export default function LoginPage() {
     setIsGoogleModalOpen(true);
   };
 
-  // Konfirmasi Akun Google Terpilih (Strict Database Check)
+  // Kirim Permintaan Akses ke Admin (Ravi Zein)
+  const handleRequestAccess = async (userEmail: string, userName?: string) => {
+    setIsLoading(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    try {
+      const cleanEmail = userEmail.trim().toLowerCase();
+      const cleanName = (userName || cleanEmail.split("@")[0]).trim();
+      const res = await fetch("/api/auth/request-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: cleanEmail,
+          name: cleanName,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setPendingNotice({ email: cleanEmail, name: cleanName });
+      } else {
+        setErrorMessage(data?.message || "Gagal mengirim permintaan akses.");
+      }
+    } catch (err: any) {
+      setErrorMessage("Koneksi gagal saat menghubungi server.");
+    } finally {
+      setIsLoading(false);
+      setLoginMethod(null);
+    }
+  };
+
+  // Konfirmasi Akun Google Terpilih (Strict Database & Admin ACC Check)
   const handleConfirmGoogleAccount = async (targetEmail: string, targetName?: string) => {
     const cleanEmail = targetEmail.trim().toLowerCase();
     if (!cleanEmail) return;
 
     setErrorMessage(null);
+    setSuccessMessage(null);
+    setPendingNotice(null);
     setIsLoading(true);
     setLoginMethod("google");
 
-    // 1. Validasi apakah email terdaftar di database tim
+    // 1. Ambil data pengguna terbaru dari Google Sheets/Backend
     const currentUsers = await getLatestUsersList();
     const matchedUser = currentUsers.find(
       (u) => u.email && u.email.toLowerCase().trim() === cleanEmail
     );
 
+    // 2. Jika akun belum terdaftar sama sekali -> kirim permintaan akses & notifikasi email ke Admin!
     if (!matchedUser) {
-      setIsLoading(false);
-      setLoginMethod(null);
-      setErrorMessage(
-        language === "en"
-          ? `Access Denied: The email "${cleanEmail}" is not registered in the Syncro team database. Please contact an Admin to be invited.`
-          : `Akses Ditolak: Email "${cleanEmail}" belum terdaftar di database tim Syncro. Silakan hubungi Admin untuk didaftarkan terlebih dahulu.`
-      );
-      // Hapus memori akun jika ternyata tidak valid di database
+      setIsGoogleModalOpen(false);
       localStorage.removeItem("syncro_remembered_device_account");
       setRememberedAccount(null);
+      await handleRequestAccess(cleanEmail, targetName);
       return;
     }
 
+    // 3. Jika akun sudah terdaftar namun statusnya masih pending (belum di-ACC oleh Admin)
+    if (matchedUser.status === "pending") {
+      setIsLoading(false);
+      setLoginMethod(null);
+      setIsGoogleModalOpen(false);
+      setPendingNotice({ email: matchedUser.email, name: matchedUser.name });
+      return;
+    }
+
+    // 4. Akun sudah disetujui (ACC) dan aktif!
     setIsGoogleModalOpen(false);
 
-    // 2. Simpan ke memori perangkat ini jika rememberMe aktif
     if (rememberMe) {
       try {
         localStorage.setItem(
@@ -161,18 +199,7 @@ export default function LoginPage() {
       }
     }
 
-    // 3. Kirim notifikasi keamanan ke email via backend
-    fetch("/api/auth/notify-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: matchedUser.email,
-        name: matchedUser.name,
-        time: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }) + " WIB",
-        device: typeof navigator !== "undefined" ? navigator.userAgent : "Browser"
-      }),
-    }).catch((err) => console.warn("Failed to dispatch login notification:", err));
-
+    // Login langsung tanpa kirim notifikasi ke Admin lagi (karena sudah di-ACC)
     login(matchedUser);
     setIsLoading(false);
     setSuccessMessage(
@@ -185,7 +212,7 @@ export default function LoginPage() {
     }, 600);
   };
 
-  // Standard Email & Password Login (Strict Database Check)
+  // Standard Email & Password Login (Strict Database & Admin ACC Check)
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
@@ -193,29 +220,33 @@ export default function LoginPage() {
 
     setErrorMessage(null);
     setSuccessMessage(null);
+    setPendingNotice(null);
     setIsLoading(true);
     setLoginMethod("email");
 
-    // 1. Validasi apakah email terdaftar di database tim
+    // 1. Ambil data pengguna terbaru dari database
     const currentUsers = await getLatestUsersList();
     const matchedUser = currentUsers.find(
       (u) => u.email && u.email.toLowerCase().trim() === cleanEmail
     );
 
+    // 2. Jika akun belum terdaftar sama sekali -> kirim permintaan akses & notifikasi email ke Admin!
     if (!matchedUser) {
-      setIsLoading(false);
-      setLoginMethod(null);
-      setErrorMessage(
-        language === "en"
-          ? `Access Denied: The email "${cleanEmail}" is not registered in the Syncro team database. Please contact an Admin to be invited.`
-          : `Akses Ditolak: Email "${cleanEmail}" belum terdaftar di database tim Syncro. Silakan hubungi Admin untuk didaftarkan terlebih dahulu.`
-      );
       localStorage.removeItem("syncro_remembered_device_account");
       setRememberedAccount(null);
+      await handleRequestAccess(cleanEmail);
       return;
     }
 
-    // 2. Simpan ke memori perangkat ini jika rememberMe aktif
+    // 3. Jika akun sudah terdaftar namun statusnya masih pending (belum di-ACC oleh Admin)
+    if (matchedUser.status === "pending") {
+      setIsLoading(false);
+      setLoginMethod(null);
+      setPendingNotice({ email: matchedUser.email, name: matchedUser.name });
+      return;
+    }
+
+    // 4. Akun sudah disetujui (ACC) dan aktif!
     if (rememberMe) {
       try {
         localStorage.setItem(
@@ -231,18 +262,7 @@ export default function LoginPage() {
       }
     }
 
-    // 3. Kirim notifikasi keamanan ke email via backend
-    fetch("/api/auth/notify-login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: matchedUser.email,
-        name: matchedUser.name,
-        time: new Date().toLocaleString("id-ID", { timeZone: "Asia/Jakarta" }) + " WIB",
-        device: typeof navigator !== "undefined" ? navigator.userAgent : "Browser"
-      }),
-    }).catch((err) => console.warn("Failed to dispatch login notification:", err));
-
+    // Login langsung tanpa kirim notifikasi ke Admin lagi (karena sudah di-ACC)
     login(matchedUser);
     setIsLoading(false);
     setSuccessMessage(
@@ -368,6 +388,30 @@ export default function LoginPage() {
                 <div className="flex-1">
                   <p className="font-semibold leading-tight">{errorMessage}</p>
                 </div>
+              </div>
+            )}
+
+            {/* Pending Approval Notice */}
+            {pendingNotice && (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2 animate-in fade-in-0 duration-200">
+                <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 font-bold text-xs">
+                  <Clock size={16} className="shrink-0" />
+                  <span>
+                    {language === "en" ? "Waiting for Admin Approval" : "Menunggu Persetujuan Admin (Ravi Zein)"}
+                  </span>
+                </div>
+                <p className="text-xs text-foreground leading-relaxed">
+                  {language === "en" ? (
+                    <>Access request for <strong>{pendingNotice.email}</strong> has been sent to the Admin.</>
+                  ) : (
+                    <>Permintaan akses masuk untuk akun <strong>{pendingNotice.email}</strong> telah dikirimkan ke Admin.</>
+                  )}
+                </p>
+                <p className="text-[11px] text-muted-foreground leading-relaxed">
+                  {language === "en"
+                    ? "Admin will review your request, assign your role, and approve your account. Once approved, you can log in directly without notification."
+                    : "Admin akan meninjau akun Anda, menentukan role (Admin/Member/Guest), dan memberikan persetujuan (ACC). Setelah disetujui, Anda dapat langsung masuk tanpa hambatan."}
+                </p>
               </div>
             )}
             {/* Auto-Remembered Device Account Banner */}

@@ -151,6 +151,14 @@ function doPost(e) {
         result = createRecord(SHEET_NAMES.USERS, payload);
         break;
 
+      case 'updateUser':
+        result = updateUserRecord(payload);
+        break;
+
+      case 'notifyAdminAccessRequest':
+        result = notifyAdminAccessRequest(payload);
+        break;
+
       case 'syncAll':
         result = syncAllData(payload);
         break;
@@ -583,6 +591,79 @@ function sendLoginNotificationEmail(payload) {
   } catch (err) {
     return { success: false, error: err.toString() };
   }
+}
+
+/**
+ * Dispatch Access Request Email to Admin (Ravi Zein)
+ */
+function notifyAdminAccessRequest(payload) {
+  var adminEmail = 'ravizein@itsecacademy.com';
+  var userEmail = (payload && payload.email) || '';
+  var userName = (payload && payload.name) || userEmail.split('@')[0];
+  var timeStr = (payload && payload.time) || new Date().toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) + ' WIB';
+
+  var subject = '🔔 [Syncro] Permintaan Akses Akun Baru: ' + userName + ' (' + userEmail + ')';
+  var htmlBody = '<div style="font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, Helvetica, Arial, sans-serif; max-width: 560px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; padding: 28px; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">'
+    + '<div style="text-align: center; margin-bottom: 24px;">'
+    + '<div style="display: inline-block; background: #EE3726; color: #ffffff; font-weight: 900; font-size: 22px; width: 48px; height: 48px; line-height: 48px; border-radius: 14px; text-align: center;">S</div>'
+    + '<h2 style="color: #0f172a; margin: 14px 0 4px; font-size: 20px; font-weight: 800;">Permintaan Akses Masuk Baru</h2>'
+    + '<p style="color: #64748b; margin: 0; font-size: 13px;">Syncro Workspace Access Control</p>'
+    + '</div>'
+    + '<div style="background: #fef3c7; border: 1px solid #fde68a; border-radius: 12px; padding: 16px; margin-bottom: 20px;">'
+    + '<p style="margin: 0 0 6px; color: #92400e; font-size: 14px; font-weight: 700;">Pengguna Baru Ingin Bergabung:</p>'
+    + '<p style="margin: 0; color: #78350f; font-size: 13px; line-height: 1.6;">'
+    + '<strong>' + userName + '</strong> (' + userEmail + ') mencoba masuk pertama kali ke workspace Syncro dan menunggu persetujuan Anda.'
+    + '</p>'
+    + '</div>'
+    + '<p style="font-size: 13px; color: #475569; margin-bottom: 20px;">Silakan buka menu <strong>Teams</strong> di aplikasi Syncro untuk menyetujui (ACC) akun ini dan menentukan rolenya (Admin, Member, atau Guest).</p>'
+    + '<div style="text-align: center; margin-bottom: 24px;">'
+    + '<a href="https://syncro-app-sable.vercel.app/teams" style="display: inline-block; background: #EE3726; color: #ffffff; font-weight: 700; font-size: 13px; text-decoration: none; padding: 12px 24px; border-radius: 10px; box-shadow: 0 4px 12px rgba(238,55,38,0.3);">Buka Halaman Teams & Setujui (ACC)</a>'
+    + '</div>'
+    + '<div style="border-top: 1px solid #e2e8f0; padding-top: 14px; text-align: center;">'
+    + '<p style="color: #94a3b8; font-size: 11px; margin: 0;">Syncro PWA • Workspace Access Control</p>'
+    + '</div>'
+    + '</div>';
+
+  try {
+    MailApp.sendEmail({
+      to: adminEmail,
+      subject: subject,
+      htmlBody: htmlBody
+    });
+    return { success: true, adminEmail: adminEmail };
+  } catch (err) {
+    return { success: false, error: err.toString() };
+  }
+}
+
+/**
+ * Update User Record in Users sheet
+ */
+function updateUserRecord(user) {
+  if (!user || (!user.id && !user.email)) return { success: false, message: 'Invalid payload' };
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.USERS);
+  if (!sheet) return { success: false, message: 'Users sheet not found' };
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idIdx = headers.indexOf('id');
+  const emailIdx = headers.indexOf('email');
+
+  for (let i = 1; i < data.length; i++) {
+    const rowId = String(data[i][idIdx]);
+    const rowEmail = String(data[i][emailIdx]).toLowerCase().trim();
+    if ((user.id && rowId === String(user.id)) || (user.email && rowEmail === String(user.email).toLowerCase().trim())) {
+      for (let j = 0; j < headers.length; j++) {
+        const header = headers[j];
+        if (user[header] !== undefined) {
+          sheet.getRange(i + 1, j + 1).setValue(user[header]);
+        }
+      }
+      return { success: true, updated: user };
+    }
+  }
+  return { success: false, message: 'User not found' };
 }
 
 /**

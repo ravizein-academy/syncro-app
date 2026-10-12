@@ -48,6 +48,8 @@ export interface User {
   avatar?: string;
   department: string;
   capacityHours: number;
+  status?: 'active' | 'pending';
+  requestedAt?: string;
 }
 
 export interface Space {
@@ -168,6 +170,8 @@ interface AppState {
   setUsers: (users: User[]) => void;
   updateUserRole: (userId: string, role: 'admin' | 'member' | 'guest') => void;
   addUser: (user: Omit<User, 'id'>) => void;
+  approveUser: (userId: string, role: 'admin' | 'member' | 'guest', department?: string) => void;
+  rejectUser: (userId: string) => void;
 
   // Notification Actions
   markNotificationAsRead: (id: string) => void;
@@ -427,12 +431,54 @@ export const useStore = create<AppState>()(
           },
         })),
 
+      approveUser: (userId, role, department) => {
+        const target = get().users.find((u) => u.id === userId);
+        if (!target) return;
+        const updated: User = {
+          ...target,
+          role,
+          department: department || target.department || 'Product & Tech',
+          status: 'active',
+        };
+        set((state) => ({
+          users: state.users.map((u) => (u.id === userId ? updated : u)),
+        }));
+
+        if (typeof fetch !== 'undefined') {
+          fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'updateUser',
+              payload: updated,
+            }),
+          }).catch((err) => console.warn('Failed to sync approved user:', err));
+        }
+      },
+
+      rejectUser: (userId) => {
+        set((state) => ({
+          users: state.users.filter((u) => u.id !== userId),
+        }));
+
+        if (typeof fetch !== 'undefined') {
+          fetch('/api/users', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'deleteUser',
+              payload: { id: userId },
+            }),
+          }).catch((err) => console.warn('Failed to delete rejected user:', err));
+        }
+      },
+
       login: (user) => {
         if (user) {
           const matched = get().users.find(
             (u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase()
           );
-          if (matched) {
+          if (matched && matched.status !== 'pending') {
             set({
               isAuthenticated: true,
               currentUser: matched,
@@ -447,7 +493,7 @@ export const useStore = create<AppState>()(
         const cleanEmail = email.trim().toLowerCase();
         const found = get().users.find((u) => u.email.toLowerCase() === cleanEmail);
 
-        if (found) {
+        if (found && found.status !== 'pending') {
           set({
             isAuthenticated: true,
             currentUser: found,
@@ -456,7 +502,7 @@ export const useStore = create<AppState>()(
           return true;
         }
 
-        // Email tidak terdaftar di database tim
+        // Email tidak terdaftar atau masih pending di database tim
         return false;
       },
 
