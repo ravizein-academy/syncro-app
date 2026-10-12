@@ -9,7 +9,10 @@ import {
   Users, 
   Search, 
   ShieldCheck,
-  ArrowRight
+  ArrowRight,
+  Trash2,
+  AlertTriangle,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,11 +28,15 @@ function DirectMessagesContent() {
     currentUser, 
     createOrSelectDMThread, 
     sendDMMessage, 
+    deleteDMMessage,
+    deleteDMThread,
   } = useStore();
 
   const [selectedThreadId, setSelectedThreadId] = useState<string>("");
   const [inputText, setInputText] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [deletingMsgId, setDeletingMsgId] = useState<string | null>(null);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // All teammates in workspace except current user
@@ -179,8 +186,21 @@ function DirectMessagesContent() {
     });
 
     setInputText("");
+    triggerDebouncedAutoSync(1000);
+  };
 
-    // Trigger cloud synchronization so messages reach other team members
+  const handleDeleteSingleMessage = (messageId: string) => {
+    if (!currentThread) return;
+    deleteDMMessage(currentThread.id, messageId);
+    setDeletingMsgId(null);
+    triggerDebouncedAutoSync(1000);
+  };
+
+  const handleDeleteEntireThread = () => {
+    if (!currentThread) return;
+    deleteDMThread(currentThread.id);
+    setShowClearConfirm(false);
+    setSelectedThreadId("");
     triggerDebouncedAutoSync(1000);
   };
 
@@ -314,7 +334,7 @@ function DirectMessagesContent() {
 
       {/* Main Chat Area */}
       {currentThread && currentPartner ? (
-        <div className="flex-1 flex flex-col bg-background">
+        <div className="flex-1 flex flex-col bg-background relative">
           {/* Active Conversation Top Bar */}
           <div className="h-16 border-b border-border px-6 flex items-center justify-between bg-card/60 backdrop-blur-sm">
             <div className="flex items-center gap-3">
@@ -334,11 +354,50 @@ function DirectMessagesContent() {
               </div>
             </div>
 
-            <div className="text-[11px] text-muted-foreground flex items-center gap-2">
-              <ShieldCheck size={14} className="text-[#EE3726]" />
-              <span>Percakapan Tim Syncro</span>
+            <div className="flex items-center gap-3">
+              <div className="hidden md:flex text-[11px] text-muted-foreground items-center gap-1.5">
+                <ShieldCheck size={14} className="text-[#EE3726]" />
+                <span>Percakapan Tim Syncro</span>
+              </div>
+              {/* Tombol Hapus Seluruh Obrolan */}
+              <button
+                onClick={() => setShowClearConfirm(true)}
+                className="p-2 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition flex items-center gap-1 text-xs"
+                title="Hapus Seluruh Obrolan"
+              >
+                <Trash2 size={15} />
+                <span className="hidden sm:inline text-[11px]">Hapus Obrolan</span>
+              </button>
             </div>
           </div>
+
+          {/* Banner Konfirmasi Hapus Seluruh Obrolan */}
+          {showClearConfirm && (
+            <div className="bg-red-500/10 border-b border-red-500/20 px-6 py-2.5 flex items-center justify-between transition-all">
+              <div className="flex items-center gap-2 text-xs text-red-500 font-medium">
+                <AlertTriangle size={15} />
+                <span>Yakin ingin menghapus seluruh riwayat percakapan dengan <strong>{currentPartner.name}</strong>?</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleDeleteEntireThread}
+                  className="h-7 px-3 text-xs bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                >
+                  Ya, Hapus
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowClearConfirm(false)}
+                  className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground rounded-lg"
+                >
+                  Batal
+                </Button>
+              </div>
+            </div>
+          )}
 
           {/* Messages Stream */}
           <div className="flex-1 p-6 overflow-y-auto space-y-4">
@@ -361,10 +420,13 @@ function DirectMessagesContent() {
                   (currentUser?.id && msg.senderId === currentUser.id) || 
                   (currentUser?.name && msg.senderName === currentUser.name);
 
+                const canDelete = isMe || currentUser?.role === "admin";
+                const isDeleting = deletingMsgId === msg.id;
+
                 return (
                   <div
                     key={msg.id}
-                    className={`flex items-start gap-3 ${isMe ? "flex-row-reverse" : "flex-row"}`}
+                    className={`flex items-start gap-3 group relative ${isMe ? "flex-row-reverse" : "flex-row"}`}
                   >
                     <div
                       className={`h-8 w-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
@@ -375,19 +437,53 @@ function DirectMessagesContent() {
                     >
                       {msg.senderName.substring(0, 2).toUpperCase()}
                     </div>
-                    <div className={`max-w-lg ${isMe ? "items-end" : "items-start"} flex flex-col`}>
+                    <div className={`max-w-lg ${isMe ? "items-end" : "items-start"} flex flex-col relative`}>
                       <div className={`flex items-center gap-2 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
                         <span className="text-xs font-bold text-foreground">{msg.senderName}</span>
                         <span className="text-[10px] text-muted-foreground">{msg.timestamp}</span>
                       </div>
-                      <div
-                        className={`mt-1 text-xs p-3.5 rounded-2xl shadow-sm leading-relaxed ${
-                          isMe
-                            ? "bg-[#EE3726] text-white rounded-tr-none"
-                            : "bg-card text-foreground border border-border rounded-tl-none"
-                        }`}
-                      >
-                        {msg.text}
+                      
+                      <div className={`mt-1 flex items-center gap-1.5 ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+                        <div
+                          className={`text-xs p-3.5 rounded-2xl shadow-sm leading-relaxed ${
+                            isMe
+                              ? "bg-[#EE3726] text-white rounded-tr-none"
+                              : "bg-card text-foreground border border-border rounded-tl-none"
+                          }`}
+                        >
+                          {msg.text}
+                        </div>
+
+                        {/* Opsi Hapus Pesan Individu */}
+                        {canDelete && (
+                          <div className="flex items-center">
+                            {isDeleting ? (
+                              <div className="flex items-center gap-1.5 bg-background border border-red-500/30 shadow-md px-2 py-1 rounded-xl text-[10px] animate-in fade-in zoom-in-95 duration-150">
+                                <span className="text-red-500 font-semibold">Hapus?</span>
+                                <button
+                                  onClick={() => handleDeleteSingleMessage(msg.id)}
+                                  className="text-white bg-red-600 hover:bg-red-700 font-bold px-1.5 py-0.5 rounded-md"
+                                >
+                                  Ya
+                                </button>
+                                <button
+                                  onClick={() => setDeletingMsgId(null)}
+                                  className="text-muted-foreground hover:text-foreground px-1"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setDeletingMsgId(msg.id)}
+                                className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
+                                title="Hapus pesan ini"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>

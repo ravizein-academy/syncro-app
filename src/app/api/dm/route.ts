@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getCachedDMs, saveDMMessageInMemory } from '@/lib/serverCache';
+import {
+  getCachedDMs,
+  saveDMMessageInMemory,
+  deleteCachedDMMessage,
+  deleteCachedDMThread,
+} from '@/lib/serverCache';
 
 const APPS_SCRIPT_URL =
   process.env.NEXT_PUBLIC_APPS_SCRIPT_URL ||
@@ -68,6 +73,88 @@ export async function POST(req: Request) {
     console.error('Error saving DM message:', error);
     return NextResponse.json(
       { status: 'error', message: error.message || 'Failed to send message' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const payload = await req.json();
+    const { threadId, messageId, deleteThread } = payload;
+
+    if (!threadId) {
+      return NextResponse.json(
+        { status: 'error', message: 'threadId is required' },
+        { status: 400 }
+      );
+    }
+
+    if (deleteThread) {
+      deleteCachedDMThread(threadId);
+
+      if (APPS_SCRIPT_URL) {
+        try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 4000);
+          await fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'deleteDMThread',
+              payload: { id: threadId },
+            }),
+            signal: controller.signal,
+          });
+          clearTimeout(timeoutId);
+        } catch (err: any) {
+          console.warn('[Sync to Apps Script deleteDMThread warning]', err?.message || err);
+        }
+      }
+
+      return NextResponse.json({
+        status: 'success',
+        deletedThreadId: threadId,
+      });
+    }
+
+    if (!messageId) {
+      return NextResponse.json(
+        { status: 'error', message: 'messageId is required' },
+        { status: 400 }
+      );
+    }
+
+    const updatedThread = deleteCachedDMMessage(threadId, messageId);
+
+    if (APPS_SCRIPT_URL && updatedThread) {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 4000);
+        await fetch(APPS_SCRIPT_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'saveDM',
+            payload: updatedThread,
+          }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+      } catch (err: any) {
+        console.warn('[Sync to Apps Script deleteDMMessage warning]', err?.message || err);
+      }
+    }
+
+    return NextResponse.json({
+      status: 'success',
+      deletedMessageId: messageId,
+      thread: updatedThread,
+    });
+  } catch (error: any) {
+    console.error('Error deleting DM message:', error);
+    return NextResponse.json(
+      { status: 'error', message: error.message || 'Failed to delete message' },
       { status: 500 }
     );
   }

@@ -163,6 +163,26 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
           }
         });
 
+        // 7. Direct Message Deleted SSE Event
+        es.addEventListener("dm_message_deleted", (e: MessageEvent) => {
+          try {
+            const data = JSON.parse(e.data);
+            const { threadId, messageId } = data;
+            if (!threadId || !messageId) return;
+            useStore.getState().deleteDMMessage(threadId, messageId);
+          } catch (err) {}
+        });
+
+        // 8. Direct Message Thread Deleted SSE Event
+        es.addEventListener("dm_thread_deleted", (e: MessageEvent) => {
+          try {
+            const data = JSON.parse(e.data);
+            const { threadId } = data;
+            if (!threadId) return;
+            useStore.getState().deleteDMThread(threadId);
+          } catch (err) {}
+        });
+
         es.onerror = () => {
           if (es.readyState === EventSource.CLOSED) {
             // Reconnect setelah 3 detik jika koneksi terputus

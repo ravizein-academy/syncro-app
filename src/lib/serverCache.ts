@@ -357,3 +357,50 @@ export function saveDMMessageInMemory(threadId: string, message: any, participan
   return thread;
 }
 
+export function deleteCachedDMMessage(threadId: string, messageId: string) {
+  if (!serverCache.dmThreads) return null;
+  const thread = serverCache.dmThreads.find((t) => t.id === threadId);
+  if (!thread) return null;
+
+  thread.messages = (thread.messages || []).filter((m: any) => m.id !== messageId);
+  serverCache.dmThreadsLastFetch = Date.now();
+
+  broadcastRealtimeEvent('dm_message_deleted', { threadId, messageId });
+
+  fireAndForget(
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'saveDM',
+        payload: thread,
+      }),
+    }),
+    `deleteDMMessage (${threadId}, ${messageId})`
+  );
+
+  return thread;
+}
+
+export function deleteCachedDMThread(threadId: string) {
+  if (!serverCache.dmThreads) return false;
+  serverCache.dmThreads = serverCache.dmThreads.filter((t) => t.id !== threadId);
+  serverCache.dmThreadsLastFetch = Date.now();
+
+  broadcastRealtimeEvent('dm_thread_deleted', { threadId });
+
+  fireAndForget(
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'deleteDMThread',
+        payload: { id: threadId },
+      }),
+    }),
+    `deleteDMThread (${threadId})`
+  );
+
+  return true;
+}
+

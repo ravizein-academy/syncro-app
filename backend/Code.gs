@@ -207,6 +207,14 @@ function doPost(e) {
         result = upsertDMThread(payload);
         break;
 
+      case 'deleteDMThread':
+        result = deleteDMThread(payload.id);
+        break;
+
+      case 'deleteDMMessage':
+        result = deleteDMMessage(payload.threadId, payload.messageId);
+        break;
+
       default:
         return jsonResponse({
           status: 'error',
@@ -516,6 +524,56 @@ function upsertDMThread(thread) {
   }
 
   return { success: true, thread: thread };
+}
+
+/**
+ * Delete a Direct Message Thread from DirectMessages sheet
+ */
+function deleteDMThread(id) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.DMS);
+  if (!sheet) return { success: false, message: 'Sheet not found' };
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idIndex = headers.indexOf('id');
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idIndex]) === String(id)) {
+      sheet.deleteRow(i + 1);
+      return { success: true, deletedId: id };
+    }
+  }
+  return { success: false, message: 'Thread not found: ' + id };
+}
+
+/**
+ * Delete a specific message inside a Direct Message Thread
+ */
+function deleteDMMessage(threadId, messageId) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.DMS);
+  if (!sheet) return { success: false, message: 'Sheet not found' };
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idIndex = headers.indexOf('id');
+  const msgIndex = headers.indexOf('messages');
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idIndex]) === String(threadId)) {
+      let messages = [];
+      try {
+        messages = JSON.parse(data[i][msgIndex]);
+      } catch (e) {
+        messages = [];
+      }
+      messages = messages.filter(function(m) { return String(m.id) !== String(messageId); });
+      sheet.getRange(i + 1, msgIndex + 1).setValue(JSON.stringify(messages));
+      return { success: true, threadId: threadId, deletedMessageId: messageId };
+    }
+  }
+  return { success: false, message: 'Thread not found' };
 }
 
 /**

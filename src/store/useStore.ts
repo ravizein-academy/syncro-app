@@ -169,6 +169,8 @@ interface AppState {
   setDMThreads: (dmThreads: DirectMessageThread[]) => void;
   createOrSelectDMThread: (participant: User) => string;
   sendDMMessage: (threadId: string, message: { text: string; senderId: string; senderName: string; senderEmail?: string }) => void;
+  deleteDMMessage: (threadId: string, messageId: string) => void;
+  deleteDMThread: (threadId: string) => void;
 
 
   // Teams & User Actions
@@ -454,6 +456,38 @@ export const useStore = create<AppState>()(
               participantEmails: thread?.participantEmails || [],
             }),
           }).catch((err) => console.warn('[DM Sync Warning]', err));
+        }
+      },
+
+      deleteDMMessage: (threadId, messageId) => {
+        set((state) => ({
+          dmThreads: state.dmThreads.map((t) =>
+            t.id === threadId
+              ? { ...t, messages: (t.messages || []).filter((m) => m.id !== messageId) }
+              : t
+          ),
+        }));
+
+        if (typeof fetch !== 'undefined') {
+          fetch('/api/dm', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ threadId, messageId }),
+          }).catch((err) => console.warn('[Delete DM Msg Warning]', err));
+        }
+      },
+
+      deleteDMThread: (threadId) => {
+        set((state) => ({
+          dmThreads: state.dmThreads.filter((t) => t.id !== threadId),
+        }));
+
+        if (typeof fetch !== 'undefined') {
+          fetch('/api/dm', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ threadId, deleteThread: true }),
+          }).catch((err) => console.warn('[Delete DM Thread Warning]', err));
         }
       },
 
