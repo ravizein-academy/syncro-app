@@ -128,9 +128,29 @@ export default function PlannerPage() {
   // Month / Week navigation offset
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
 
-  // Pull real Google Calendar events on initial load or user change
+  // Otomatis sinkronisasi Google Calendar secara realtime di background:
+  // 1. Saat pertama kali membuka halaman atau berganti akun
+  // 2. Saat berpindah tab/fokus kembali ke halaman ini (window focus)
+  // 3. Polling otomatis berkala setiap 30 detik tanpa perlu klik tombol apapun
   useEffect(() => {
-    fetchGoogleCalendarEvents(currentUser?.email);
+    const userEmail = currentUser?.email;
+    if (!userEmail) return;
+
+    fetchGoogleCalendarEvents(userEmail);
+
+    const handleFocus = () => {
+      fetchGoogleCalendarEvents(userEmail);
+    };
+    window.addEventListener("focus", handleFocus);
+
+    const interval = setInterval(() => {
+      fetchGoogleCalendarEvents(userEmail);
+    }, 30000);
+
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+      clearInterval(interval);
+    };
   }, [currentUser?.email]);
 
   // Dynamic 7 Days of the active week (Monday to Sunday)
@@ -330,6 +350,7 @@ export default function PlannerPage() {
 
     // Save to Google Calendar cloud and local store
     await createCalendarEventOnCloud(newEvent);
+    fetchGoogleCalendarEvents(currentUser?.email);
 
     // Also add as scheduled task in store
     addTask({
@@ -457,18 +478,6 @@ export default function PlannerPage() {
             </button>
           </div>
 
-          {/* Sync Button */}
-          <Button
-            size="sm"
-            onClick={handleSyncWithGoogleCalendar}
-            disabled={isSyncing}
-            variant="outline"
-            className="h-9 px-3 text-xs gap-1.5 border-border font-semibold hover:border-[#4285F4] hover:text-[#4285F4] rounded-xl"
-            title="Sinkronisasi 2-arah dengan Google Calendar"
-          >
-            <RefreshCw size={13} className={isSyncing ? "animate-spin text-[#4285F4]" : "text-[#4285F4]"} />
-            <span className="hidden sm:inline">{isSyncing ? "Menyinkronkan..." : "Sync Calendar"}</span>
-          </Button>
 
           {/* + New Event Button */}
           <Button

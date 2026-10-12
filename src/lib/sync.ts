@@ -162,11 +162,20 @@ export async function pullCloudData(specificEmail?: string): Promise<{
       const mergedTasks = Array.from(taskMap.values());
       store.setTasks(mergedTasks);
 
+      // Auto-sync calendar events in background for this user
+      if (userEmail) {
+        fetchGoogleCalendarEvents(userEmail).catch(() => {});
+      }
+
       return {
         success: true,
         pulledCount: remoteTasks.length,
         message: `Berhasil memuat ${remoteTasks.length} tugas tim untuk workspace`,
       };
+    }
+
+    if (userEmail) {
+      fetchGoogleCalendarEvents(userEmail).catch(() => {});
     }
 
     return { success: true, pulledCount: 0, message: 'Cloud data up to date' };
