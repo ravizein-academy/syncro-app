@@ -18,7 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { translations } from "@/lib/i18n";
 
 export default function TeamsPage() {
-  const { users, tasks, updateUserRole, addUser, language } = useStore();
+  const { users, tasks, currentUser, updateUserRole, addUser, language } = useStore();
   const t = translations[language || 'id'];
 
   const [openInvite, setOpenInvite] = useState(false);
@@ -69,20 +69,21 @@ export default function TeamsPage() {
           </p>
         </div>
 
-        <Dialog open={openInvite} onOpenChange={setOpenInvite}>
-          <DialogTrigger
-            render={
-              <Button className="bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs gap-1.5 h-9 shadow-md shadow-rose-950/40 rounded-lg">
-                <Plus size={14} />
-                <span>{t.inviteMemberBtn}</span>
-              </Button>
-            }
-          />
-          <DialogContent className="bg-card border-border text-foreground sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle className="text-lg font-bold">{t.inviteMemberBtn}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleInviteUser} className="space-y-4 pt-2">
+        {currentUser?.role === 'admin' && (
+          <Dialog open={openInvite} onOpenChange={setOpenInvite}>
+            <DialogTrigger
+              render={
+                <Button className="bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs gap-1.5 h-9 shadow-md shadow-rose-950/40 rounded-lg">
+                  <Plus size={14} />
+                  <span>{t.inviteMemberBtn}</span>
+                </Button>
+              }
+            />
+            <DialogContent className="bg-card border-border text-foreground sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-bold">{t.inviteMemberBtn}</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleInviteUser} className="space-y-4 pt-2">
               <div>
                 <label className="text-xs text-muted-foreground mb-1 block">{t.inviteNameLabel}</label>
                 <Input
@@ -141,6 +142,7 @@ export default function TeamsPage() {
             </form>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {/* Member Cards Grid */}
@@ -188,15 +190,21 @@ export default function TeamsPage() {
                   </div>
                 </div>
 
-                <select
-                  value={user.role}
-                  onChange={(e: any) => updateUserRole(user.id, e.target.value)}
-                  className="bg-secondary border border-border text-[11px] rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-rose-500"
-                >
-                  <option value="admin">Admin</option>
-                  <option value="member">Member</option>
-                  <option value="guest">Guest</option>
-                </select>
+                {currentUser?.role === 'admin' ? (
+                  <select
+                    value={user.role}
+                    onChange={(e: any) => updateUserRole(user.id, e.target.value)}
+                    className="bg-secondary border border-border text-[11px] rounded-lg px-2 py-1 text-foreground focus:outline-none focus:border-rose-500 capitalize"
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="member">Member</option>
+                    <option value="guest">Guest</option>
+                  </select>
+                ) : (
+                  <span className="bg-secondary border border-border text-[10px] font-semibold rounded-md px-2 py-0.5 text-muted-foreground uppercase">
+                    {user.role}
+                  </span>
+                )}
               </div>
 
               {/* Capacity & Workload Bar */}

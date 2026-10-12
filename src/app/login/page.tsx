@@ -48,7 +48,7 @@ function GoogleGLogo({ size = 18 }: { size?: number }) {
 
 export default function LoginPage() {
   const router = useRouter();
-  const { users, currentUser, isAuthenticated, login, loginWithGoogle, language, setLanguage } = useStore();
+  const { users, currentUser, isAuthenticated, login, loginWithGoogle, logout, language, setLanguage } = useStore();
   const t = translations[language || "id"];
 
   const [email, setEmail] = useState("");
@@ -58,18 +58,13 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [loginMethod, setLoginMethod] = useState<"google" | "email" | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   // Perangkat ini mengingat akun pemiliknya sendiri (Auto-Remember Device)
   const [rememberedAccount, setRememberedAccount] = useState<{ email: string; name: string; avatar?: string } | null>(null);
 
   useEffect(() => {
-    // 1. Jika sesi sudah aktif, langsung alihkan ke Dashboard
-    if (isAuthenticated && currentUser) {
-      router.replace("/");
-      return;
-    }
-
-    // 2. Baca akun yang diingat khusus di perangkat/browser ini
+    // Baca akun yang diingat khusus di perangkat/browser ini
     try {
       const saved = localStorage.getItem("syncro_remembered_device_account");
       if (saved) {
@@ -82,7 +77,7 @@ export default function LoginPage() {
     } catch (e) {
       console.warn("Failed to load remembered device account:", e);
     }
-  }, [isAuthenticated, currentUser, router]);
+  }, []);
 
   // Google Account Chooser Modal State (Hanya untuk perangkat baru yang belum ada akun tersimpan)
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
@@ -180,7 +175,14 @@ export default function LoginPage() {
 
     login(matchedUser);
     setIsLoading(false);
-    router.push("/");
+    setSuccessMessage(
+      language === "en"
+        ? `Access Granted: Welcome, ${matchedUser.name} (${matchedUser.role})!`
+        : `Akses Diterima: Selamat datang, ${matchedUser.name} (${matchedUser.role})!`
+    );
+    setTimeout(() => {
+      router.push("/");
+    }, 600);
   };
 
   // Standard Email & Password Login (Strict Database Check)
@@ -190,6 +192,7 @@ export default function LoginPage() {
     if (!cleanEmail) return;
 
     setErrorMessage(null);
+    setSuccessMessage(null);
     setIsLoading(true);
     setLoginMethod("email");
 
@@ -242,7 +245,14 @@ export default function LoginPage() {
 
     login(matchedUser);
     setIsLoading(false);
-    router.push("/");
+    setSuccessMessage(
+      language === "en"
+        ? `Access Granted: Welcome, ${matchedUser.name} (${matchedUser.role})!`
+        : `Akses Diterima: Selamat datang, ${matchedUser.name} (${matchedUser.role})!`
+    );
+    setTimeout(() => {
+      router.push("/");
+    }, 600);
   };
 
   return (
@@ -299,6 +309,58 @@ export default function LoginPage() {
           </CardHeader>
 
           <CardContent className="p-6 pt-2 space-y-4">
+            {/* Active Session Info Banner */}
+            {isAuthenticated && currentUser && (
+              <div className="p-3.5 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl space-y-2.5 animate-in fade-in-0 duration-200">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-9 w-9 rounded-full bg-gradient-to-br from-[#EE3726] to-[#BA1E10] flex items-center justify-center text-xs font-bold text-white shadow-xs">
+                    {currentUser.avatar || currentUser.name.slice(0, 2).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-foreground truncate">{currentUser.name}</p>
+                      <span className="text-[9px] bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold px-1.5 py-0.2 rounded-full border border-emerald-500/20 capitalize">
+                        {currentUser.role}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground truncate">{currentUser.email}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 pt-1">
+                  <Button
+                    type="button"
+                    onClick={() => router.push("/")}
+                    className="flex-1 h-8 text-xs font-bold bg-[#EE3726] hover:bg-[#D32717] text-white rounded-lg shadow-xs"
+                  >
+                    Lanjut ke Dashboard
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      logout();
+                      localStorage.removeItem("syncro_remembered_device_account");
+                      setRememberedAccount(null);
+                      setEmail("");
+                    }}
+                    className="flex-1 h-8 text-xs font-semibold text-rose-600 border-rose-500/30 hover:bg-rose-500/10 rounded-lg"
+                  >
+                    Keluar / Ganti Akun
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Success Message Alert */}
+            {successMessage && (
+              <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-start gap-2.5 text-xs text-emerald-600 dark:text-emerald-400 animate-in fade-in-0 duration-200">
+                <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-emerald-500" />
+                <div className="flex-1">
+                  <p className="font-semibold leading-tight">{successMessage}</p>
+                </div>
+              </div>
+            )}
+
             {/* Error Message Alert */}
             {errorMessage && (
               <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-start gap-2.5 text-xs text-red-600 dark:text-red-400 animate-in fade-in-0 duration-200">
