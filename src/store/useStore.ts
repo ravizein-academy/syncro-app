@@ -173,7 +173,7 @@ interface AppState {
   approveUser: (userId: string, role: 'admin' | 'member' | 'guest', department?: string, userEmail?: string) => void;
   rejectUser: (userId: string, userEmail?: string) => void;
   updateUser: (userId: string, updates: Partial<User>) => void;
-  deleteUser: (userId: string) => void;
+  deleteUser: (userId: string, userEmail?: string) => void;
 
   // Notification Actions
   markNotificationAsRead: (id: string) => void;
@@ -522,10 +522,19 @@ export const useStore = create<AppState>()(
         }
       },
 
-      deleteUser: (userId) => {
-        const target = get().users.find((u) => u.id === userId);
+      deleteUser: (userId, userEmail) => {
+        const target = get().users.find((u) =>
+          (userEmail && u.email?.toLowerCase().trim() === userEmail.toLowerCase().trim()) ||
+          (userId && userId !== '' && u.id === userId)
+        );
+        const emailToDelete = target?.email || userEmail || '';
+
         set((state) => ({
-          users: state.users.filter((u) => u.id !== userId),
+          users: state.users.filter((u) => {
+            if (emailToDelete && u.email?.toLowerCase().trim() === emailToDelete.toLowerCase().trim()) return false;
+            if (userId && userId !== '' && u.id === userId) return false;
+            return true;
+          }),
         }));
 
         if (typeof fetch !== 'undefined') {
@@ -534,7 +543,7 @@ export const useStore = create<AppState>()(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               action: 'deleteUser',
-              payload: { id: userId, email: target?.email },
+              payload: { id: userId, email: emailToDelete },
             }),
           }).catch((err) => console.warn('Failed to delete user:', err));
         }

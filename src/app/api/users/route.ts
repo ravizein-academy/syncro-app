@@ -45,6 +45,9 @@ export async function GET() {
 
       // 1. Cek apakah ada status persetujuan dari Admin (ACC langsung di web / email)
       const override = userStatusOverrides.get(email);
+      if (override?.status === 'deleted') {
+        return null;
+      }
       if (override) {
         return {
           ...u,
@@ -73,7 +76,7 @@ export async function GET() {
         status: 'pending',
         requestedAt: u.requestedAt || 'Menunggu persetujuan'
       };
-    });
+    }).filter(Boolean);
 
     return NextResponse.json({ status: 'success', users });
   } catch (error: any) {
@@ -105,7 +108,10 @@ export async function POST(req: Request) {
     } else if (action === 'deleteUser') {
       const email = (payload?.email || '').toLowerCase().trim();
       if (email) {
-        userStatusOverrides.delete(email);
+        userStatusOverrides.set(email, {
+          status: 'deleted',
+          updatedAt: Date.now(),
+        });
       }
     }
 

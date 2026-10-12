@@ -116,14 +116,14 @@ export default function TeamsPage() {
   const handleConfirmDelete = () => {
     if (!deletingUser) return;
     if (
-      deletingUser.id === currentUser?.id ||
-      deletingUser.email.toLowerCase() === currentUser?.email.toLowerCase()
+      deletingUser.email.toLowerCase().trim() === currentUser?.email.toLowerCase().trim() ||
+      deletingUser.email.toLowerCase().trim() === 'ravizein@itsecacademy.com'
     ) {
-      alert("Anda tidak dapat menghapus akun Anda sendiri.");
+      alert("Anda tidak dapat menghapus akun Admin utama.");
       return;
     }
 
-    deleteUser(deletingUser.id);
+    deleteUser(deletingUser.id, deletingUser.email);
     setDeletingUser(null);
   };
 

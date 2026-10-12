@@ -1,6 +1,5 @@
-// Shared user overrides map for status approval (persisted in server memory)
 export interface UserOverride {
-  status: 'active' | 'pending' | 'inactive';
+  status: 'active' | 'pending' | 'inactive' | 'deleted';
   role?: string;
   department?: string;
   updatedAt: number;
@@ -11,8 +10,6 @@ const globalForOverrides = globalThis as unknown as {
 };
 
 export const userStatusOverrides =
-  globalForOverrides.syncroUserStatusOverrides || new Map<string, UserOverride>();
+  globalForOverrides.syncroUserStatusOverrides ||
+  (globalForOverrides.syncroUserStatusOverrides = new Map<string, UserOverride>());
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForOverrides.syncroUserStatusOverrides = userStatusOverrides;
-}
