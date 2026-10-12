@@ -83,23 +83,9 @@ export async function pullCloudData(specificEmail?: string): Promise<{
     const remoteUsers = remoteData?.users || [];
     const remoteDMs = remoteData?.dmThreads || [];
 
-    // 1. Sync & Merge All Team Members from Cloud
-    if (Array.isArray(remoteUsers) && remoteUsers.length > 0) {
-      const userMap = new Map<string, any>();
-      remoteUsers.forEach((u) => {
-        if (u && (u.id || u.email)) {
-          const key = (u.email || u.id).toLowerCase().trim();
-          userMap.set(key, u);
-        }
-      });
-      store.users.forEach((u) => {
-        if (u && (u.id || u.email)) {
-          const key = (u.email || u.id).toLowerCase().trim();
-          const existing = userMap.get(key);
-          userMap.set(key, existing ? { ...existing, ...u } : u);
-        }
-      });
-      store.setUsers(Array.from(userMap.values()));
+    // 1. Sync All Team Members from Cloud (Single Source of Truth)
+    if (Array.isArray(remoteUsers)) {
+      store.setUsers(remoteUsers);
     }
 
     // 2. Sync & Merge All Spaces from Cloud
