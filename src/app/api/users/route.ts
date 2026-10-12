@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 import { userStatusOverrides } from '@/lib/userOverrides';
+import {
+  getCachedUsers,
+  updateCachedUser,
+  deleteCachedUser,
+  broadcastRealtimeEvent,
+} from '@/lib/serverCache';
 
 const APPS_SCRIPT_URL =
   process.env.NEXT_PUBLIC_APPS_SCRIPT_URL ||
@@ -8,79 +14,72 @@ const APPS_SCRIPT_URL =
 
 export async function GET() {
   try {
-    if (!APPS_SCRIPT_URL) {
-      return NextResponse.json({ status: 'warning', users: [] });
-    }
+    // Ambil user dari fast server-cache (< 5ms)
+    const rawUsers = await getCachedUsers();
 
-    const res = await fetch(`${APPS_SCRIPT_URL}?action=getUsers`, {
-      method: 'GET',
-      headers: { 'Accept': 'application/json' },
-      cache: 'no-store'
-    });
+    // Format & validasi status pengguna
+    const users = rawUsers
+      .map((u: any) => {
+        const email = (u.email || '').toLowerCase().trim();
+        const isMasterAdmin = email === 'ravizein@itsecacademy.com';
 
-    if (!res.ok) {
-      throw new Error(`Google Apps Script responded with ${res.status}`);
-    }
+        const userId =
+          u.id && u.id !== ''
+            ? u.id
+            : u.sta && u.sta !== ''
+            ? u.sta
+            : isMasterAdmin
+            ? 'user_1'
+            : `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`;
 
-    const json = await res.json();
-    const rawUsers = json?.data?.users || json?.users || [];
-    
-    // Pastikan setiap user memiliki status yang valid (Admin = active, pemohon baru = pending)
-    const users = rawUsers.map((u: any, index: number) => {
-      const email = (u.email || '').toLowerCase().trim();
-      const isMasterAdmin = email === 'ravizein@itsecacademy.com';
+        if (isMasterAdmin) {
+          return {
+            ...u,
+            id: 'user_1',
+            role: 'admin',
+            status: 'active',
+          };
+        }
 
-      const userId = (u.id && u.id !== '') 
-        ? u.id 
-        : (u.sta && u.sta !== '' ? u.sta : (isMasterAdmin ? 'user_1' : `user_${email.replace(/[^a-zA-Z0-9]/g, '_')}`));
+        // 1. Cek apakah ada status persetujuan dari Admin di memory override
+        const override = userStatusOverrides.get(email);
+        if (override?.status === 'deleted') {
+          return null;
+        }
+        if (override) {
+          return {
+            ...u,
+            id: userId,
+            role: override.role || u.role,
+            department: override.department || u.department,
+            status: override.status,
+            requestedAt: u.requestedAt || 'Disetujui Admin',
+          };
+        }
 
-      if (isMasterAdmin) {
-        return {
-          ...u,
-          id: 'user_1',
-          role: 'admin',
-          status: 'active'
-        };
-      }
+        // 2. Jika user di Google Sheets sudah memiliki status 'active' atau 'inactive'
+        if (u.status === 'active' || u.status === 'inactive') {
+          return {
+            ...u,
+            id: userId,
+            status: u.status,
+            requestedAt: u.requestedAt || 'Menunggu persetujuan',
+          };
+        }
 
-      // 1. Cek apakah ada status persetujuan dari Admin (ACC langsung di web / email)
-      const override = userStatusOverrides.get(email);
-      if (override?.status === 'deleted') {
-        return null;
-      }
-      if (override) {
+        // 3. Jika belum di-ACC, status tetap pending
         return {
           ...u,
           id: userId,
-          role: override.role || u.role,
-          department: override.department || u.department,
-          status: override.status,
-          requestedAt: u.requestedAt || 'Disetujui Admin'
+          status: 'pending',
+          requestedAt: u.requestedAt || 'Menunggu persetujuan',
         };
-      }
-
-      // 2. Jika user di Google Sheets sudah memiliki status 'active' atau 'inactive'
-      if (u.status === 'active' || u.status === 'inactive') {
-        return {
-          ...u,
-          id: userId,
-          status: u.status,
-          requestedAt: u.requestedAt || 'Menunggu persetujuan'
-        };
-      }
-
-      // 3. Jika belum di-ACC, status tetap pending
-      return {
-        ...u,
-        id: userId,
-        status: 'pending',
-        requestedAt: u.requestedAt || 'Menunggu persetujuan'
-      };
-    }).filter(Boolean);
+      })
+      .filter(Boolean);
 
     return NextResponse.json({ status: 'success', users });
   } catch (error: any) {
-    console.error('Error fetching users from Apps Script:', error);
+    console.error('Error fetching users:', error);
     return NextResponse.json(
       { status: 'error', message: error.message || 'Failed to fetch users', users: [] },
       { status: 500 }
@@ -94,9 +93,9 @@ export async function POST(req: Request) {
     const action = body.action || 'createUser';
     const payload = body.payload !== undefined ? body.payload : body;
 
-    // Simpan status update langsung ke in-memory override
+    const email = (payload?.email || '').toLowerCase().trim();
+
     if (action === 'updateUser') {
-      const email = (payload?.email || '').toLowerCase().trim();
       if (email) {
         userStatusOverrides.set(email, {
           status: payload?.status || 'active',
@@ -104,66 +103,41 @@ export async function POST(req: Request) {
           department: payload?.department,
           updatedAt: Date.now(),
         });
+
+        // Update in-memory cache & broadcast SSE (< 5ms)
+        updateCachedUser({
+          ...payload,
+          email,
+          status: payload?.status || 'active',
+        });
       }
-    } else if (action === 'deleteUser') {
-      const email = (payload?.email || '').toLowerCase().trim();
+      return NextResponse.json({ status: 'success', data: payload });
+    }
+
+    if (action === 'deleteUser') {
       if (email) {
         userStatusOverrides.set(email, {
           status: 'deleted',
           updatedAt: Date.now(),
         });
+
+        // Hapus dari in-memory cache & broadcast SSE auto-kick (< 5ms)
+        deleteCachedUser(email, payload?.id);
       }
+      return NextResponse.json({ status: 'success', data: { success: true, deleted: email } });
     }
 
-    if (!APPS_SCRIPT_URL) {
-      return NextResponse.json({ status: 'success', data: payload, localOnly: true });
+    // Default flow: createUser / createRecord
+    if (action === 'createUser') {
+      updateCachedUser(payload);
     }
 
-    // Metode A (Failsafe): Untuk deleteUser & updateUser, kirim via GET parameter
-    // agar kebal terhadap issue Google Apps Script HTTP 302 drop body
-    if (action === 'deleteUser') {
-      const deleteUrl = `${APPS_SCRIPT_URL}?action=deleteUser&id=${encodeURIComponent(payload?.id || '')}&email=${encodeURIComponent(payload?.email || '')}`;
-      try {
-        const getRes = await fetch(deleteUrl, { method: 'GET', headers: { 'Accept': 'application/json' }, cache: 'no-store' });
-        if (getRes.ok) {
-          const json = await getRes.json().catch(() => null);
-          if (json && json.status === 'success') {
-            return NextResponse.json({ status: 'success', data: json });
-          }
-        }
-      } catch (e) {
-        console.warn('GET deleteUser fallback failed:', e);
-      }
-    }
-
-    if (action === 'updateUser') {
-      const updateUrl = `${APPS_SCRIPT_URL}?action=updateUser&id=${encodeURIComponent(payload?.id || '')}&email=${encodeURIComponent(payload?.email || '')}&name=${encodeURIComponent(payload?.name || '')}&role=${encodeURIComponent(payload?.role || '')}&department=${encodeURIComponent(payload?.department || '')}&status=${encodeURIComponent(payload?.status || 'active')}`;
-      try {
-        const getRes = await fetch(updateUrl, { method: 'GET', headers: { 'Accept': 'application/json' }, cache: 'no-store' });
-        if (getRes.ok) {
-          const json = await getRes.json().catch(() => null);
-          if (json && json.status === 'success') {
-            return NextResponse.json({ status: 'success', data: json });
-          }
-        }
-      } catch (e) {
-        console.warn('GET updateUser fallback failed:', e);
-      }
-    }
-
-    // Metode B: Kirim via POST
-    const res = await fetch(APPS_SCRIPT_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action,
-        payload
-      })
-    });
-
-    const result = await res.json().catch(() => ({ status: 'success' }));
-    return NextResponse.json({ status: 'success', data: result });
+    return NextResponse.json({ status: 'success', data: payload });
   } catch (error: any) {
-    return NextResponse.json({ status: 'error', message: error.message }, { status: 500 });
+    console.error('User action error:', error);
+    return NextResponse.json(
+      { status: 'error', message: error.message || 'Action failed' },
+      { status: 500 }
+    );
   }
 }

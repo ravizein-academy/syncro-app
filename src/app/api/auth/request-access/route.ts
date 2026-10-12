@@ -35,21 +35,25 @@ export async function POST(req: Request) {
       requestedAt: timeStr
     };
 
-    // 1 & 2. Jalankan simpan user dan kirim email notifikasi secara PARALEL (Promise.allSettled)
-    // agar response cepat (1-2 detik) dan tidak membuat loading aplikasi lambat/lelet!
+    // Update server cache & broadcast realtime notification ke Admin
+    const { updateCachedUser } = await import('@/lib/serverCache');
+    updateCachedUser(pendingUser);
+
+    // 1 & 2. Jalankan simpan user dan kirim email notifikasi di background (Non-blocking)
     const createUrl = `${APPS_SCRIPT_URL}?action=createUser&id=${encodeURIComponent(pendingUser.id)}&name=${encodeURIComponent(pendingUser.name)}&email=${encodeURIComponent(pendingUser.email)}&role=member&department=${encodeURIComponent(pendingUser.department)}&avatar=${encodeURIComponent(pendingUser.avatar)}&status=pending&requestedAt=${encodeURIComponent(timeStr)}`;
     const notifyGetUrl = `${APPS_SCRIPT_URL}?action=notifyAdminAccessRequest&email=${encodeURIComponent(cleanEmail)}&name=${encodeURIComponent(cleanName)}&time=${encodeURIComponent(timeStr)}`;
 
-    await Promise.allSettled([
+    Promise.allSettled([
       fetch(createUrl, { method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store' }),
       fetch(notifyGetUrl, { method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store' }),
-    ]);
+    ]).catch((e) => console.warn('[Request Access Background Sync Warning]', e));
 
     return NextResponse.json({
       status: 'success',
       message: 'Permintaan akses berhasil dikirim ke Admin.',
       pendingUser
     });
+
   } catch (error: any) {
     console.error('Error requesting access:', error);
     return NextResponse.json(

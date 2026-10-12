@@ -4,6 +4,7 @@ import "./globals.css";
 import { Suspense } from "react";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
 import { AutoSyncProvider } from "@/components/providers/AutoSyncProvider";
+import { RealtimeProvider } from "@/components/providers/RealtimeProvider";
 import { AppShell } from "@/components/layout/AppShell";
 
 const fontSans = Plus_Jakarta_Sans({
@@ -31,13 +32,16 @@ export default function RootLayout({
     <html lang="id" className={`${fontSans.variable} font-sans h-full antialiased`}>
       <body className="h-full bg-background text-foreground font-sans selection:bg-rose-500/30 selection:text-rose-600 transition-colors duration-200">
         <ThemeProvider>
-          <AutoSyncProvider>
-            <Suspense fallback={<div className="h-screen w-screen bg-background" />}>
-              <AppShell>{children}</AppShell>
-            </Suspense>
-          </AutoSyncProvider>
+          <RealtimeProvider>
+            <AutoSyncProvider>
+              <Suspense fallback={<div className="h-screen w-screen bg-background" />}>
+                <AppShell>{children}</AppShell>
+              </Suspense>
+            </AutoSyncProvider>
+          </RealtimeProvider>
         </ThemeProvider>
       </body>
     </html>
   );
 }
+

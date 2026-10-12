@@ -28,6 +28,16 @@ export async function GET(req: Request) {
       updatedAt: Date.now(),
     });
 
+    // Perbarui fast server-cache & broadcast seketika lewat SSE
+    const { updateCachedUser } = await import('@/lib/serverCache');
+    updateCachedUser({
+      email: targetEmail,
+      role: targetRole,
+      department: targetDept,
+      status: 'active',
+    });
+
+
     // 1. Update user ke Google Sheets melalui Apps Script
     if (APPS_SCRIPT_URL) {
       // Metode A: GET parameter (reliabel tanpa drop body 302)
