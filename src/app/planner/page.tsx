@@ -106,8 +106,41 @@ export default function PlannerPage() {
   const [eventEndTime, setEventEndTime] = useState("11:00");
   const [includeMeet, setIncludeMeet] = useState(true);
 
-  // Month / Week navigation offset
-  const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
+  // Selected Date state (controls active view date for Day, Week, and Month)
+  const [selectedDate, setSelectedDate] = useState<Date>(() => new Date());
+
+  // Navigation handlers for all views
+  const handlePrev = () => {
+    setSelectedDate((prev) => {
+      const next = new Date(prev);
+      if (gcalView === "month") {
+        next.setMonth(next.getMonth() - 1);
+      } else if (gcalView === "week" || gcalView === "agenda") {
+        next.setDate(next.getDate() - 7);
+      } else {
+        next.setDate(next.getDate() - 1);
+      }
+      return next;
+    });
+  };
+
+  const handleNext = () => {
+    setSelectedDate((prev) => {
+      const next = new Date(prev);
+      if (gcalView === "month") {
+        next.setMonth(next.getMonth() + 1);
+      } else if (gcalView === "week" || gcalView === "agenda") {
+        next.setDate(next.getDate() + 7);
+      } else {
+        next.setDate(next.getDate() + 1);
+      }
+      return next;
+    });
+  };
+
+  const handleToday = () => {
+    setSelectedDate(new Date());
+  };
 
   // Otomatis sinkronisasi Google Calendar secara realtime di background:
   // 1. Saat pertama kali membuka halaman atau berganti akun
@@ -134,15 +167,13 @@ export default function PlannerPage() {
     };
   }, [currentUser?.email]);
 
-  // Dynamic 7 Days of the active week (Monday to Sunday)
+  // Dynamic 7 Days of the active week (Monday to Sunday) containing selectedDate
   const weekDays = useMemo(() => {
-    const baseDate = new Date();
-    baseDate.setDate(baseDate.getDate() + currentWeekOffset * 7);
-
-    // Find Monday of that week
-    const dayOfWeek = baseDate.getDay();
-    const diffToMonday = baseDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    const monday = new Date(baseDate.setDate(diffToMonday));
+    const d = new Date(selectedDate);
+    const day = d.getDay();
+    const diffToMonday = day === 0 ? -6 : 1 - day;
+    const monday = new Date(d);
+    monday.setDate(d.getDate() + diffToMonday);
 
     const dayNamesID = ["SEN", "SEL", "RAB", "KAM", "JUM", "SAB", "MIN"];
     const dayNamesEN = ["MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN"];
@@ -150,78 +181,93 @@ export default function PlannerPage() {
     const fullNamesEN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
     return Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(monday);
-      d.setDate(monday.getDate() + i);
-      const dStr = formatDateLocal(d);
+      const cur = new Date(monday);
+      cur.setDate(monday.getDate() + i);
+      const dStr = formatDateLocal(cur);
       return {
         name: language === "en" ? dayNamesEN[i] : dayNamesID[i],
         full: language === "en" ? fullNamesEN[i] : fullNamesID[i],
-        date: d.getDate(),
+        date: cur.getDate(),
         dateStr: dStr,
         isToday: dStr === todayDateStr,
+        rawDate: cur,
       };
     });
-  }, [currentWeekOffset, language, todayDateStr]);
+  }, [selectedDate, language, todayDateStr]);
 
   // Dynamic Month & Year title for Header
-  const activeMonthYearTitle = useMemo(() => {
-    if (weekDays.length === 0) return "";
-    const midDay = new Date(weekDays[3].dateStr);
-    const formatted = midDay.toLocaleDateString(language === "en" ? "en-US" : "id-ID", {
+  const activePeriodTitle = useMemo(() => {
+    if (gcalView === "day") {
+      const formatted = selectedDate.toLocaleDateString(language === "en" ? "en-US" : "id-ID", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      });
+      return formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    }
+    const formatted = selectedDate.toLocaleDateString(language === "en" ? "en-US" : "id-ID", {
       month: "long",
       year: "numeric",
     });
     return formatted.charAt(0).toUpperCase() + formatted.slice(1);
-  }, [weekDays, language]);
+  }, [selectedDate, gcalView, language]);
 
   // Dynamic Month Grid Days (for Month View)
   const monthGridDays = useMemo(() => {
-    const ref = weekDays.length > 0 ? new Date(weekDays[3].dateStr) : new Date();
-    const year = ref.getFullYear();
-    const month = ref.getMonth();
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
 
-    const firstDayIndex = new Date(year, month, 1).getDay(); // 0 is Sun
-    const totalDays = new Date(year, month + 1, 0).getDate();
-    const prevMonthTotalDays = new Date(year, month, 0).getDate();
+    const firstDayOfWeek = new Date(year, month, 1).getDay(); // 0 is Sun, 6 is Sat
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
 
-    const leadingDays = Array.from({ length: firstDayIndex }, (_, i) => {
-      const dayNum = prevMonthTotalDays - firstDayIndex + 1 + i;
-      const d = new Date(year, month - 1, dayNum);
+    const cells: {
+      dayNum: number;
+      dateStr: string;
+      isCurrentMonth: boolean;
+      isToday: boolean;
+    }[] = [];
+
+    // Leading days from previous month
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      const d = new Date(year, month - 1, prevMonthDays - i);
       const dStr = formatDateLocal(d);
-      return {
-        dayNum,
+      cells.push({
+        dayNum: prevMonthDays - i,
+        dateStr: dStr,
         isCurrentMonth: false,
-        dateStr: dStr,
         isToday: dStr === todayDateStr,
-      };
-    });
+      });
+    }
 
-    const currentDays = Array.from({ length: totalDays }, (_, i) => {
-      const dayNum = i + 1;
-      const d = new Date(year, month, dayNum);
+    // Days in current month
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(year, month, i);
       const dStr = formatDateLocal(d);
-      return {
-        dayNum,
-        isCurrentMonth: true,
+      cells.push({
+        dayNum: i,
         dateStr: dStr,
+        isCurrentMonth: true,
         isToday: dStr === todayDateStr,
-      };
-    });
+      });
+    }
 
-    return [...leadingDays, ...currentDays];
-  }, [weekDays, todayDateStr]);
+    // Trailing days from next month to complete standard grid (multiple of 7)
+    const remaining = (7 - (cells.length % 7)) % 7;
+    for (let i = 1; i <= remaining; i++) {
+      const d = new Date(year, month + 1, i);
+      const dStr = formatDateLocal(d);
+      cells.push({
+        dayNum: i,
+        dateStr: dStr,
+        isCurrentMonth: false,
+        isToday: dStr === todayDateStr,
+      });
+    }
 
-  // Active day for Day View (defaults to today if present, or first day of current week)
-  const activeDay = useMemo(() => {
-    const todayMatch = weekDays.find((w) => w.isToday);
-    return todayMatch || weekDays[0] || {
-      name: language === "en" ? "Today" : "Hari Ini",
-      full: language === "en" ? "Today" : "Hari Ini",
-      date: new Date().getDate(),
-      dateStr: todayDateStr,
-      isToday: true,
-    };
-  }, [weekDays, todayDateStr, language]);
+    return cells;
+  }, [selectedDate, todayDateStr]);
 
   // Filter agenda & tugas spesifik untuk akun yang sedang aktif (currentUser)
   const currentEmail = currentUser?.email?.toLowerCase().trim();
@@ -242,30 +288,75 @@ export default function PlannerPage() {
     });
   }, [tasks, currentEmail]);
 
-  // Map all events (Google Calendar + Syncro tasks) by dateStr for Month View
-  const allEventsByDate = useMemo(() => {
-    const map: Record<string, { id: string; title: string; color?: string; isGoogleEvent?: boolean; isTask?: boolean; taskId?: string }[]> = {};
+  // Unified Calendar Events (Google Calendar items + Syncro tasks)
+  // Shared by Week View, Month View, Day View, and Agenda View
+  const allEvents = useMemo(() => {
+    const list: (CalendarEvent & {
+      isTask?: boolean;
+      taskId?: string;
+      startHour: string;
+      timeRange: string;
+    })[] = [];
 
+    // 1. Google Calendar items
     (myCalendarEvents || []).forEach((ev) => {
-      if (!map[ev.dateStr]) map[ev.dateStr] = [];
-      map[ev.dateStr].push(ev);
-    });
-
-    (myTasks || []).forEach((task) => {
-      if (task.dueDate) {
-        if (!map[task.dueDate]) map[task.dueDate] = [];
-        map[task.dueDate].push({
-          id: `task-${task.id}`,
-          title: task.title,
-          color: "bg-[#EE3726]/15 text-[#EE3726] border-[#EE3726]/30",
-          isTask: true,
-          taskId: task.id,
-        });
+      let hour = ev.startHour || "09:00";
+      if (!ev.startHour && ev.timeRange) {
+        const match = ev.timeRange.match(/(\d{1,2}):(\d{2})/);
+        if (match) {
+          let h = parseInt(match[1], 10);
+          if (ev.timeRange.toUpperCase().includes("PM") && h < 12) h += 12;
+          hour = `${String(h).padStart(2, "0")}:${match[2]}`;
+        }
       }
+
+      list.push({
+        ...ev,
+        startHour: hour,
+        timeRange: ev.timeRange || `${hour} - ${hour}`,
+        color: ev.color || "bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30",
+        isGoogleEvent: true,
+      });
     });
 
-    return map;
-  }, [myCalendarEvents, myTasks]);
+    // 2. Syncro tasks matching scheduledSlot or dueDate
+    myTasks.forEach((t) => {
+      let hour = "09:00";
+      const slot = t.scheduledSlot || "09:00 AM";
+      const match = slot.match(/(\d{1,2}):(\d{2})/);
+      if (match) {
+        let h = parseInt(match[1], 10);
+        if (slot.toUpperCase().includes("PM") && h < 12) h += 12;
+        hour = `${String(h).padStart(2, "0")}:${match[2]}`;
+      }
+
+      const taskDate = t.dueDate || todayDateStr;
+
+      list.push({
+        id: `task-${t.id}`,
+        title: t.title,
+        dateStr: taskDate,
+        timeRange: t.scheduledSlot || `${hour} - 10:00`,
+        startHour: hour,
+        color: "bg-[#EE3726]/15 text-[#EE3726] border-[#EE3726]/30",
+        meetUrl: `https://meet.google.com/syncro-${t.id.slice(0, 4)}`,
+        isTask: true,
+        taskId: t.id,
+        userEmail: t.userEmail,
+      });
+    });
+
+    return list;
+  }, [myCalendarEvents, myTasks, todayDateStr]);
+
+  const agendaEvents = useMemo(() => {
+    const weekDateSet = new Set(weekDays.map((w) => w.dateStr));
+    const currentMonthPrefix = formatDateLocal(selectedDate).slice(0, 7);
+
+    return allEvents
+      .filter((ev) => weekDateSet.has(ev.dateStr) || ev.dateStr.startsWith(currentMonthPrefix))
+      .sort((a, b) => a.dateStr.localeCompare(b.dateStr) || a.startHour.localeCompare(b.startHour));
+  }, [allEvents, weekDays, selectedDate]);
 
 
 
@@ -313,60 +404,6 @@ export default function PlannerPage() {
     window.open("https://calendar.google.com", "_blank");
   };
 
-  // Map Google Calendar events and Syncro tasks dynamically to week grid
-  const allEventsForWeek = useMemo(() => {
-    const list: (CalendarEvent & { isTask?: boolean; taskId?: string; dayIndex: number })[] = [];
-
-    // 1. Google Calendar events matching this week's dates
-    (myCalendarEvents || []).forEach((ev) => {
-      const dayIdx = weekDays.findIndex((w) => w.dateStr === ev.dateStr);
-      if (dayIdx !== -1) {
-        list.push({
-          ...ev,
-          dayIndex: dayIdx,
-        });
-      }
-    });
-
-    // 2. Syncro tasks matching this week's dates
-    myTasks.forEach((t) => {
-      if (t.scheduledSlot && t.scheduledSlot !== "unscheduled") {
-        let dayIdx = -1;
-        if (t.dueDate) {
-          dayIdx = weekDays.findIndex((w) => w.dateStr === t.dueDate);
-        }
-        // If task has no dueDate or not in this week, place on today if viewing current week
-        if (dayIdx === -1 && currentWeekOffset === 0) {
-          dayIdx = weekDays.findIndex((w) => w.isToday);
-        }
-
-        if (dayIdx !== -1) {
-          let hour = "09:00";
-          const match = t.scheduledSlot.match(/(\d{1,2}):(\d{2})/);
-          if (match) {
-            let h = parseInt(match[1], 10);
-            if (t.scheduledSlot.includes("PM") && h < 12) h += 12;
-            hour = `${String(h).padStart(2, "0")}:${match[2]}`;
-          }
-
-          list.push({
-            id: `task-${t.id}`,
-            title: t.title,
-            dayIndex: dayIdx,
-            dateStr: weekDays[dayIdx].dateStr,
-            timeRange: t.scheduledSlot,
-            startHour: hour,
-            color: "bg-[#EE3726]/15 text-[#EE3726] border-[#EE3726]/30",
-            meetUrl: `https://meet.google.com/syncro-${t.id.slice(0, 4)}`,
-            isTask: true,
-            taskId: t.id,
-          });
-        }
-      }
-    });
-
-    return list;
-  }, [myCalendarEvents, myTasks, weekDays, currentWeekOffset]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] p-3 sm:p-5 md:p-6 space-y-3 sm:space-y-4 max-w-[1600px] mx-auto select-none transition-colors duration-200">
@@ -431,8 +468,8 @@ export default function PlannerPage() {
             <div className="flex items-center gap-3">
               {/* Today Button */}
               <button
-                onClick={() => setCurrentWeekOffset(0)}
-                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-border hover:bg-secondary text-foreground transition"
+                onClick={handleToday}
+                className="px-3 py-1.5 text-xs font-bold rounded-lg border border-border hover:bg-secondary text-foreground transition shadow-xs"
               >
                 {language === 'en' ? "Today" : "Hari Ini"}
               </button>
@@ -440,24 +477,24 @@ export default function PlannerPage() {
               {/* Navigation arrows */}
               <div className="flex items-center gap-1">
                 <button 
-                  onClick={() => setCurrentWeekOffset(prev => prev - (gcalView === 'month' ? 4 : 1))}
+                  onClick={handlePrev}
                   className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition"
-                  title="Periode Sebelumnya"
+                  title={language === 'en' ? "Previous Period" : "Periode Sebelumnya"}
                 >
                   <ChevronLeft size={16} />
                 </button>
                 <button 
-                  onClick={() => setCurrentWeekOffset(prev => prev + (gcalView === 'month' ? 4 : 1))}
+                  onClick={handleNext}
                   className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition"
-                  title="Periode Selanjutnya"
+                  title={language === 'en' ? "Next Period" : "Periode Selanjutnya"}
                 >
                   <ChevronRight size={16} />
                 </button>
               </div>
 
-              {/* Month & Year Title */}
+              {/* Dynamic Period Title */}
               <h2 className="text-sm sm:text-base font-black text-foreground">
-                {activeMonthYearTitle}
+                {activePeriodTitle}
               </h2>
             </div>
 
@@ -518,7 +555,17 @@ export default function PlannerPage() {
 
                 {/* 7 Days Columns */}
                 {weekDays.map((d, index) => (
-                  <div key={d.name} className={`px-1 py-1 ${index < 6 ? "border-r border-border/60" : ""}`}>
+                  <div 
+                    key={d.name} 
+                    onClick={() => {
+                      setSelectedDate(d.rawDate);
+                      setGcalView("day");
+                    }}
+                    className={`px-1 py-1 select-none cursor-pointer hover:bg-secondary/40 transition ${
+                      index < 6 ? "border-r border-border/60" : ""
+                    }`}
+                    title={language === 'en' ? "Click to open Day View" : "Klik untuk membuka tampilan Harian"}
+                  >
                     <div className="text-[10px] font-bold text-muted-foreground uppercase">
                       {d.name}
                     </div>
@@ -548,9 +595,9 @@ export default function PlannerPage() {
                       {/* 7 Columns for the Hour */}
                       {weekDays.map((d, dayIdx) => {
                         // Find events in this day and matching this hour
-                        const matchingEvents = allEventsForWeek.filter(ev => {
+                        const matchingEvents = allEvents.filter(ev => {
                           const evHour = ev.startHour || "09:00";
-                          return ev.dayIndex === dayIdx && evHour.startsWith(hour.slice(0, 2));
+                          return ev.dateStr === d.dateStr && evHour.startsWith(hour.slice(0, 2));
                         });
 
                         return (
@@ -633,49 +680,41 @@ export default function PlannerPage() {
             <div className="flex-1 overflow-y-auto flex flex-col p-3 sm:p-4">
               {/* Day headers */}
               <div className="grid grid-cols-7 text-center py-2 border-b border-border bg-secondary/30 rounded-t-xl font-bold text-xs text-muted-foreground uppercase">
-                <span>Min</span>
-                <span>Sen</span>
-                <span>Sel</span>
-                <span>Rab</span>
-                <span>Kam</span>
-                <span>Jum</span>
-                <span>Sab</span>
+                <span>{language === 'en' ? "Sun" : "Min"}</span>
+                <span>{language === 'en' ? "Mon" : "Sen"}</span>
+                <span>{language === 'en' ? "Tue" : "Sel"}</span>
+                <span>{language === 'en' ? "Wed" : "Rab"}</span>
+                <span>{language === 'en' ? "Thu" : "Kam"}</span>
+                <span>{language === 'en' ? "Fri" : "Jum"}</span>
+                <span>{language === 'en' ? "Sat" : "Sab"}</span>
               </div>
 
-              {/* 31 Days Grid */}
+              {/* Month Days Grid */}
               <div className="grid grid-cols-7 flex-1 border-l border-b border-border divide-x divide-y divide-border rounded-b-xl overflow-hidden bg-card">
-                {/* 4 offset empty cells for Oct 2026 starting on Thursday */}
-                <div className="p-2 min-h-[90px] bg-secondary/20 opacity-40 text-xs text-muted-foreground">27</div>
-                <div className="p-2 min-h-[90px] bg-secondary/20 opacity-40 text-xs text-muted-foreground">28</div>
-                <div className="p-2 min-h-[90px] bg-secondary/20 opacity-40 text-xs text-muted-foreground">29</div>
-                <div className="p-2 min-h-[90px] bg-secondary/20 opacity-40 text-xs text-muted-foreground">30</div>
-
-                {/* Days 1 to 31 */}
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((dateNum) => {
-                  const isToday = dateNum === 9;
-                  const dayEvents = allEventsForWeek.filter((ev) => {
-                    if (dateNum === 9 && ev.dayIndex === 4) return true;
-                    if (dateNum === 7 && ev.dayIndex === 2) return true;
-                    if (dateNum === 5 && ev.dayIndex === 0) return true;
-                    return false;
-                  });
+                {monthGridDays.map((cell) => {
+                  const dayEvents = allEvents.filter((ev) => ev.dateStr === cell.dateStr);
 
                   return (
                     <div
-                      key={dateNum}
-                      className={`p-2 min-h-[90px] flex flex-col justify-between transition hover:bg-secondary/30 ${
-                        isToday ? "bg-blue-500/5 font-bold" : ""
-                      }`}
+                      key={cell.dateStr}
+                      onClick={() => {
+                        const [y, m, d] = cell.dateStr.split("-").map(Number);
+                        setSelectedDate(new Date(y, m - 1, d));
+                        setGcalView("day");
+                      }}
+                      className={`p-2 min-h-[90px] flex flex-col justify-between transition cursor-pointer hover:bg-secondary/40 ${
+                        cell.isToday ? "bg-blue-500/5 font-bold ring-1 ring-inset ring-blue-500/30" : ""
+                      } ${!cell.isCurrentMonth ? "bg-secondary/20 opacity-40" : ""}`}
                     >
                       <div className="flex items-center justify-between">
                         <span className={`h-6 w-6 rounded-full flex items-center justify-center text-xs ${
-                          isToday ? "bg-[#4285F4] text-white font-bold" : "text-foreground"
+                          cell.isToday ? "bg-[#4285F4] text-white font-bold" : "text-foreground"
                         }`}>
-                          {dateNum}
+                          {cell.dayNum}
                         </span>
                         {dayEvents.length > 0 && (
                           <span className="text-[9px] text-muted-foreground font-semibold">
-                            {dayEvents.length} acara
+                            {dayEvents.length} {language === 'en' ? "events" : "acara"}
                           </span>
                         )}
                       </div>
@@ -686,13 +725,14 @@ export default function PlannerPage() {
                           <div
                             key={ev.id}
                             className={`px-1.5 py-0.5 rounded text-[10px] truncate border font-medium ${ev.color}`}
+                            title={`${ev.timeRange} - ${ev.title}`}
                           >
                             {ev.title}
                           </div>
                         ))}
                         {dayEvents.length > 2 && (
                           <span className="text-[9px] text-muted-foreground font-bold">
-                            +{dayEvents.length - 2} lainnya
+                            +{dayEvents.length - 2} {language === 'en' ? "more" : "lainnya"}
                           </span>
                         )}
                       </div>
@@ -704,64 +744,98 @@ export default function PlannerPage() {
           )}
 
           {/* VIEW: DAY VIEW */}
-          {gcalView === "day" && (
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              <div className="flex items-center gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-600 dark:text-blue-300 text-xs font-semibold">
-                <GoogleCalendarLogo size={16} />
-                <span>Jadwal Harian Google Calendar - Jumat, 09 Oktober 2026 (Hari Ini)</span>
-              </div>
+          {gcalView === "day" && (() => {
+            const selectedDateStr = formatDateLocal(selectedDate);
+            const dayEvents = allEvents.filter((ev) => ev.dateStr === selectedDateStr);
+            const isToday = selectedDateStr === todayDateStr;
 
-              <div className="space-y-2.5">
-                {WEEK_HOURS.map((hour) => {
-                  const hourEvents = allEventsForWeek.filter(
-                    (ev) => ev.dayIndex === 4 && ev.startHour?.startsWith(hour.slice(0, 2))
-                  );
+            return (
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                <div className="flex items-center justify-between p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-600 dark:text-blue-300 text-xs font-semibold">
+                  <div className="flex items-center gap-2">
+                    <GoogleCalendarLogo size={16} />
+                    <span className="font-bold">
+                      {selectedDate.toLocaleDateString(language === "en" ? "en-US" : "id-ID", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "long",
+                        year: "numeric",
+                      })}
+                      {isToday ? (language === "en" ? " (Today)" : " (Hari Ini)") : ""}
+                    </span>
+                  </div>
+                  <span className="text-[11px] opacity-80 font-mono">
+                    {dayEvents.length} {language === "en" ? "events scheduled" : "agenda terjadwal"}
+                  </span>
+                </div>
 
-                  return (
-                    <div key={hour} className="flex gap-4 items-start p-2 rounded-xl hover:bg-secondary/30 border border-border/50">
-                      <span className="w-16 font-mono text-xs font-bold text-muted-foreground pt-1">
-                        {hour}
-                      </span>
-                      <div className="flex-1 space-y-2">
-                        {hourEvents.length === 0 ? (
-                          <div className="text-xs text-muted-foreground/60 italic py-1">
-                            Slot kosong - klik + Buat Acara untuk menjadwalkan
-                          </div>
-                        ) : (
-                          hourEvents.map((ev) => (
-                            <div
-                              key={ev.id}
-                              className={`p-3 rounded-xl border flex items-center justify-between gap-3 shadow-xs ${ev.color}`}
-                            >
-                              <div>
-                                <span className="text-[10px] font-mono font-bold opacity-80">
-                                  {ev.timeRange}
-                                </span>
-                                <h4 className="text-xs font-bold text-foreground mt-0.5">
-                                  {ev.title}
-                                </h4>
-                              </div>
-                              {ev.meetUrl && (
-                                <a
-                                  href={ev.meetUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="px-3 py-1 bg-secondary hover:bg-accent text-xs font-bold rounded-lg border border-border flex items-center gap-1.5 text-foreground"
-                                >
-                                  <Video size={12} className="text-[#4285F4]" />
-                                  <span>Buka Meet</span>
-                                </a>
-                              )}
+                <div className="space-y-2.5">
+                  {WEEK_HOURS.map((hour) => {
+                    const hourEvents = dayEvents.filter((ev) =>
+                      ev.startHour?.startsWith(hour.slice(0, 2))
+                    );
+
+                    return (
+                      <div key={hour} className="flex gap-4 items-start p-2.5 rounded-xl hover:bg-secondary/30 border border-border/50">
+                        <span className="w-16 font-mono text-xs font-bold text-muted-foreground pt-1">
+                          {hour}
+                        </span>
+                        <div className="flex-1 space-y-2">
+                          {hourEvents.length === 0 ? (
+                            <div className="text-xs text-muted-foreground/60 italic py-1">
+                              {language === "en" ? "Free slot - click + New Event to schedule" : "Slot kosong - klik + Buat Acara untuk menjadwalkan"}
                             </div>
-                          ))
-                        )}
+                          ) : (
+                            hourEvents.map((ev) => (
+                              <div
+                                key={ev.id}
+                                className={`p-3 rounded-xl border flex items-center justify-between gap-3 shadow-xs ${ev.color}`}
+                              >
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[10px] font-mono font-bold opacity-80">
+                                      {ev.timeRange}
+                                    </span>
+                                    {ev.isTask && (
+                                      <span className="text-[9px] bg-[#EE3726] text-white px-1 py-0.2 rounded font-bold">Task</span>
+                                    )}
+                                  </div>
+                                  <h4 className="text-xs font-bold text-foreground mt-0.5 truncate">
+                                    {ev.title}
+                                  </h4>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0">
+                                  {ev.meetUrl && (
+                                    <a
+                                      href={ev.meetUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-3 py-1 bg-secondary hover:bg-accent text-xs font-bold rounded-lg border border-border flex items-center gap-1.5 text-foreground"
+                                    >
+                                      <Video size={12} className="text-[#4285F4]" />
+                                      <span>{language === "en" ? "Join Meet" : "Buka Meet"}</span>
+                                    </a>
+                                  )}
+                                  {ev.isTask && ev.taskId && (
+                                    <Link
+                                      href={`/tasks/${ev.taskId}`}
+                                      className="px-2.5 py-1 bg-secondary hover:bg-accent text-xs font-bold rounded-lg border border-border text-foreground"
+                                    >
+                                      {language === "en" ? "Task" : "Buka Task"}
+                                    </Link>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* VIEW: AGENDA VIEW */}
           {gcalView === "agenda" && (
@@ -769,56 +843,64 @@ export default function PlannerPage() {
               <div className="space-y-3">
                 <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
                   <CalendarCheck size={14} className="text-[#4285F4]" />
-                  <span>Daftar Agenda Minggu Ini (5 - 11 Okt 2026)</span>
+                  <span>
+                    {language === "en" ? `Agenda Schedule (${activePeriodTitle})` : `Daftar Agenda (${activePeriodTitle})`}
+                  </span>
                 </h3>
 
-                {allEventsForWeek.map((ev) => (
-                  <div
-                    key={ev.id}
-                    className="p-4 rounded-xl bg-card border border-border hover:border-[#4285F4]/50 transition shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                  >
-                    <div className="flex items-start gap-3">
-                      <div className="h-9 w-9 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0">
-                        {ev.isGoogleEvent ? <GoogleCalendarLogo size={18} /> : <Clock size={16} className="text-[#EE3726]" />}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono font-bold text-muted-foreground">
-                            {ev.timeRange}
-                          </span>
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-secondary border border-border font-bold">
-                            {ev.dateStr}
-                          </span>
-                        </div>
-                        <h4 className="text-sm font-bold text-foreground mt-0.5">
-                          {ev.title}
-                        </h4>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      {ev.meetUrl && (
-                        <a
-                          href={ev.meetUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-[#4285F4]/15 hover:bg-[#4285F4]/25 text-[#4285F4] text-xs font-bold rounded-xl border border-[#4285F4]/30 flex items-center gap-1.5"
-                        >
-                          <Video size={13} />
-                          <span>Google Meet</span>
-                        </a>
-                      )}
-                      {ev.isTask && ev.taskId && (
-                        <Link
-                          href={`/tasks/${ev.taskId}`}
-                          className="px-3 py-1.5 bg-secondary hover:bg-accent text-foreground text-xs font-bold rounded-xl border border-border"
-                        >
-                          Buka Task
-                        </Link>
-                      )}
-                    </div>
+                {agendaEvents.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground text-xs italic bg-secondary/20 rounded-xl">
+                    {language === "en" ? "No agenda items found for this period." : "Tidak ada agenda untuk periode ini."}
                   </div>
-                ))}
+                ) : (
+                  agendaEvents.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="p-4 rounded-xl bg-card border border-border hover:border-[#4285F4]/50 transition shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="h-9 w-9 rounded-xl bg-secondary border border-border flex items-center justify-center shrink-0">
+                          {ev.isGoogleEvent ? <GoogleCalendarLogo size={18} /> : <Clock size={16} className="text-[#EE3726]" />}
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono font-bold text-muted-foreground">
+                              {ev.timeRange}
+                            </span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded bg-secondary border border-border font-bold">
+                              {ev.dateStr}
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-bold text-foreground mt-0.5">
+                            {ev.title}
+                          </h4>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {ev.meetUrl && (
+                          <a
+                            href={ev.meetUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-[#4285F4]/15 hover:bg-[#4285F4]/25 text-[#4285F4] text-xs font-bold rounded-xl border border-[#4285F4]/30 flex items-center gap-1.5"
+                          >
+                            <Video size={13} />
+                            <span>Google Meet</span>
+                          </a>
+                        )}
+                        {ev.isTask && ev.taskId && (
+                          <Link
+                            href={`/tasks/${ev.taskId}`}
+                            className="px-3 py-1.5 bg-secondary hover:bg-accent text-foreground text-xs font-bold rounded-xl border border-border"
+                          >
+                            {language === "en" ? "View Task" : "Buka Task"}
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           )}
