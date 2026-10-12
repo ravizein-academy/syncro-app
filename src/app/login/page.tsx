@@ -81,6 +81,34 @@ export default function LoginPage() {
     }
   }, []);
 
+  // Validasi otomatis saat halaman login dimuat:
+  // Jika akun di perangkat ini sudah tidak aktif / dihapus di database, bersihkan segera!
+  useEffect(() => {
+    const emailToCheck = (currentUser?.email || rememberedAccount?.email || "").toLowerCase().trim();
+    if (!emailToCheck || emailToCheck === "ravizein@itsecacademy.com") return;
+
+    fetch("/api/users", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!data) return;
+        const userList = data?.users || data?.data?.users || [];
+        const found = userList.find(
+          (u: any) => u.email && u.email.toLowerCase().trim() === emailToCheck
+        );
+
+        if (!found || found.status !== "active") {
+          logout();
+          try {
+            localStorage.removeItem("syncro_remembered_device_account");
+          } catch (e) {}
+          setRememberedAccount(null);
+          setEmail("");
+        }
+      })
+      .catch(() => {});
+  }, [currentUser, rememberedAccount?.email, logout]);
+
+
   // Polling Real-time: Jika sedang menunggu persetujuan (pendingNotice),
   // cek status ke backend setiap 3 detik. Begitu di-ACC Admin (dari email atau aplikasi),
   // akun langsung otomatis masuk tanpa perlu refresh atau klik ulang!

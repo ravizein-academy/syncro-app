@@ -43,14 +43,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             try {
               localStorage.removeItem("syncro_remembered_device_account");
             } catch (e) {}
-            router.push("/login");
+            if (pathname !== "/login") {
+              window.location.href = "/login";
+            }
           }
         })
         .catch((err) => {
           console.warn("[AppShell] Gagal memvalidasi status pengguna:", err);
         });
     }
-  }, [mounted, isAuthenticated, currentUser, pathname, router, logout]);
+  }, [mounted, isAuthenticated, currentUser, pathname, logout]);
+
 
   const isLoginPage = pathname === "/login";
 
