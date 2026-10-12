@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { userStatusOverrides } from '@/lib/userOverrides';
 
 const APPS_SCRIPT_URL =
   process.env.NEXT_PUBLIC_APPS_SCRIPT_URL ||
@@ -18,6 +19,14 @@ export async function GET(req: Request) {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       });
     }
+
+    // Simpan ke in-memory override langsung
+    userStatusOverrides.set(targetEmail, {
+      status: 'active',
+      role: targetRole,
+      department: targetDept,
+      updatedAt: Date.now(),
+    });
 
     // 1. Update user ke Google Sheets melalui Apps Script
     if (APPS_SCRIPT_URL) {

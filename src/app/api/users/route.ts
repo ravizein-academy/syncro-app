@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { userStatusOverrides } from '@/lib/userOverrides';
 
 const APPS_SCRIPT_URL =
   process.env.NEXT_PUBLIC_APPS_SCRIPT_URL ||
@@ -37,12 +38,31 @@ export async function GET() {
         };
       }
 
-      // Jika user sudah disetujui (active) atau dinonaktifkan (inactive), pertahankan
-      // Jika status kosong atau 'pending', jadikan 'pending' agar muncul di Inbox Admin
-      const status = u.status === 'active' ? 'active' : (u.status === 'inactive' ? 'inactive' : 'pending');
+      // 1. Cek apakah ada status persetujuan dari Admin (ACC langsung di web / email)
+      const override = userStatusOverrides.get(email);
+      if (override) {
+        return {
+          ...u,
+          role: override.role || u.role,
+          department: override.department || u.department,
+          status: override.status,
+          requestedAt: u.requestedAt || 'Disetujui Admin'
+        };
+      }
+
+      // 2. Jika user di Google Sheets sudah memiliki status 'active' atau 'inactive'
+      if (u.status === 'active' || u.status === 'inactive') {
+        return {
+          ...u,
+          status: u.status,
+          requestedAt: u.requestedAt || 'Menunggu persetujuan'
+        };
+      }
+
+      // 3. Jika belum di-ACC, status tetap pending
       return {
         ...u,
-        status,
+        status: 'pending',
         requestedAt: u.requestedAt || 'Menunggu persetujuan'
       };
     });
@@ -62,6 +82,24 @@ export async function POST(req: Request) {
     const body = await req.json();
     const action = body.action || 'createUser';
     const payload = body.payload !== undefined ? body.payload : body;
+
+    // Simpan status update langsung ke in-memory override
+    if (action === 'updateUser') {
+      const email = (payload?.email || '').toLowerCase().trim();
+      if (email) {
+        userStatusOverrides.set(email, {
+          status: payload?.status || 'active',
+          role: payload?.role,
+          department: payload?.department,
+          updatedAt: Date.now(),
+        });
+      }
+    } else if (action === 'deleteUser') {
+      const email = (payload?.email || '').toLowerCase().trim();
+      if (email) {
+        userStatusOverrides.delete(email);
+      }
+    }
 
     if (!APPS_SCRIPT_URL) {
       return NextResponse.json({ status: 'success', data: payload, localOnly: true });
@@ -85,7 +123,7 @@ export async function POST(req: Request) {
     }
 
     if (action === 'updateUser') {
-      const updateUrl = `${APPS_SCRIPT_URL}?action=updateUser&id=${encodeURIComponent(payload?.id || '')}&email=${encodeURIComponent(payload?.email || '')}&name=${encodeURIComponent(payload?.name || '')}&role=${encodeURIComponent(payload?.role || '')}&department=${encodeURIComponent(payload?.department || '')}&status=${encodeURIComponent(payload?.status || '')}`;
+      const updateUrl = `${APPS_SCRIPT_URL}?action=updateUser&id=${encodeURIComponent(payload?.id || '')}&email=${encodeURIComponent(payload?.email || '')}&name=${encodeURIComponent(payload?.name || '')}&role=${encodeURIComponent(payload?.role || '')}&department=${encodeURIComponent(payload?.department || '')}&status=${encodeURIComponent(payload?.status || 'active')}`;
       try {
         const getRes = await fetch(updateUrl, { method: 'GET', headers: { 'Accept': 'application/json' }, cache: 'no-store' });
         if (getRes.ok) {

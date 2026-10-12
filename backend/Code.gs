@@ -567,7 +567,7 @@ function setupInitialDatabase() {
       'subtasks', 'attachments', 'comments', 'tags', 'createdAt', 'updatedAt'
     ],
     [SHEET_NAMES.USERS]: [
-      'id', 'name', 'email', 'role', 'avatar', 'department', 'capacityHours'
+      'id', 'name', 'email', 'role', 'avatar', 'department', 'capacityHours', 'status', 'requestedAt'
     ],
     [SHEET_NAMES.TEAMS]: [
       'id', 'name', 'description'

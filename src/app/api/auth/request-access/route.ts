@@ -35,68 +35,20 @@ export async function POST(req: Request) {
       requestedAt: timeStr
     };
 
-    // 1. Simpan user dengan status 'pending' ke database Google Sheets (Awaited with GET & POST)
+    // 1 & 2. Jalankan simpan user dan kirim email notifikasi secara PARALEL (Promise.allSettled)
+    // agar response cepat (1-2 detik) dan tidak membuat loading aplikasi lambat/lelet!
     const createUrl = `${APPS_SCRIPT_URL}?action=createUser&id=${encodeURIComponent(pendingUser.id)}&name=${encodeURIComponent(pendingUser.name)}&email=${encodeURIComponent(pendingUser.email)}&role=member&department=${encodeURIComponent(pendingUser.department)}&avatar=${encodeURIComponent(pendingUser.avatar)}&status=pending&requestedAt=${encodeURIComponent(timeStr)}`;
-    try {
-      await fetch(createUrl, { method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store' });
-    } catch (e) {
-      console.warn('GET createUser fallback error:', e);
-    }
-
-    try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'createUser',
-          payload: pendingUser
-        })
-      });
-    } catch (err) {
-      console.warn('Failed to persist pending user via POST:', err);
-    }
-
-    // 2. Kirim notifikasi email ke Admin (Ravi Zein)
-    // Metode A: GET Query Parameter (Paling reliabel untuk Apps Script Web App tanpa isu drop body 302)
     const notifyGetUrl = `${APPS_SCRIPT_URL}?action=notifyAdminAccessRequest&email=${encodeURIComponent(cleanEmail)}&name=${encodeURIComponent(cleanName)}&time=${encodeURIComponent(timeStr)}`;
-    
-    let notifyResult: any = { status: 'sent' };
-    try {
-      const getRes = await fetch(notifyGetUrl, {
-        method: 'GET',
-        headers: { Accept: 'application/json' },
-        cache: 'no-store'
-      });
-      if (getRes.ok) {
-        notifyResult = await getRes.json().catch(() => ({ status: 'sent' }));
-      }
-    } catch (e) {
-      console.warn('GET notify to Apps Script error, fallback to POST:', e);
-    }
 
-    // Metode B: POST Payload sebagai cadangan
-    try {
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'notifyAdminAccessRequest',
-          payload: {
-            email: cleanEmail,
-            name: cleanName,
-            time: timeStr
-          }
-        })
-      });
-    } catch (err) {
-      console.warn('POST notify fallback error:', err);
-    }
+    await Promise.allSettled([
+      fetch(createUrl, { method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store' }),
+      fetch(notifyGetUrl, { method: 'GET', headers: { Accept: 'application/json' }, cache: 'no-store' }),
+    ]);
 
     return NextResponse.json({
       status: 'success',
       message: 'Permintaan akses berhasil dikirim ke Admin.',
-      pendingUser,
-      data: notifyResult
+      pendingUser
     });
   } catch (error: any) {
     console.error('Error requesting access:', error);
