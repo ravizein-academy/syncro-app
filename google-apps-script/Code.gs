@@ -721,7 +721,7 @@ function setupInitialDatabase() {
       'id', 'participantId', 'participantName', 'participantEmail', 'participantEmails', 'messages', 'updatedAt'
     ],
     [SHEET_NAMES.EVENTS]: [
-      'id', 'title', 'start', 'end', 'meetLink', 'taskId'
+      'id', 'title', 'start', 'end', 'dateStr', 'startHour', 'endHour', 'timeRange', 'meetLink', 'userEmail', 'taskId', 'location', 'description', 'guests'
     ]
   };
 
@@ -977,7 +977,7 @@ function deleteUser(payload) {
  */
 
 /**
- * Fetch events from Google Calendar (CalendarApp)
+ * Fetch events from Google Calendar (CalendarApp) with real Google Meet link & invitations
  */
 function getGoogleCalendarEvents(e) {
   try {
@@ -991,12 +991,12 @@ function getGoogleCalendarEvents(e) {
       } catch (err) {}
     }
 
-    // HANYA gunakan getDefaultCalendar jika tidak ada filterEmail ATAU filterEmail adalah akun pemilik default script (ravizein@itsecacademy.com)
-    if (!cal && (!cleanEmail || cleanEmail === 'ravizein@itsecacademy.com')) {
+    // Selalu fallback ke getDefaultCalendar milik workspace
+    if (!cal) {
       cal = CalendarApp.getDefaultCalendar();
     }
 
-    // Jika calendar untuk email ini ditemukan di Google Calendar (baik default atau shared calendar):
+    // Jika calendar ditemukan (baik default atau shared calendar):
     if (cal) {
       const now = new Date();
       const startTime = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
@@ -1005,12 +1005,94 @@ function getGoogleCalendarEvents(e) {
       const events = cal.getEvents(startTime, endTime);
       const pad = function(n) { return String(n).padStart(2, '0'); };
 
+      // OAuth token untuk fallback pemanggilan Google Calendar API v3
+      var oauthToken = '';
+      try {
+        oauthToken = ScriptApp.getOAuthToken();
+      } catch (tokErr) {}
+
       return events.map(function(ev) {
         const start = ev.getStartTime();
         const end = ev.getEndTime();
         const dateStr = start.getFullYear() + '-' + pad(start.getMonth() + 1) + '-' + pad(start.getDate());
         const startHour = pad(start.getHours()) + ':' + pad(start.getMinutes());
         const endHour = pad(end.getHours()) + ':' + pad(end.getMinutes());
+        const desc = ev.getDescription() || '';
+        const loc = ev.getLocation() || '';
+
+        // 1. Ekstrak Tamu / Undangan (Guest list)
+        var guestEmails = [];
+        try {
+          var guestList = ev.getGuestList();
+          if (guestList && guestList.length > 0) {
+            for (var g = 0; g < guestList.length; g++) {
+              var gEmail = guestList[g].getEmail();
+              if (gEmail) guestEmails.push(gEmail);
+            }
+          }
+        } catch (gErr) {}
+
+        // 2. Ekstrak Google Meet Link yang Asli
+        var meetUrl = '';
+
+        // A. Cek pola regex link Google Meet di deskripsi dan lokasi acara
+        var meetMatch = (desc + ' ' + loc).match(/https:\/\/meet\.google\.com\/[a-z0-9-]+/i);
+        if (meetMatch) {
+          meetUrl = meetMatch[0];
+        }
+
+        // B. Cek melalui Advanced Calendar Service jika aktif
+        if (!meetUrl && typeof Calendar !== 'undefined' && Calendar.Events) {
+          try {
+            var rawId = ev.getId().split('@')[0];
+            var advEv = Calendar.Events.get('primary', rawId);
+            if (advEv) {
+              if (advEv.hangoutLink) {
+                meetUrl = advEv.hangoutLink;
+              } else if (advEv.conferenceData && advEv.conferenceData.entryPoints) {
+                for (var epIdx = 0; epIdx < advEv.conferenceData.entryPoints.length; epIdx++) {
+                  var ep = advEv.conferenceData.entryPoints[epIdx];
+                  if (ep.entryPointType === 'video' && ep.uri) {
+                    meetUrl = ep.uri;
+                    break;
+                  }
+                }
+              }
+            }
+          } catch (advErr) {}
+        }
+
+        // C. Cek melalui Google Calendar REST API v3 via UrlFetchApp
+        if (!meetUrl && oauthToken) {
+          try {
+            var rawId2 = ev.getId().split('@')[0];
+            var apiUrl = 'https://www.googleapis.com/calendar/v3/calendars/primary/events/' + encodeURIComponent(rawId2);
+            var apiRes = UrlFetchApp.fetch(apiUrl, {
+              headers: { Authorization: 'Bearer ' + oauthToken },
+              muteHttpExceptions: true
+            });
+            if (apiRes.getResponseCode() === 200) {
+              var advJson = JSON.parse(apiRes.getContentText());
+              if (advJson.hangoutLink) {
+                meetUrl = advJson.hangoutLink;
+              } else if (advJson.conferenceData && advJson.conferenceData.entryPoints) {
+                for (var ep2 = 0; ep2 < advJson.conferenceData.entryPoints.length; ep2++) {
+                  var entryPoint = advJson.conferenceData.entryPoints[ep2];
+                  if (entryPoint.entryPointType === 'video' && entryPoint.uri) {
+                    meetUrl = entryPoint.uri;
+                    break;
+                  }
+                }
+              }
+            }
+          } catch (fetchErr) {}
+        }
+
+        // 3. Status kehadiran / apakah ini undangan
+        var myStatus = '';
+        try {
+          if (ev.getMyStatus) myStatus = String(ev.getMyStatus());
+        } catch (sErr) {}
 
         return {
           id: 'gcal_' + ev.getId(),
@@ -1019,20 +1101,22 @@ function getGoogleCalendarEvents(e) {
           startHour: startHour,
           endHour: endHour,
           timeRange: startHour + ' - ' + endHour,
-          description: ev.getDescription() || '',
-          meetUrl: 'https://meet.google.com/new',
+          description: desc,
+          location: loc,
+          guests: guestEmails.join(', '),
+          myStatus: myStatus,
+          isInvitation: guestEmails.length > 0 || myStatus === 'INVITED' || myStatus === 'YES' || myStatus === 'MAYBE',
+          meetUrl: meetUrl || '',
           isGoogleEvent: true,
           userEmail: cleanEmail || 'ravizein@itsecacademy.com'
         };
       });
     }
 
-    // Jika cal null (misal akun @gmail.com belum dibagikan ke akun workspace):
-    // JANGAN bocorkan agenda akun academy!
-    // Ambil agenda yang khusus tersimpan untuk akun ini di sheet Events:
+    // Jika cal null, ambil agenda yang khusus tersimpan di sheet Events:
     const savedRecords = getRecords(SHEET_NAMES.EVENTS);
     const userEvents = savedRecords.filter(function(r) {
-      return r.userEmail && String(r.userEmail).toLowerCase().trim() === cleanEmail;
+      return !cleanEmail || (r.userEmail && String(r.userEmail).toLowerCase().trim() === cleanEmail);
     });
 
     return userEvents.map(function(ev) {
@@ -1044,9 +1128,11 @@ function getGoogleCalendarEvents(e) {
         endHour: ev.endHour || '10:00',
         timeRange: ev.timeRange || '09:00 - 10:00',
         description: ev.description || '',
-        meetUrl: ev.meetLink || 'https://meet.google.com/new',
+        location: ev.location || '',
+        guests: ev.guests || '',
+        meetUrl: ev.meetLink || '',
         isGoogleEvent: false,
-        userEmail: cleanEmail
+        userEmail: cleanEmail || 'ravizein@itsecacademy.com'
       };
     });
   } catch (error) {
@@ -1069,7 +1155,8 @@ function createGoogleCalendarEvent(payload) {
       } catch (e) {}
     }
 
-    if (!cal && (!userEmail || userEmail === 'ravizein@itsecacademy.com')) {
+    // Selalu fallback ke getDefaultCalendar milik workspace
+    if (!cal) {
       cal = CalendarApp.getDefaultCalendar();
     }
 
@@ -1102,7 +1189,18 @@ function createGoogleCalendarEvent(payload) {
         description: payload.description || 'Dibuat otomatis dari aplikasi Syncro'
       };
       if (payload.location) options.location = payload.location;
-      if (payload.guests) options.guests = payload.guests;
+
+      var allGuests = [];
+      if (payload.guests) {
+        allGuests = String(payload.guests).split(',').map(function(g) { return g.trim(); }).filter(Boolean);
+      }
+      if (userEmail && userEmail.indexOf('@') !== -1 && allGuests.indexOf(userEmail) === -1) {
+        allGuests.push(userEmail);
+      }
+      if (allGuests.length > 0) {
+        options.guests = allGuests.join(',');
+      }
+
       const event = cal.createEvent(title, startDate, endDate, options);
       eventId = 'gcal_' + event.getId();
       isGoogleEvent = true;
@@ -1135,7 +1233,12 @@ function createGoogleCalendarEvent(payload) {
       endHour: endHour,
       timeRange: startHour + ' - ' + endHour,
       isGoogleEvent: isGoogleEvent,
-      userEmail: userEmail
+      userEmail: userEmail,
+      color: payload.color || 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30',
+      meetUrl: payload.meetUrl || 'https://meet.google.com/new',
+      location: payload.location || '',
+      description: payload.description || '',
+      guests: payload.guests || ''
     };
   } catch (error) {
     console.error('createGoogleCalendarEvent error:', error);

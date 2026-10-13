@@ -381,7 +381,7 @@ export async function fetchGoogleCalendarEvents(specificEmail?: string): Promise
     const remoteEvents: CalendarEvent[] = data?.events || [];
 
     if (Array.isArray(remoteEvents)) {
-      // Pastikan semua event dari cloud diberi label userEmail
+      // Pastikan semua event dari cloud diberi label userEmail jika belum ada
       const taggedRemote = remoteEvents.map((ev) => ({
         ...ev,
         userEmail: ev.userEmail || userEmail,
@@ -392,8 +392,54 @@ export async function fetchGoogleCalendarEvents(specificEmail?: string): Promise
         (ev) => ev.userEmail && userEmail && ev.userEmail.toLowerCase().trim() !== userEmail
       );
 
+      // Simpan agenda lokal saat ini untuk akun ini agar event baru yang belum ada di remote tidak hilang terhapus
+      const currentAccountEvents = store.calendarEvents.filter(
+        (ev) => !ev.userEmail || !userEmail || ev.userEmail.toLowerCase().trim() === userEmail
+      );
+
       const eventMap = new Map<string, CalendarEvent>();
-      taggedRemote.forEach((ev) => eventMap.set(ev.id, ev));
+
+      // 1. Masukkan semua event lokal yang sudah ada terlebih dahulu
+      currentAccountEvents.forEach((localEv) => {
+        eventMap.set(localEv.id, localEv);
+      });
+
+      // 2. Gabungkan data remote dari Google Calendar
+      taggedRemote.forEach((remoteEv) => {
+        // Cek apakah ada event lokal sementara (id: gcal-timestamp) yang cocok dengan event cloud ini
+        let matchedTempId: string | null = null;
+        for (const [key, val] of eventMap.entries()) {
+          if (
+            key.startsWith('gcal-') &&
+            val.title === remoteEv.title &&
+            val.dateStr === remoteEv.dateStr &&
+            (val.startHour === remoteEv.startHour || !remoteEv.startHour)
+          ) {
+            matchedTempId = key;
+            break;
+          }
+        }
+
+        const existing = matchedTempId ? eventMap.get(matchedTempId) : eventMap.get(remoteEv.id);
+        if (matchedTempId) {
+          eventMap.delete(matchedTempId);
+        }
+
+        // Pertahankan color class dan styling lokal yang kaya
+        const merged: CalendarEvent = {
+          ...(existing || {}),
+          ...remoteEv,
+          color: existing?.color || remoteEv.color || 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30',
+          meetUrl: remoteEv.meetUrl !== undefined ? remoteEv.meetUrl : existing?.meetUrl,
+          location: remoteEv.location !== undefined ? remoteEv.location : existing?.location,
+          description: remoteEv.description !== undefined ? remoteEv.description : existing?.description,
+          guests: remoteEv.guests !== undefined ? remoteEv.guests : existing?.guests,
+          isInvitation: remoteEv.isInvitation !== undefined ? remoteEv.isInvitation : existing?.isInvitation,
+          userEmail: remoteEv.userEmail || existing?.userEmail || userEmail,
+        };
+
+        eventMap.set(merged.id, merged);
+      });
 
       const updated = [...otherAccountsEvents, ...Array.from(eventMap.values())];
       store.setCalendarEvents(updated);
@@ -419,9 +465,10 @@ export async function createCalendarEventOnCloud(event: CalendarEvent): Promise<
   const eventPayload = {
     ...event,
     userEmail: event.userEmail || currentUser?.email || '',
+    color: event.color || 'bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30',
   };
 
-  // Add to local state immediately
+  // Add to local state immediately (optimistic UI)
   store.addCalendarEvent(eventPayload);
 
   try {
@@ -434,8 +481,14 @@ export async function createCalendarEventOnCloud(event: CalendarEvent): Promise<
     if (res.ok) {
       const data = await res.json();
       if (data?.event) {
-        store.addCalendarEvent(data.event);
-        return { success: true, event: data.event };
+        const confirmedEvent: CalendarEvent = {
+          ...eventPayload,
+          ...data.event,
+          color: eventPayload.color || data.event.color,
+        };
+        // Gantikan ID sementara dengan ID resmi dari cloud
+        store.replaceCalendarEvent(eventPayload.id, confirmedEvent);
+        return { success: true, event: confirmedEvent };
       }
     }
   } catch (err) {

@@ -104,6 +104,8 @@ export interface CalendarEvent {
   location?: string;
   description?: string;
   guests?: string;
+  isInvitation?: boolean;
+  myStatus?: string;
   eventType?: 'event' | 'task' | 'focus' | 'reminder';
   recurrence?: string;
 }
@@ -164,6 +166,7 @@ interface AppState {
   // Google Calendar Actions
   setCalendarEvents: (events: CalendarEvent[]) => void;
   addCalendarEvent: (event: CalendarEvent) => void;
+  replaceCalendarEvent: (oldId: string, newEvent: CalendarEvent) => void;
   deleteCalendarEvent: (id: string) => void;
 
   // Space Actions
@@ -364,6 +367,12 @@ export const useStore = create<AppState>()(
       setCalendarEvents: (calendarEvents) => set({ calendarEvents }),
       addCalendarEvent: (event) => set((state) => ({
         calendarEvents: [event, ...state.calendarEvents.filter((e) => e.id !== event.id)],
+      })),
+      replaceCalendarEvent: (oldId, newEvent) => set((state) => ({
+        calendarEvents: [
+          newEvent,
+          ...state.calendarEvents.filter((e) => e.id !== oldId && e.id !== newEvent.id),
+        ],
       })),
       deleteCalendarEvent: (id) => set((state) => ({
         calendarEvents: state.calendarEvents.filter((e) => e.id !== id),
