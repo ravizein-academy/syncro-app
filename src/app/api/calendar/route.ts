@@ -42,8 +42,46 @@ export async function GET(req: Request) {
       });
     }
 
-    const events = json?.events || json?.data?.events || json?.data || [];
-    return NextResponse.json({ status: 'success', events: Array.isArray(events) ? events : [] });
+    const rawEvents: any[] = json?.events || json?.data?.events || json?.data || [];
+    const cleanUser = userEmail.toLowerCase().trim();
+
+    // Filter ketat agar akun ravizein@gmail.com tidak me-mirror agenda kantor ravizein@itsecacademy.com
+    const events = (Array.isArray(rawEvents) ? rawEvents : []).filter((ev: any) => {
+      if (!ev) return false;
+      const guests = (ev.guests || '').toLowerCase();
+      const evMail = (ev.userEmail || '').toLowerCase().trim();
+
+      if (cleanUser === 'ravizein@gmail.com') {
+        // HANYA lolos jika ravizein@gmail.com diundang (guests) atau agenda pribadi ravizein@gmail.com
+        const isInvited = guests.includes('ravizein@gmail.com');
+        const isAcademyEvent =
+          guests.includes('ravizein@itsecacademy.com') ||
+          guests.includes('@itsecasia.com') ||
+          guests.includes('@itsec.sg') ||
+          (ev.title || '').toLowerCase().includes('[classroom academy booking]') ||
+          (ev.location || '').toLowerCase().includes('itsec');
+
+        if (isAcademyEvent && !isInvited) {
+          return false;
+        }
+
+        return isInvited || (evMail === 'ravizein@gmail.com' && !isAcademyEvent);
+      }
+
+      if (cleanUser === 'ravizein@itsecacademy.com') {
+        // Akun Academy menampilkan agenda workspace ITSEC Academy dan undangan untuknya
+        return (
+          evMail === 'ravizein@itsecacademy.com' ||
+          guests.includes('ravizein@itsecacademy.com') ||
+          !guests.includes('ravizein@gmail.com')
+        );
+      }
+
+      // Akun umum
+      return evMail === cleanUser || guests.includes(cleanUser);
+    });
+
+    return NextResponse.json({ status: 'success', events });
   } catch (error: any) {
     console.warn('[Calendar API] GET warning:', error);
     return NextResponse.json({ status: 'error', message: error?.message, events: [] }, { status: 500 });

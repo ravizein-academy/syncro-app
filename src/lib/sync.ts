@@ -390,8 +390,30 @@ export async function fetchGoogleCalendarEvents(specificEmail?: string): Promise
       // Map untuk deduplikasi ketat berdasarkan ID
       const eventMap = new Map<string, CalendarEvent>();
 
-      // 1. Masukkan semua event lokal yang sudah ada terlebih dahulu
+      // 1. Masukkan semua event lokal yang sudah ada terlebih dahulu (bersihkan sisa cache Google Calendar milik akun lain)
       (store.calendarEvents || []).forEach((localEv) => {
+        if (!localEv.isGoogleEvent) {
+          eventMap.set(localEv.id, localEv);
+          return;
+        }
+
+        const guests = (localEv.guests || '').toLowerCase();
+        const evMail = (localEv.userEmail || '').toLowerCase();
+
+        // Jika akun aktif adalah ravizein@gmail.com, buang sisa cache event kantor ITSEC Academy yang tidak mengundangnya
+        if (userEmail === 'ravizein@gmail.com') {
+          const isAcademy =
+            guests.includes('ravizein@itsecacademy.com') ||
+            guests.includes('@itsecasia.com') ||
+            guests.includes('@itsec.sg') ||
+            (localEv.title || '').toLowerCase().includes('[classroom academy booking]') ||
+            (localEv.location || '').toLowerCase().includes('itsec');
+
+          if (isAcademy && !guests.includes('ravizein@gmail.com')) {
+            return; // Lewati agar tidak mencemari kalender gmail
+          }
+        }
+
         eventMap.set(localEv.id, localEv);
       });
 

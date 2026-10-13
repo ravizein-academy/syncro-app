@@ -1137,7 +1137,6 @@ function getGoogleCalendarEvents(e) {
   try {
     const filterEmail = (e && e.parameter && e.parameter.userEmail) || '';
     const cleanEmail = filterEmail.toLowerCase().trim();
-    const isRavi = cleanEmail === 'ravizein@itsecacademy.com' || cleanEmail === 'ravizein@gmail.com';
 
     const calendarsToQuery = [];
 
@@ -1155,18 +1154,6 @@ function getGoogleCalendarEvents(e) {
           calendarsToQuery.push(userCal);
         }
       } catch (e2) {}
-    }
-
-    // 3. Jika akun Ravi Zein, cek kedua kalender (academy & gmail)
-    if (isRavi) {
-      try {
-        const altCal = CalendarApp.getCalendarById(
-          cleanEmail === 'ravizein@gmail.com' ? 'ravizein@itsecacademy.com' : 'ravizein@gmail.com'
-        );
-        if (altCal && calendarsToQuery.indexOf(altCal) === -1) {
-          calendarsToQuery.push(altCal);
-        }
-      } catch (e3) {}
     }
 
     // 4. Cek semua shared calendars yang ada di akun
@@ -1223,6 +1210,14 @@ function getGoogleCalendarEvents(e) {
               }
             }
           } catch (gErr) {}
+
+          // Jika request untuk ravizein@gmail.com, lewati acara kantor ITSEC Academy yang tidak mengundangnya
+          if (cleanEmail === 'ravizein@gmail.com') {
+            var isInvited = guestEmails.indexOf('ravizein@gmail.com') !== -1;
+            if (!isInvited) {
+              return;
+            }
+          }
 
           // 2. Ekstrak Google Meet Link yang Asli
           var meetUrl = '';
@@ -1310,7 +1305,7 @@ function getGoogleCalendarEvents(e) {
         if (resultMap[id]) return;
 
         const evUserEmail = (ev.userEmail || '').toLowerCase().trim();
-        if (cleanEmail && !isRavi && evUserEmail && evUserEmail !== cleanEmail) {
+        if (cleanEmail && evUserEmail && evUserEmail !== cleanEmail) {
           return;
         }
 

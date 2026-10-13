@@ -321,45 +321,60 @@ export default function PlannerPage() {
   const currentEmail = activeUserEmail;
 
   const myCalendarEvents = useMemo(() => {
-    const isRavi = currentEmail === 'ravizein@itsecacademy.com' || currentEmail === 'ravizein@gmail.com';
     const seen = new Set<string>();
+    const active = (currentEmail || '').toLowerCase().trim();
 
     return (calendarEvents || []).filter((ev) => {
       // Deduplikasi ketat berdasarkan ID
       if (seen.has(ev.id)) return false;
       seen.add(ev.id);
 
-      if (!ev.userEmail) return true;
-      const evMail = ev.userEmail.toLowerCase().trim();
+      const evMail = (ev.userEmail || '').toLowerCase().trim();
       const guests = (ev.guests || '').toLowerCase();
+      const title = (ev.title || '').toLowerCase();
+      const location = (ev.location || '').toLowerCase();
 
-      // Sinkronisasi otomatis penuh antara akun Academy dan Gmail milik Ravi Zein
-      if (isRavi) {
+      // Akun ravizein@gmail.com TIDAK BOLEH me-mirror agenda kantor ITSEC Academy
+      if (active === 'ravizein@gmail.com') {
+        const isInvited = guests.includes('ravizein@gmail.com');
+        const isAcademyEvent =
+          guests.includes('ravizein@itsecacademy.com') ||
+          guests.includes('@itsecasia.com') ||
+          guests.includes('@itsec.sg') ||
+          title.includes('[classroom academy booking]') ||
+          location.includes('itsec');
+
+        if (isAcademyEvent && !isInvited) {
+          return false;
+        }
+
+        return isInvited || (evMail === 'ravizein@gmail.com' && !isAcademyEvent);
+      }
+
+      // Akun ravizein@itsecacademy.com menampilkan agenda workspace ITSEC Academy
+      if (active === 'ravizein@itsecacademy.com') {
         return (
           evMail === 'ravizein@itsecacademy.com' ||
-          evMail === 'ravizein@gmail.com' ||
           guests.includes('ravizein@itsecacademy.com') ||
-          guests.includes('ravizein@gmail.com') ||
-          ev.isGoogleEvent
+          !guests.includes('ravizein@gmail.com')
         );
       }
 
+      if (!active) return true;
+
       return (
-        evMail === currentEmail ||
-        guests.includes(currentEmail)
+        evMail === active ||
+        guests.includes(active)
       );
     });
   }, [calendarEvents, currentEmail]);
 
   const myTasks = useMemo(() => {
-    const isRavi = currentEmail === 'ravizein@itsecacademy.com' || currentEmail === 'ravizein@gmail.com';
+    const active = (currentEmail || '').toLowerCase().trim();
     return tasks.filter((t) => {
-      if (t.isPersonal && t.userEmail && currentEmail) {
+      if (t.isPersonal && t.userEmail && active) {
         const taskEmail = t.userEmail.toLowerCase().trim();
-        if (isRavi) {
-          return taskEmail === 'ravizein@itsecacademy.com' || taskEmail === 'ravizein@gmail.com' || !taskEmail;
-        }
-        if (taskEmail !== currentEmail) return false;
+        if (taskEmail !== active) return false;
       }
       return true;
     });
