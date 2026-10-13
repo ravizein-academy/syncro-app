@@ -101,20 +101,44 @@ export async function pullCloudData(specificEmail?: string): Promise<{
             window.location.href = '/login';
           }
           return { success: false, pulledCount: 0, message: 'Sesi berakhir atau akun telah dicabut' };
+        } else {
+          // Sinkronkan peran (role) dan profil terbaru dari cloud ke akun aktif saat ini
+          if (
+            store.currentUser.role !== matched.role ||
+            store.currentUser.department !== matched.department ||
+            store.currentUser.name !== matched.name
+          ) {
+            useStore.setState({
+              currentUser: {
+                ...store.currentUser,
+                role: matched.role || store.currentUser.role,
+                department: matched.department || store.currentUser.department,
+                name: matched.name || store.currentUser.name,
+              },
+            });
+          }
         }
       }
     }
 
-    // 2. Sync & Merge All Spaces from Cloud
-    if (Array.isArray(remoteSpaces) && remoteSpaces.length > 0) {
-      const spaceMap = new Map<string, any>();
-      remoteSpaces.forEach((s) => {
-        if (s && s.id) spaceMap.set(s.id, s);
-      });
-      store.spaces.forEach((s) => {
-        if (s && s.id) spaceMap.set(s.id, s);
-      });
-      store.setSpaces(Array.from(spaceMap.values()));
+    // 2. Sync & Merge All Spaces from Cloud (Server Authoritative with Tombstone Support)
+    if (Array.isArray(remoteSpaces)) {
+      const deletedIds = new Set(store.deletedSpaceIds || []);
+      const validRemote = remoteSpaces.filter((s: any) => s && s.id && !deletedIds.has(s.id));
+
+      if (validRemote.length > 0 || (store.spaces.length > 0 && remoteSpaces.length === 0)) {
+        const remoteIdSet = new Set(validRemote.map((s: any) => s.id));
+        const recentLocals = store.spaces.filter(
+          (s) =>
+            !remoteIdSet.has(s.id) &&
+            !deletedIds.has(s.id) &&
+            s.id?.startsWith('sp_') &&
+            Date.now() - Number(s.id.replace('sp_', '')) < 30000
+        );
+        store.setSpaces([...validRemote, ...recentLocals]);
+      } else if (remoteSpaces.length === 0 && store.spaces.length > 0) {
+        store.setSpaces([]);
+      }
     }
 
     // 3. Sync & Merge All Direct Message Threads from Cloud
@@ -261,13 +285,16 @@ export async function performAutoCloudSync(options: { force?: boolean } = {}): P
       useStore.setState({ dmThreads: cleanDMThreads });
     }
 
+    const deletedSpaceSet = new Set(store.deletedSpaceIds || []);
+    const cleanSpaces = (store.spaces || []).filter((s) => s && s.id && !deletedSpaceSet.has(s.id));
+
     const res = await fetch('/api/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         tasks: tasksWithUserEmail,
         users: store.users,
-        spaces: store.spaces,
+        spaces: cleanSpaces,
         dmThreads: cleanDMThreads,
         userEmail,
         userName,

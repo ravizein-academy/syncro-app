@@ -707,9 +707,32 @@ function syncAllData(state) {
 
   // 4. Sinkronisasi Spaces
   if (state.spaces && Array.isArray(state.spaces)) {
+    const activeSpaceIds = {};
     state.spaces.forEach(sp => {
-      upsertSpace(sp);
+      if (sp && sp.id) {
+        activeSpaceIds[String(sp.id).trim()] = true;
+        upsertSpace(sp);
+      }
     });
+
+    // Jika sinkronisasi dikirim oleh Admin, bersihkan space yang sudah dihapus dari sheet Spaces
+    const isSenderAdmin = (userEmail === 'ravizein@itsecacademy.com');
+    if (isSenderAdmin) {
+      const spaceSheet = ss.getSheetByName(SHEET_NAMES.SPACES);
+      if (spaceSheet && spaceSheet.getLastRow() > 1) {
+        const spData = spaceSheet.getDataRange().getValues();
+        const spHeaders = spData[0];
+        const spIdIdx = spHeaders.indexOf('id');
+        if (spIdIdx >= 0) {
+          for (let m = spData.length - 1; m >= 1; m--) {
+            const rowSpId = String(spData[m][spIdIdx]).trim();
+            if (rowSpId && !activeSpaceIds[rowSpId]) {
+              spaceSheet.deleteRow(m + 1);
+            }
+          }
+        }
+      }
+    }
   }
 
   return {
@@ -854,7 +877,7 @@ function setupInitialDatabase() {
       'subtasks', 'attachments', 'comments', 'tags', 'createdAt', 'updatedAt'
     ],
     [SHEET_NAMES.USERS]: [
-      'id', 'name', 'email', 'role', 'avatar', 'department', 'capacityHours'
+      'id', 'name', 'email', 'role', 'avatar', 'department', 'capacityHours', 'status', 'requestedAt'
     ],
     [SHEET_NAMES.TEAMS]: [
       'id', 'name', 'description'
@@ -1007,18 +1030,37 @@ function notifyAdminAccessRequest(payload) {
 function updateUserRecord(user) {
   if (!user || (!user.id && !user.email)) return { success: false, message: 'Invalid payload' };
   const ss = getSpreadsheet();
-  const sheet = ss.getSheetByName(SHEET_NAMES.USERS);
-  if (!sheet) return { success: false, message: 'Users sheet not found' };
+  let sheet = ss.getSheetByName(SHEET_NAMES.USERS);
+  if (!sheet) {
+    setupInitialDatabase();
+    sheet = ss.getSheetByName(SHEET_NAMES.USERS);
+  }
 
   const data = sheet.getDataRange().getValues();
-  const headers = data[0];
+  let headers = data.length > 0 ? data[0] : [];
+
+  // Pastikan kolom status dan role ada di baris header
+  if (headers.indexOf('status') === -1) {
+    sheet.getRange(1, headers.length + 1).setValue('status');
+    headers.push('status');
+  }
+  if (headers.indexOf('role') === -1) {
+    sheet.getRange(1, headers.length + 1).setValue('role');
+    headers.push('role');
+  }
+  if (headers.indexOf('requestedAt') === -1) {
+    sheet.getRange(1, headers.length + 1).setValue('requestedAt');
+    headers.push('requestedAt');
+  }
+
   const idIdx = headers.indexOf('id');
   const emailIdx = headers.indexOf('email');
+  const userCleanEmail = String(user.email || '').toLowerCase().trim();
 
   for (let i = 1; i < data.length; i++) {
-    const rowId = String(data[i][idIdx]);
-    const rowEmail = String(data[i][emailIdx]).toLowerCase().trim();
-    if ((user.id && rowId === String(user.id)) || (user.email && rowEmail === String(user.email).toLowerCase().trim())) {
+    const rowId = idIdx >= 0 ? String(data[i][idIdx]) : '';
+    const rowEmail = emailIdx >= 0 ? String(data[i][emailIdx]).toLowerCase().trim() : '';
+    if ((user.id && rowId === String(user.id)) || (userCleanEmail && rowEmail === userCleanEmail)) {
       for (let j = 0; j < headers.length; j++) {
         const header = headers[j];
         if (user[header] !== undefined) {
@@ -1028,7 +1070,26 @@ function updateUserRecord(user) {
       return { success: true, updated: user };
     }
   }
-  return { success: false, message: 'User not found' };
+
+  // Jika user belum ada di sheet Users (misal user baru disetujui), tambahkan baris baru
+  const newRow = [];
+  const newUser = {
+    id: user.id || ('u_' + Date.now()),
+    name: user.name || (userCleanEmail ? userCleanEmail.split('@')[0] : 'User'),
+    email: userCleanEmail,
+    role: user.role || 'member',
+    avatar: (user.name || 'U').substring(0, 2).toUpperCase(),
+    department: user.department || 'Product & Tech',
+    capacityHours: user.capacityHours || 40,
+    status: user.status || 'active',
+    requestedAt: user.requestedAt || new Date().toISOString()
+  };
+  for (let j = 0; j < headers.length; j++) {
+    const header = headers[j];
+    newRow.push(newUser[header] !== undefined ? newUser[header] : '');
+  }
+  sheet.appendRow(newRow);
+  return { success: true, created: newUser };
 }
 
 /**

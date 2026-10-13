@@ -127,15 +127,28 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
               state.setUsers([...state.users, user]);
             }
 
-            // Jika status saya sendiri berubah menjadi inactive, langsung auto-kick
+            // Jika akun yang di-update adalah akun saya yang sedang aktif, perbarui currentUser seketika!
             if (
               state.currentUser &&
-              state.currentUser.email?.toLowerCase().trim() === user.email?.toLowerCase().trim() &&
-              state.currentUser.email?.toLowerCase().trim() !== "ravizein@itsecacademy.com"
+              state.currentUser.email?.toLowerCase().trim() === user.email?.toLowerCase().trim()
             ) {
-              if (user.status !== "active") {
+              if (
+                user.status &&
+                user.status !== "active" &&
+                state.currentUser.email?.toLowerCase().trim() !== "ravizein@itsecacademy.com"
+              ) {
                 state.logout();
                 window.location.replace("/login");
+              } else {
+                useStore.setState({
+                  currentUser: {
+                    ...state.currentUser,
+                    role: user.role || state.currentUser.role,
+                    department: user.department || state.currentUser.department,
+                    name: user.name || state.currentUser.name,
+                    status: user.status || state.currentUser.status,
+                  },
+                });
               }
             }
           } catch (err) {

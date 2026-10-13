@@ -114,6 +114,7 @@ interface AppState {
   tasks: Task[];
   users: User[];
   spaces: Space[];
+  deletedSpaceIds?: string[];
   dmThreads: DirectMessageThread[];
   notifications: NotificationItem[];
   calendarEvents: CalendarEvent[];
@@ -228,6 +229,7 @@ export const useStore = create<AppState>()(
       tasks: [],
       users: [],
       spaces: [],
+      deletedSpaceIds: [],
       dmThreads: [],
       notifications: [],
       calendarEvents: [],
@@ -397,6 +399,7 @@ export const useStore = create<AppState>()(
         set((state) => ({
           spaces: state.spaces.filter((s) => s.id !== id),
           tasks: state.tasks.map((t) => (t.spaceId === id ? { ...t, spaceId: undefined } : t)),
+          deletedSpaceIds: [...(state.deletedSpaceIds || []).filter((x) => x !== id).slice(-50), id],
         }));
       },
 
