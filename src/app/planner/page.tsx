@@ -321,21 +321,45 @@ export default function PlannerPage() {
   const currentEmail = activeUserEmail;
 
   const myCalendarEvents = useMemo(() => {
+    const isRavi = currentEmail === 'ravizein@itsecacademy.com' || currentEmail === 'ravizein@gmail.com';
+    const seen = new Set<string>();
+
     return (calendarEvents || []).filter((ev) => {
+      // Deduplikasi ketat berdasarkan ID
+      if (seen.has(ev.id)) return false;
+      seen.add(ev.id);
+
       if (!ev.userEmail) return true;
       const evMail = ev.userEmail.toLowerCase().trim();
+      const guests = (ev.guests || '').toLowerCase();
+
+      // Sinkronisasi otomatis penuh antara akun Academy dan Gmail milik Ravi Zein
+      if (isRavi) {
+        return (
+          evMail === 'ravizein@itsecacademy.com' ||
+          evMail === 'ravizein@gmail.com' ||
+          guests.includes('ravizein@itsecacademy.com') ||
+          guests.includes('ravizein@gmail.com') ||
+          ev.isGoogleEvent
+        );
+      }
+
       return (
         evMail === currentEmail ||
-        evMail === 'ravizein@itsecacademy.com' ||
-        (ev.guests && ev.guests.toLowerCase().includes(currentEmail))
+        guests.includes(currentEmail)
       );
     });
   }, [calendarEvents, currentEmail]);
 
   const myTasks = useMemo(() => {
+    const isRavi = currentEmail === 'ravizein@itsecacademy.com' || currentEmail === 'ravizein@gmail.com';
     return tasks.filter((t) => {
       if (t.isPersonal && t.userEmail && currentEmail) {
-        if (t.userEmail.toLowerCase().trim() !== currentEmail && currentEmail !== 'ravizein@itsecacademy.com') return false;
+        const taskEmail = t.userEmail.toLowerCase().trim();
+        if (isRavi) {
+          return taskEmail === 'ravizein@itsecacademy.com' || taskEmail === 'ravizein@gmail.com' || !taskEmail;
+        }
+        if (taskEmail !== currentEmail) return false;
       }
       return true;
     });

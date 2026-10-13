@@ -387,20 +387,11 @@ export async function fetchGoogleCalendarEvents(specificEmail?: string): Promise
         userEmail: ev.userEmail || userEmail,
       }));
 
-      // Pisahkan agenda akun lain agar tidak tertimpa/tercampur
-      const otherAccountsEvents = store.calendarEvents.filter(
-        (ev) => ev.userEmail && userEmail && ev.userEmail.toLowerCase().trim() !== userEmail
-      );
-
-      // Simpan agenda lokal saat ini untuk akun ini agar event baru yang belum ada di remote tidak hilang terhapus
-      const currentAccountEvents = store.calendarEvents.filter(
-        (ev) => !ev.userEmail || !userEmail || ev.userEmail.toLowerCase().trim() === userEmail
-      );
-
+      // Map untuk deduplikasi ketat berdasarkan ID
       const eventMap = new Map<string, CalendarEvent>();
 
       // 1. Masukkan semua event lokal yang sudah ada terlebih dahulu
-      currentAccountEvents.forEach((localEv) => {
+      (store.calendarEvents || []).forEach((localEv) => {
         eventMap.set(localEv.id, localEv);
       });
 
@@ -441,7 +432,7 @@ export async function fetchGoogleCalendarEvents(specificEmail?: string): Promise
         eventMap.set(merged.id, merged);
       });
 
-      const updated = [...otherAccountsEvents, ...Array.from(eventMap.values())];
+      const updated = Array.from(eventMap.values());
       store.setCalendarEvents(updated);
       return { success: true, events: updated, message: `Tersinkron ${taggedRemote.length} agenda Google Calendar` };
     }
