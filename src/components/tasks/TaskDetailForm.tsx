@@ -470,7 +470,7 @@ export function TaskDetailForm({ taskId }: TaskDetailFormProps) {
                     className="text-xs text-[#EE3726] hover:underline flex items-center gap-1 font-semibold disabled:opacity-50"
                   >
                     {isGeneratingAI ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                    <span>{language === "en" ? "AI Write" : "Gemini AI Tulis Deskripsi"}</span>
+                    <span>{language === "en" ? "Syncro AI Write" : "Syncro AI Tulis Deskripsi"}</span>
                   </button>
                 </div>
                 <Textarea

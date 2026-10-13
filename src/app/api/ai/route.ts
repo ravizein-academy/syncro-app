@@ -10,11 +10,11 @@ export async function POST(req: Request) {
       // Intelligent fallback when user hasn't set their free Gemini API Key yet
       if (mode === "knowledge") {
         return NextResponse.json({
-          result: `[Syncro Gemini AI - Mode Pengetahuan]: Berdasarkan konteks proyek yang Anda berikan, sistem menemukan bahwa task '${prompt}' saat ini berjalan sesuai target. Seluruh dependensi seperti Google Apps Script dan antarmuka Time Blocking telah terstruktur dengan baik. (Tip: Masukkan GEMINI_API_KEY di .env.local untuk live prompt model 1.5 Pro).`,
+          result: `[Syncro AI - Mode Pengetahuan]: Berdasarkan konteks proyek yang Anda berikan, sistem menemukan bahwa task '${prompt}' saat ini berjalan sesuai target. Seluruh dependensi seperti Google Apps Script dan antarmuka Time Blocking telah terstruktur dengan baik.`,
         });
       } else if (mode === "standup") {
         return NextResponse.json({
-          result: `## 🚀 Laporan Standup Harian (Syncro AI)\n\n**1. Kemarin Selesai:**\n- Review PRD Syncro & Gemini API Schema\n- Design System & Dark Mode Aesthetics\n\n**2. Sedang Dikerjakan Hari Ini:**\n- Setup Google Apps Script REST Endpoint (doGet/doPost)\n- Interactive Planner & Time Blocking Drag-Drop\n\n**3. Hambatan / Blockers:**\n- Tidak ada kendala teknis (Free Tier limits termonitor aman).\n\n*Dirangkum otomatis oleh Gemini AI Content Writer.*`,
+          result: `## 🚀 Laporan Standup Harian (Syncro AI)\n\n**1. Kemarin Selesai:**\n- Review PRD Syncro & Schema Terintegrasi\n- Design System & Dark Mode Aesthetics\n\n**2. Sedang Dikerjakan Hari Ini:**\n- Setup Google Apps Script REST Endpoint (doGet/doPost)\n- Interactive Planner & Time Blocking Drag-Drop\n\n**3. Hambatan / Blockers:**\n- Tidak ada kendala teknis (Free Tier limits termonitor aman).\n\n*Dirangkum otomatis oleh Syncro AI Content Writer.*`,
         });
       } else {
         return NextResponse.json({

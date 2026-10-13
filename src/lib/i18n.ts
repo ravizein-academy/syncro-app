@@ -21,7 +21,7 @@ export const translations = {
     navTeams: 'Teams',
     navChannels: 'Channels',
     navDM: 'Pesan Langsung',
-    navAI: 'Gemini AI Brain',
+    navAI: 'Syncro AI Brain',
     navIntegrations: 'Ekosistem Google',
 
     // Top Navbar
@@ -59,9 +59,9 @@ export const translations = {
     // Dashboard
     heroBadge: 'ClickUp Red Workspace',
     heroWelcome: 'Selamat Datang',
-    heroDesc: 'Manajemen tugas presisi, penjadwalan kalender terintegrasi, dan kecerdasan Gemini AI dengan antarmuka modern.',
+    heroDesc: 'Manajemen tugas presisi, penjadwalan kalender terintegrasi, dan kecerdasan Syncro AI dengan antarmuka modern.',
     openPlanner: 'Buka Kalender',
-    openAI: 'Gemini AI',
+    openAI: 'Syncro AI',
     totalTasks: 'Total Tasks',
     totalTasksSub: 'Seluruh workspace aktif',
     inProgress: 'Sedang Dikerjakan',
@@ -165,15 +165,15 @@ export const translations = {
     burnoutWarning: 'Beban kerja tinggi! Pertimbangkan redistribusi tugas.',
 
     // AI Page
-    aiTag: 'Gemini Intelligence',
-    aiTitle: 'Gemini AI Engine',
+    aiTag: 'Syncro Intelligence',
+    aiTitle: 'Syncro AI Engine',
     aiSubtitle: 'Kecerdasan buatan terintegrasi untuk Knowledge Management, Content Writing, dan Super Agents.',
     tabKnowledge: 'Knowledge Manager',
     tabStandup: 'Content Writer',
     tabAgent: 'Super Agent',
     knowledgeDesc: 'Tanyakan apapun seputar status proyek, rincian tugas yang sedang berjalan, atau konteks tim.',
     knowledgePlaceholder: 'e.g. Apa saja tugas berprioritas tinggi yang belum selesai minggu ini?',
-    aiAnswerLabel: 'Jawaban Gemini AI',
+    aiAnswerLabel: 'Jawaban Syncro AI',
     copyBtn: 'Salin',
     copiedBtn: 'Tersalin',
     standupDesc: 'Buat laporan ringkasan status harian (daily standup) otomatis berdasarkan data tugas aktif.',
@@ -243,7 +243,7 @@ export const translations = {
     navTeams: 'Teams',
     navChannels: 'Channels',
     navDM: 'Direct Messages',
-    navAI: 'Gemini AI Brain',
+    navAI: 'Syncro AI Brain',
     navIntegrations: 'Google Ecosystem',
 
     // Top Navbar
@@ -281,9 +281,9 @@ export const translations = {
     // Dashboard
     heroBadge: 'ClickUp Red Workspace',
     heroWelcome: 'Welcome back',
-    heroDesc: 'Precision task management, integrated calendar scheduling, and Gemini AI intelligence.',
+    heroDesc: 'Precision task management, integrated calendar scheduling, and Syncro AI intelligence.',
     openPlanner: 'Open Calendar',
-    openAI: 'Gemini AI',
+    openAI: 'Syncro AI',
     totalTasks: 'Total Tasks',
     totalTasksSub: 'Across active workspace',
     inProgress: 'In Progress',
@@ -387,15 +387,15 @@ export const translations = {
     burnoutWarning: 'High workload! Consider rebalancing tasks.',
 
     // AI Page
-    aiTag: 'Gemini Intelligence',
-    aiTitle: 'Gemini AI Engine',
+    aiTag: 'Syncro Intelligence',
+    aiTitle: 'Syncro AI Engine',
     aiSubtitle: 'Integrated artificial intelligence for Knowledge Management, Content Writing, and Super Agents.',
     tabKnowledge: 'Knowledge Manager',
     tabStandup: 'Content Writer',
     tabAgent: 'Super Agent',
     knowledgeDesc: 'Ask anything regarding project status, current ongoing tasks, or team context.',
     knowledgePlaceholder: 'e.g. What are the high-priority unfinished tasks this week?',
-    aiAnswerLabel: 'Gemini AI Answer',
+    aiAnswerLabel: 'Syncro AI Answer',
     copyBtn: 'Copy',
     copiedBtn: 'Copied',
     standupDesc: 'Generate automatic daily standup reports based on your active task data.',

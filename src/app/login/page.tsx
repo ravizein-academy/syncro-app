@@ -679,7 +679,7 @@ export default function LoginPage() {
           <span>{t.authSecurityNote}</span>
         </div>
         <p className="text-[10px] text-muted-foreground/70">
-          Syncro PWA • Google Sheets REST Backend • Google AI Studio Gemini Engine
+          Syncro PWA • Google Sheets REST Backend • Syncro AI Engine
         </p>
       </div>
 

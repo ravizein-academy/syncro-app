@@ -232,7 +232,7 @@ export default function NewTaskPage() {
                 {language === 'en' ? 'Description' : 'Deskripsi Tugas'}
               </label>
 
-              {/* Gemini AI Write Assistant */}
+              {/* Syncro AI Write Assistant */}
               <button
                 type="button"
                 onClick={handleGenerateAIDescription}
@@ -240,7 +240,7 @@ export default function NewTaskPage() {
                 className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#EE3726] bg-[#EE3726]/10 hover:bg-[#EE3726]/20 px-3 py-1 rounded-lg transition disabled:opacity-40"
               >
                 {isGeneratingAI ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
-                <span>{language === 'en' ? 'Gemini AI Writer' : 'Bantuan Gemini AI'}</span>
+                <span>{language === 'en' ? 'Syncro AI Writer' : 'Bantuan Syncro AI'}</span>
               </button>
             </div>
 

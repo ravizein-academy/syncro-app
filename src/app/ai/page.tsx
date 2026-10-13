@@ -68,7 +68,7 @@ export default function AIPage() {
       const data = await res.json();
       setKnowledgeAnswer(data.result || (language === 'en' ? "No response received." : "Tidak ada respon."));
     } catch (err) {
-      setKnowledgeAnswer(language === 'en' ? "An error occurred while contacting Gemini AI." : "Terjadi kesalahan saat memproses pertanyaan.");
+      setKnowledgeAnswer(language === 'en' ? "An error occurred while contacting Syncro AI." : "Terjadi kesalahan saat memproses pertanyaan.");
     } finally {
       setIsKnowledgeLoading(false);
     }

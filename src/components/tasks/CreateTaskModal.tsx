@@ -241,7 +241,7 @@ export function CreateTaskModal({
                 {language === 'en' ? 'Description' : 'Deskripsi Tugas'}
               </span>
 
-              {/* Gemini AI Write Assistant */}
+              {/* Syncro AI Write Assistant */}
               <button
                 type="button"
                 onClick={handleGenerateAIDescription}
@@ -249,7 +249,7 @@ export function CreateTaskModal({
                 className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#EE3726] bg-[#EE3726]/10 hover:bg-[#EE3726]/20 px-2.5 py-1 rounded-lg transition disabled:opacity-40"
               >
                 {isGeneratingAI ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
-                <span>{language === 'en' ? 'Gemini AI Writer' : 'Bantuan Gemini AI'}</span>
+                <span>{language === 'en' ? 'Syncro AI Writer' : 'Bantuan Syncro AI'}</span>
               </button>
             </div>
 

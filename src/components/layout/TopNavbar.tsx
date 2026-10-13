@@ -3,8 +3,6 @@
 import Link from "next/link";
 import { useStore } from "@/store/useStore";
 import { 
-  Bell, 
-  Sparkles, 
   Search, 
   Sun, 
   Moon, 
@@ -245,28 +243,6 @@ export function TopNavbar() {
             <Moon size={15} className="text-slate-600" />
           )}
         </button>
-
-        {/* Gemini AI Shortcut */}
-        <Link href="/ai" className="shrink-0">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-8 px-2 sm:px-3 gap-1 sm:gap-1.5 text-xs bg-[#EE3726]/10 border-[#EE3726]/30 text-[#EE3726] hover:bg-[#EE3726]/20 rounded-lg"
-          >
-            <Sparkles size={13} className="text-[#EE3726]" />
-            <span className="hidden sm:inline">Gemini AI</span>
-          </Button>
-        </Link>
-
-        {/* Notifications Inbox */}
-        <Link href="/inbox" className="relative p-1.5 sm:p-2 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition shrink-0">
-          <Bell size={17} />
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#EE3726] text-[9px] font-extrabold text-white ring-2 ring-card">
-              {unreadCount}
-            </span>
-          )}
-        </Link>
       </div>
     </header>
   );
