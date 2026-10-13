@@ -9,6 +9,8 @@ import {
   MessageSquare, 
   Briefcase, 
   Calendar, 
+  CalendarCheck,
+  ExternalLink,
   LayoutDashboard,
   Users,
   Sparkles,
@@ -28,7 +30,21 @@ export function Sidebar() {
 
   const pendingRequestsCount = currentUser?.role === 'admin' ? users.filter((u) => u.status === 'pending').length : 0;
 
-  const NAV_ITEMS = [
+  // Akun Google spesifik pengguna yang sedang login
+  const activeGoogleEmail = (currentUser?.email || 'ravizein@itsecacademy.com').toLowerCase().trim();
+  const googleCalendarUrl = `https://calendar.google.com/calendar/r?authuser=${encodeURIComponent(activeGoogleEmail)}`;
+
+  interface NavItem {
+    name: string;
+    href: string;
+    icon: any;
+    badge?: string;
+    isPendingAlert?: boolean;
+    isExternal?: boolean;
+    title?: string;
+  }
+
+  const NAV_ITEMS: NavItem[] = [
     { name: t.navDashboard, href: '/', icon: LayoutDashboard },
     { 
       name: t.navInbox, 
@@ -38,7 +54,19 @@ export function Sidebar() {
       isPendingAlert: pendingRequestsCount > 0
     },
     { name: t.navMyTasks, href: '/tasks', icon: CheckSquare },
-    { name: t.navPlanner, href: '/planner', icon: Calendar },
+    { 
+      name: t.navPlanner || 'Kalender', 
+      href: googleCalendarUrl, 
+      icon: Calendar,
+      isExternal: true,
+      badge: 'Google ↗',
+      title: `Buka Google Calendar langsung (${activeGoogleEmail})`
+    },
+    { 
+      name: t.navTeamPlanner || 'Planner Tim', 
+      href: '/planner', 
+      icon: CalendarCheck 
+    },
     { name: t.navSpaces, href: '/spaces', icon: Briefcase },
     { name: t.navTeams, href: '/teams', icon: Users },
     { name: t.navDM, href: '/dm', icon: MessageSquare },
@@ -80,6 +108,34 @@ export function Sidebar() {
         </div>
         {NAV_ITEMS.map((item) => {
           const isActive = pathname === item.href;
+
+          if (item.isExternal) {
+            return (
+              <a
+                key={item.name}
+                href={item.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleLinkClick}
+                title={item.title || item.name}
+                className="flex items-center justify-between rounded-lg px-3 py-2 text-xs transition-all text-muted-foreground hover:bg-accent hover:text-foreground font-medium group"
+              >
+                <div className="flex items-center gap-2.5">
+                  <item.icon className="h-4 w-4 text-muted-foreground group-hover:text-[#EE3726] transition-colors" />
+                  <span>{item.name}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {item.badge && (
+                    <span className="rounded-full px-1.5 py-0.5 text-[10px] font-bold bg-[#EE3726]/10 text-[#EE3726] border border-[#EE3726]/30 group-hover:bg-[#EE3726] group-hover:text-white transition">
+                      {item.badge}
+                    </span>
+                  )}
+                  <ExternalLink size={12} className="text-muted-foreground group-hover:text-[#EE3726] transition-colors" />
+                </div>
+              </a>
+            );
+          }
+
           return (
             <Link
               key={item.name}

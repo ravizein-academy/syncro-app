@@ -459,6 +459,12 @@ export default function PlannerPage() {
             <h1 className="text-xl sm:text-2xl font-black text-foreground flex items-center gap-2 mt-0.5">
               <span>{language === 'en' ? "Google Calendar" : "Kalender Google"}</span>
             </h1>
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5 mt-0.5">
+              <span>Akun terhubung:</span>
+              <span className="font-semibold text-foreground font-mono bg-secondary px-1.5 py-0.2 rounded border border-border">
+                {activeUserEmail}
+              </span>
+            </p>
           </div>
         </div>
 
@@ -480,15 +486,16 @@ export default function PlannerPage() {
             </span>
           </button>
 
-          {/* Open Google Calendar directly */}
+          {/* Open Google Calendar directly with user's specific Google Account */}
           <a
-            href="https://calendar.google.com"
+            href={`https://calendar.google.com/calendar/r?authuser=${encodeURIComponent(activeUserEmail)}`}
             target="_blank"
             rel="noopener noreferrer"
+            title={`Buka Google Calendar resmi untuk akun ${activeUserEmail}`}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4285F4] hover:bg-[#3367d6] text-white shadow-xs text-xs font-semibold transition active:scale-95"
           >
             <ExternalLink className="w-3.5 h-3.5" />
-            <span>{language === "en" ? "Google Calendar" : "Buka Google Calendar"}</span>
+            <span>{language === "en" ? "Open My Google Calendar" : "Buka Google Calendar Saya"}</span>
           </a>
         </div>
       </div>

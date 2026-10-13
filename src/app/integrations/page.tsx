@@ -48,6 +48,8 @@ export default function IntegrationsPage() {
     }
   };
 
+  const activeUserEmail = (currentUser?.email || 'ravizein@itsecacademy.com').toLowerCase().trim();
+
   const INTEGRATION_LIST = [
     {
       key: "googleAuth" as const,
@@ -57,17 +59,21 @@ export default function IntegrationsPage() {
         : "Autentikasi satu klik menggunakan Google Workspace atau akun Gmail personal Anda.",
       icon: Lock,
       color: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20",
-      statusText: currentUser?.email || (language === 'en' ? "Connected" : "Terhubung"),
+      statusText: activeUserEmail,
+      directUrl: `https://myaccount.google.com/?authuser=${encodeURIComponent(activeUserEmail)}`,
+      directLabel: language === 'en' ? "Google Account ↗" : "Akun Google ↗",
     },
     {
       key: "googleCalendar" as const,
-      name: "Google Calendar (2-Way Sync)",
+      name: "Google Calendar (Realtime Sync)",
       desc: language === 'en'
-        ? "Automatic two-way synchronization between Google Calendar and Syncro Planner."
-        : "Sinkronisasi dua arah otomatis antara agenda Google Calendar dengan modul Planner Syncro.",
+        ? "Automatic two-way synchronization between Google Calendar and Syncro."
+        : "Sinkronisasi otomatis antara agenda Google Calendar dengan modul Syncro untuk akun ini.",
       icon: Calendar,
       color: "text-red-600 dark:text-red-400 bg-red-500/10 border-red-500/20",
-      statusText: language === 'en' ? "Sync active (Realtime)" : "Sinkronisasi aktif (Interval: Realtime)",
+      statusText: `${activeUserEmail} (Realtime)`,
+      directUrl: `https://calendar.google.com/calendar/r?authuser=${encodeURIComponent(activeUserEmail)}`,
+      directLabel: language === 'en' ? "Open Calendar ↗" : "Buka Google Calendar ↗",
     },
     {
       key: "googleDrive" as const,
@@ -77,17 +83,21 @@ export default function IntegrationsPage() {
         : "Akses dan lampirkan dokumen, spreadsheet, dan Google Slides langsung ke rincian tugas.",
       icon: HardDrive,
       color: "text-rose-600 dark:text-rose-300 bg-rose-500/10 border-rose-500/20",
-      statusText: "Drive Picker & File Attachment",
+      statusText: `${activeUserEmail} (Drive)`,
+      directUrl: `https://drive.google.com/drive/my-drive?authuser=${encodeURIComponent(activeUserEmail)}`,
+      directLabel: language === 'en' ? "Open Drive ↗" : "Buka Drive ↗",
     },
     {
       key: "googleMeet" as const,
-      name: "Google Meet 1-Click Link",
+      name: "Google Meet Video Call",
       desc: language === 'en'
         ? "Instant Meet video conferencing URLs generated right from the calendar grid."
         : "Membuat URL video call Google Meet secara instan saat menjadwalkan sesi kerja di Planner.",
       icon: Video,
       color: "text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20",
-      statusText: "1-Click Meet button",
+      statusText: `${activeUserEmail} (Meet)`,
+      directUrl: `https://meet.google.com?authuser=${encodeURIComponent(activeUserEmail)}`,
+      directLabel: language === 'en' ? "Open Meet ↗" : "Buka Meet ↗",
     },
     {
       key: "gmail" as const,
@@ -97,7 +107,9 @@ export default function IntegrationsPage() {
         : "Ekstrak email masuk penting dari Gmail menjadi daftar tugas langsung ke inbox Syncro.",
       icon: Mail,
       color: "text-red-600 dark:text-red-300 bg-red-500/10 border-red-500/20",
-      statusText: "Auto forwarding to Tasks",
+      statusText: `${activeUserEmail} (Gmail)`,
+      directUrl: `https://mail.google.com/mail/u/?authuser=${encodeURIComponent(activeUserEmail)}`,
+      directLabel: language === 'en' ? "Open Gmail ↗" : "Buka Gmail ↗",
     },
   ];
 
@@ -245,7 +257,7 @@ export default function IntegrationsPage() {
                 </CardContent>
               </div>
 
-              <div className="p-4 pt-0 border-t border-border mt-2 flex items-center justify-between">
+              <div className="p-4 pt-0 border-t border-border mt-2 flex items-center justify-between gap-2 flex-wrap">
                 <Button
                   variant={isConnected ? "outline" : "default"}
                   size="sm"
@@ -259,15 +271,27 @@ export default function IntegrationsPage() {
                   {isConnected ? t.disconnectBtn : t.connectBtn}
                 </Button>
 
-                <a
-                  href="https://console.cloud.google.com"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 flex items-center gap-1 transition"
-                >
-                  <span>Google Cloud Console</span>
-                  <ExternalLink size={10} />
-                </a>
+                {item.directUrl ? (
+                  <a
+                    href={item.directUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:underline flex items-center gap-1 transition"
+                  >
+                    <span>{item.directLabel}</span>
+                    <ExternalLink size={11} />
+                  </a>
+                ) : (
+                  <a
+                    href="https://console.cloud.google.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[11px] text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400 flex items-center gap-1 transition"
+                  >
+                    <span>Google Cloud Console</span>
+                    <ExternalLink size={10} />
+                  </a>
+                )}
               </div>
             </Card>
           );
