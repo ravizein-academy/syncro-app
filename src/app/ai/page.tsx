@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { translations } from "@/lib/i18n";
+import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
 
 export default function AIPage() {
   const { tasks, language } = useStore();
@@ -204,9 +205,9 @@ export default function AIPage() {
                     <span>{copied ? t.copiedBtn : t.copyBtn}</span>
                   </button>
                 </div>
-                <p className="text-xs text-foreground whitespace-pre-wrap leading-relaxed pt-1">
-                  {knowledgeAnswer}
-                </p>
+                <div className="pt-1">
+                  <MarkdownRenderer content={knowledgeAnswer} />
+                </div>
               </div>
             )}
           </CardContent>
@@ -248,8 +249,8 @@ export default function AIPage() {
                     <span>{copied ? t.copiedBtn : t.copyBtn}</span>
                   </button>
                 </div>
-                <div className="text-xs text-foreground whitespace-pre-wrap leading-relaxed font-mono pt-1">
-                  {standupReport}
+                <div className="pt-1">
+                  <MarkdownRenderer content={standupReport} />
                 </div>
               </div>
             )}
@@ -302,8 +303,8 @@ export default function AIPage() {
                     <span>{copied ? t.copiedBtn : t.copyBtn}</span>
                   </button>
                 </div>
-                <div className="text-xs text-foreground whitespace-pre-wrap leading-relaxed pt-1">
-                  {extractedActions}
+                <div className="pt-1">
+                  <MarkdownRenderer content={extractedActions} />
                 </div>
               </div>
             )}
