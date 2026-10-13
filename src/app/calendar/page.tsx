@@ -139,20 +139,33 @@ export default function CalendarPage() {
   // Email aktif (ravizein@gmail.com atau ravizein@itsecacademy.com)
   const activeUserEmail = (currentUser?.email || "ravizein@itsecacademy.com").toLowerCase().trim();
 
-  // Fetch data Google Calendar secara otomatis saat load & berkala
+  // Fetch data Google Calendar secara otomatis (Auto-Refresh Realtime)
   useEffect(() => {
-    fetchGoogleCalendarEvents(activeUserEmail);
+    let isMounted = true;
+
+    const performAutoFetch = async () => {
+      try {
+        if (isMounted) setIsSyncing(true);
+        await fetchGoogleCalendarEvents(activeUserEmail);
+      } catch (err) {
+        console.warn("Auto-fetch error:", err);
+      } finally {
+        if (isMounted) setIsSyncing(false);
+      }
+    };
+
+    performAutoFetch();
 
     const handleFocus = () => {
-      fetchGoogleCalendarEvents(activeUserEmail);
+      performAutoFetch();
     };
     window.addEventListener("focus", handleFocus);
 
-    const interval = setInterval(() => {
-      fetchGoogleCalendarEvents(activeUserEmail);
-    }, 30000);
+    // Auto-refresh otomatis setiap 15 detik tanpa perlu klik tombol
+    const interval = setInterval(performAutoFetch, 15000);
 
     return () => {
+      isMounted = false;
       window.removeEventListener("focus", handleFocus);
       clearInterval(interval);
     };
@@ -345,19 +358,6 @@ export default function CalendarPage() {
     }
   };
 
-  const handleManualSync = async () => {
-    setIsSyncing(true);
-    try {
-      await fetchGoogleCalendarEvents(activeUserEmail);
-      setSyncNotice(language === "en" ? "Google Calendar synchronized successfully!" : "Google Calendar berhasil disinkronkan!");
-    } catch (err) {
-      console.warn("Manual sync error:", err);
-    } finally {
-      setIsSyncing(false);
-      setTimeout(() => setSyncNotice(null), 3000);
-    }
-  };
-
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] p-3 sm:p-5 md:p-6 space-y-3 sm:space-y-4 max-w-[1700px] mx-auto select-none transition-colors duration-200">
       {/* Top Header */}
@@ -393,17 +393,18 @@ export default function CalendarPage() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2.5 flex-wrap self-start sm:self-auto">
-          {/* Segarkan Button */}
-          <button
-            type="button"
-            disabled={isSyncing}
-            onClick={handleManualSync}
-            className="p-2 rounded-xl border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition shadow-xs flex items-center gap-1.5 text-xs font-semibold disabled:opacity-50"
-            title={language === "en" ? "Refresh Calendar" : "Segarkan Kalender"}
+          {/* Auto-Refresh Status Indicator */}
+          <div 
+            className="px-2.5 sm:px-3 py-1.5 rounded-xl border border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-semibold shadow-xs flex items-center gap-1.5 select-none"
+            title="Auto-Refresh Aktif: Agenda Google Calendar tersinkronisasi otomatis secara realtime tanpa perlu klik manual"
           >
-            <RefreshCw size={14} className={isSyncing ? "animate-spin text-[#4285F4]" : ""} />
-            <span className="hidden md:inline">{isSyncing ? "Menyinkronkan..." : "Segarkan"}</span>
-          </button>
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <RefreshCw size={12} className={isSyncing ? "animate-spin text-emerald-500 shrink-0" : "text-emerald-500 shrink-0"} />
+            <span className="hidden sm:inline">{isSyncing ? "Menyinkronkan..." : "Auto-Refresh"}</span>
+          </div>
 
           {/* Google Calendar Direct Web Button */}
           <a
