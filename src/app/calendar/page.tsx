@@ -190,8 +190,20 @@ export default function PlannerPage() {
     setSelectedDate(new Date());
   };
 
+  // Pilihan Tampilan Kalender: "live_embed" (Google Calendar langsung di dalam aplikasi) | "syncro_grid" (Grid Interaktif Syncro)
+  const [activeTab, setActiveTab] = useState<"live_embed" | "syncro_grid">("live_embed");
+  const [embedMode, setEmbedMode] = useState<"WEEK" | "MONTH" | "AGENDA">("WEEK");
+  const [iframeKey, setIframeKey] = useState(0);
+
   // Email aktif untuk sinkronisasi Google Calendar (fallback ke ravizein@itsecacademy.com jika belum login)
   const activeUserEmail = (currentUser?.email || 'ravizein@itsecacademy.com').toLowerCase().trim();
+
+  // URL resmi Google Calendar untuk ditampilkan langsung di dalam halaman web aplikasi tanpa membuka tab baru
+  const gcalEmbedUrl = useMemo(() => {
+    const email = encodeURIComponent(activeUserEmail || "ravizein@itsecacademy.com");
+    const lang = language === "en" ? "en" : "id";
+    return `https://calendar.google.com/calendar/embed?src=${email}&ctz=Asia%2FJakarta&hl=${lang}&wkst=2&mode=${embedMode}&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&showTz=1`;
+  }, [activeUserEmail, language, embedMode]);
 
   // Otomatis sinkronisasi Google Calendar secara realtime di background:
   // 1. Saat pertama kali membuka halaman atau berganti akun
@@ -508,6 +520,91 @@ export default function PlannerPage() {
         </div>
 
 
+        {/* View Switcher: Live Google Calendar Embed vs Syncro Interactive Grid */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center bg-secondary border border-border p-1 rounded-xl text-xs font-semibold">
+            <button
+              onClick={() => setActiveTab("live_embed")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition ${
+                activeTab === "live_embed"
+                  ? "bg-[#4285F4] text-white shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <GoogleCalendarLogo size={15} />
+              <span>{language === 'en' ? "Google Calendar (Direct)" : "Google Calendar Langsung"}</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("syncro_grid")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition ${
+                activeTab === "syncro_grid"
+                  ? "bg-foreground text-background shadow-xs font-bold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LayoutGrid size={14} />
+              <span>{language === 'en' ? "Syncro Grid" : "Kalender Syncro"}</span>
+            </button>
+          </div>
+
+          {activeTab === "live_embed" && (
+            <div className="flex items-center gap-1.5">
+              {/* Embed Mode Switcher */}
+              <div className="flex items-center bg-secondary/80 border border-border p-0.5 rounded-lg text-xs font-medium">
+                <button
+                  onClick={() => setEmbedMode("WEEK")}
+                  className={`px-2.5 py-1 rounded-md transition ${
+                    embedMode === "WEEK"
+                      ? "bg-[#4285F4] text-white font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {language === 'en' ? "Week" : "Minggu"}
+                </button>
+                <button
+                  onClick={() => setEmbedMode("MONTH")}
+                  className={`px-2.5 py-1 rounded-md transition ${
+                    embedMode === "MONTH"
+                      ? "bg-[#4285F4] text-white font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {language === 'en' ? "Month" : "Bulan"}
+                </button>
+                <button
+                  onClick={() => setEmbedMode("AGENDA")}
+                  className={`px-2.5 py-1 rounded-md transition ${
+                    embedMode === "AGENDA"
+                      ? "bg-[#4285F4] text-white font-semibold shadow-xs"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Agenda
+                </button>
+              </div>
+
+              {/* Refresh button */}
+              <button
+                onClick={() => setIframeKey((k) => k + 1)}
+                className="p-2 rounded-xl border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition shadow-xs"
+                title={language === 'en' ? "Reload Google Calendar" : "Muat ulang tampilan Google Calendar"}
+              >
+                <RefreshCw size={14} />
+              </button>
+
+              {/* External open button */}
+              <a
+                href={`https://calendar.google.com/calendar/u/0/r`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-xl border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition shadow-xs flex items-center gap-1"
+                title={language === 'en' ? "Open in new tab (optional)" : "Buka di tab baru (opsional)"}
+              >
+                <ExternalLink size={14} />
+              </a>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Sync Banner Notification if active */}
@@ -524,9 +621,29 @@ export default function PlannerPage() {
       )}
 
       {/* ============================================================== */}
-      {/* GOOGLE CALENDAR VIEW (WEEK / MONTH / DAY / AGENDA)             */}
+      {/* 1. TAMPILAN RESMI GOOGLE CALENDAR LANGSUNG DI DALAM APLIKASI   */}
       {/* ============================================================== */}
-      <div className="flex-1 flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+      {activeTab === "live_embed" && (
+        <div className="flex-1 flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-sm relative">
+          <div className="w-full flex-1 min-h-[640px] h-full relative bg-card">
+            <iframe
+              key={iframeKey}
+              src={gcalEmbedUrl}
+              className="w-full h-full border-0 absolute inset-0 rounded-2xl"
+              style={{ border: 0, width: "100%", height: "100%" }}
+              title="Google Calendar Direct View"
+              allow="camera; microphone; geolocation; clipboard-write; storage-access"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals allow-popups-to-escape-sandbox allow-storage-access-by-user-activation"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================== */}
+      {/* 2. GOOGLE CALENDAR INTERAKTIF GRID SYNCRO                      */}
+      {/* ============================================================== */}
+      {activeTab === "syncro_grid" && (
+        <div className="flex-1 flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
           {/* Google Calendar Toolbar: Month/Year navigation, Today, and View Switcher */}
           <div className="p-3 sm:p-4 border-b border-border bg-secondary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3">
@@ -999,6 +1116,7 @@ export default function PlannerPage() {
             </div>
           )}
         </div>
+      )}
 
       {/* ============================================================== */}
       {/* DIALOG: DETAIL ACARA & GOOGLE MEET / EVENT DETAIL POPUP        */}
