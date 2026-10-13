@@ -172,6 +172,8 @@ interface AppState {
   // Space Actions
   setSpaces: (spaces: Space[]) => void;
   addSpace: (space: Omit<Space, 'id'>) => void;
+  updateSpace: (id: string, updates: Partial<Space>) => void;
+  deleteSpace: (id: string) => void;
 
   // Direct Message Actions
   setDMThreads: (dmThreads: DirectMessageThread[]) => void;
@@ -385,6 +387,17 @@ export const useStore = create<AppState>()(
           id: `sp_${Date.now()}`,
         };
         set((state) => ({ spaces: [...state.spaces, newSpace] }));
+      },
+      updateSpace: (id, updates) => {
+        set((state) => ({
+          spaces: state.spaces.map((s) => (s.id === id ? { ...s, ...updates } : s)),
+        }));
+      },
+      deleteSpace: (id) => {
+        set((state) => ({
+          spaces: state.spaces.filter((s) => s.id !== id),
+          tasks: state.tasks.map((t) => (t.spaceId === id ? { ...t, spaceId: undefined } : t)),
+        }));
       },
 
 
