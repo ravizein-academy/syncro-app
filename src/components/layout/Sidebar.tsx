@@ -55,11 +55,9 @@ export function Sidebar() {
     { name: t.navMyTasks, href: '/tasks', icon: CheckSquare },
     { 
       name: t.navPlanner || 'Kalender', 
-      href: googleCalendarUrl, 
+      href: '/calendar', 
       icon: Calendar,
-      isExternal: true,
-      badge: 'Google ↗',
-      title: `Buka Google Calendar langsung (${activeGoogleEmail})`
+      title: `Kalender (${activeGoogleEmail})`
     },
     { name: t.navSpaces, href: '/spaces', icon: Briefcase },
     { name: t.navTeams, href: '/teams', icon: Users },

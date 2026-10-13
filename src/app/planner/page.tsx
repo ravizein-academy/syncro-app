@@ -135,6 +135,8 @@ export default function PlannerPage() {
 
   // Google Calendar View: "week" | "month" | "day" | "agenda"
   const [gcalView, setGcalView] = useState<"week" | "month" | "day" | "agenda">("week");
+  // Display mode: "interactive" (Syncro Calendar) | "google_web" (Embedded Google Calendar Web)
+  const [calendarMode, setCalendarMode] = useState<"interactive" | "google_web">("interactive");
 
   // Sync state
   const [syncNotice, setSyncNotice] = useState<string | null>(null);
@@ -494,6 +496,34 @@ export default function PlannerPage() {
 
         {/* Action Controls & Navigation */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+          {/* Mode Switcher: Native App Calendar vs In-App Google Calendar Web */}
+          <div className="flex items-center p-1 rounded-full bg-secondary border border-border">
+            <button
+              type="button"
+              onClick={() => setCalendarMode("interactive")}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition ${
+                calendarMode === "interactive"
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LayoutGrid size={13} />
+              <span>{language === "en" ? "App Calendar" : "Kalender Aplikasi"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setCalendarMode("google_web")}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition ${
+                calendarMode === "google_web"
+                  ? "bg-card text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Globe size={13} />
+              <span>{language === "en" ? "Google Calendar Web" : "Google Calendar Web"}</span>
+            </button>
+          </div>
+
           {/* Sync Now Button with spinner */}
           <button
             type="button"
@@ -509,18 +539,6 @@ export default function PlannerPage() {
                 : (language === "en" ? "Sync Calendar" : "Sinkronkan")}
             </span>
           </button>
-
-          {/* Open Google Calendar directly with user's specific Google Account */}
-          <a
-            href={`https://calendar.google.com/calendar/r?authuser=${encodeURIComponent(activeUserEmail)}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            title={`Buka Google Calendar resmi untuk akun ${activeUserEmail}`}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#4285F4] hover:bg-[#3367d6] text-white shadow-xs text-xs font-semibold transition active:scale-95"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>{language === "en" ? "Open My Google Calendar" : "Buka Google Calendar Saya"}</span>
-          </a>
         </div>
       </div>
 
@@ -538,9 +556,28 @@ export default function PlannerPage() {
       )}
 
       {/* ============================================================== */}
-      {/* GOOGLE CALENDAR VIEW (WEEK / MONTH / DAY / AGENDA) */}
+      {/* GOOGLE CALENDAR VIEW (IN-APP EMBED OR INTERACTIVE GRID)        */}
       {/* ============================================================== */}
-      <div className="flex-1 flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+      {calendarMode === "google_web" ? (
+        <div className="flex-1 w-full bg-card border border-border rounded-2xl overflow-hidden shadow-sm relative min-h-[620px] flex flex-col">
+          <div className="px-4 py-2.5 bg-secondary/40 border-b border-border flex items-center justify-between text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Globe size={14} className="text-[#4285F4]" />
+              <span className="font-semibold text-foreground">Google Calendar Web Terintegrasi</span>
+              <span className="font-mono text-[11px] bg-secondary px-2 py-0.5 rounded border border-border">
+                {activeUserEmail}
+              </span>
+            </div>
+            <span className="text-[11px] text-muted-foreground">Tersinkron di dalam aplikasi</span>
+          </div>
+          <iframe
+            src={`https://calendar.google.com/calendar/embed?src=${encodeURIComponent(activeUserEmail)}&ctz=Asia%2FJakarta&hl=id`}
+            className="w-full flex-1 border-0 min-h-[600px]"
+            title="Google Calendar Resmi"
+          />
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
           {/* Google Calendar Toolbar: Month/Year navigation, Today, and View Switcher */}
           <div className="p-3 sm:p-4 border-b border-border bg-secondary/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3">
@@ -1013,6 +1050,7 @@ export default function PlannerPage() {
             </div>
           )}
         </div>
+      )}
 
       {/* ============================================================== */}
       {/* DIALOG: DETAIL ACARA & GOOGLE MEET / EVENT DETAIL POPUP        */}
