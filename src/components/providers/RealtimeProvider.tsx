@@ -74,6 +74,44 @@ export function RealtimeProvider({ children }: { children?: React.ReactNode }) {
           }
         });
 
+        // 3b. Space Created Event
+        es.addEventListener("space_created", (e: MessageEvent) => {
+          try {
+            const space = JSON.parse(e.data);
+            const state = useStore.getState();
+            const exists = state.spaces.some((s) => s.id === space.id);
+            if (!exists) {
+              state.setSpaces([...state.spaces, space]);
+            }
+          } catch (err) {
+            console.warn("[Realtime space_created error]", err);
+          }
+        });
+
+        // 3c. Space Updated Event
+        es.addEventListener("space_updated", (e: MessageEvent) => {
+          try {
+            const space = JSON.parse(e.data);
+            const state = useStore.getState();
+            state.updateSpace(space.id, space);
+          } catch (err) {
+            console.warn("[Realtime space_updated error]", err);
+          }
+        });
+
+        // 3d. Space Deleted Event
+        es.addEventListener("space_deleted", (e: MessageEvent) => {
+          try {
+            const { id } = JSON.parse(e.data);
+            if (id) {
+              const state = useStore.getState();
+              state.deleteSpace(id);
+            }
+          } catch (err) {
+            console.warn("[Realtime space_deleted error]", err);
+          }
+        });
+
         // 4. User Updated / Approved Event
         es.addEventListener("user_updated", (e: MessageEvent) => {
           try {

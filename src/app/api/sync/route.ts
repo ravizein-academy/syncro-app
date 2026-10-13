@@ -4,6 +4,7 @@ import {
   getCachedTasks,
   getCachedUsers,
   getCachedDMs,
+  getCachedSpaces,
   serverCache,
   broadcastRealtimeEvent,
 } from '@/lib/serverCache';
@@ -16,9 +17,10 @@ const APPS_SCRIPT_URL =
 export async function GET(req: Request) {
   try {
     // Ambil data instan dari fast memory cache (< 5ms)
-    const [tasks, users, dmThreads] = await Promise.all([
+    const [tasks, users, spaces, dmThreads] = await Promise.all([
       getCachedTasks(),
       getCachedUsers(),
+      getCachedSpaces(),
       getCachedDMs(),
     ]);
 
@@ -27,7 +29,7 @@ export async function GET(req: Request) {
       data: {
         tasks,
         users,
-        spaces: [],
+        spaces,
         dmThreads,
       },
     });
@@ -67,6 +69,11 @@ export async function POST(req: Request) {
     if (payload?.tasks && Array.isArray(payload.tasks)) {
       serverCache.tasks = payload.tasks;
       serverCache.tasksLastFetch = Date.now();
+    }
+
+    if (payload?.spaces && Array.isArray(payload.spaces)) {
+      serverCache.spaces = payload.spaces;
+      serverCache.spacesLastFetch = Date.now();
     }
 
     // Filter DM threads agar tidak menyertakan user yang sudah dihapus/tidak terdaftar

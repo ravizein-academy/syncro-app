@@ -40,19 +40,30 @@ export default function SpacesPage() {
     { label: "Dark Cherry", val: "from-[#7A140A] to-[#420A05]" },
   ];
 
-  const handleCreateSpace = (e: React.FormEvent) => {
+  const handleCreateSpace = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!spaceName.trim()) return;
 
-    addSpace({
+    const newSpacePayload = {
       name: spaceName.trim(),
       description: spaceDesc.trim() || (language === 'en' ? "Team workspace for project collaboration" : "Ruang kerja tim untuk kolaborasi proyek"),
       color: selectedColor,
-    });
+    };
 
+    addSpace(newSpacePayload);
     setSpaceName("");
     setSpaceDesc("");
     setOpenDialog(false);
+
+    try {
+      await fetch('/api/spaces', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newSpacePayload),
+      });
+    } catch (err) {
+      console.warn('[Create Space API Warning]', err);
+    }
     performAutoCloudSync().catch(() => {});
   };
 
@@ -63,25 +74,47 @@ export default function SpacesPage() {
     setEditColor(space.color || "from-[#EE3726] to-[#BA1E10]");
   };
 
-  const handleUpdateSpace = (e: React.FormEvent) => {
+  const handleUpdateSpace = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editSpaceTarget || !editName.trim()) return;
 
-    updateSpace(editSpaceTarget.id, {
+    const updatedData = {
+      id: editSpaceTarget.id,
       name: editName.trim(),
       description: editDesc.trim(),
       color: editColor,
-    });
+    };
 
+    updateSpace(editSpaceTarget.id, updatedData);
     setEditSpaceTarget(null);
+
+    try {
+      await fetch('/api/spaces', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
+      });
+    } catch (err) {
+      console.warn('[Update Space API Warning]', err);
+    }
     performAutoCloudSync().catch(() => {});
   };
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (!deleteSpaceTarget || !isAdmin) return;
 
-    deleteSpace(deleteSpaceTarget.id);
+    const targetId = deleteSpaceTarget.id;
+    deleteSpace(targetId);
     setDeleteSpaceTarget(null);
+
+    try {
+      const userEmail = (currentUser?.email || '').toLowerCase().trim();
+      await fetch(`/api/spaces?id=${encodeURIComponent(targetId)}&userEmail=${encodeURIComponent(userEmail)}`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      console.warn('[Delete Space API Warning]', err);
+    }
     performAutoCloudSync().catch(() => {});
   };
 

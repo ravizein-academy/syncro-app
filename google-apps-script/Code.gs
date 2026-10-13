@@ -126,6 +126,18 @@ function doGet(e) {
         );
         break;
 
+      case 'createSpace':
+      case 'updateSpace':
+        result = upsertSpace(e && e.parameter);
+        break;
+
+      case 'deleteSpace':
+        result = deleteSpaceRecord(
+          (e && e.parameter && e.parameter.id) || '',
+          (e && e.parameter && e.parameter.userEmail) || ''
+        );
+        break;
+
       default:
         return jsonResponse({
           status: 'error',
@@ -220,6 +232,15 @@ function doPost(e) {
 
       case 'deleteDMMessage':
         result = deleteDMMessage(payload.threadId, payload.messageId);
+        break;
+
+      case 'createSpace':
+      case 'updateSpace':
+        result = upsertSpace(payload);
+        break;
+
+      case 'deleteSpace':
+        result = deleteSpaceRecord(payload ? payload.id : '', payload ? payload.userEmail : '');
         break;
 
       default:
@@ -684,12 +705,139 @@ function syncAllData(state) {
     });
   }
 
+  // 4. Sinkronisasi Spaces
+  if (state.spaces && Array.isArray(state.spaces)) {
+    state.spaces.forEach(sp => {
+      upsertSpace(sp);
+    });
+  }
+
   return {
     syncedAt: new Date().toISOString(),
     userEmail: userEmail,
     taskCount: state.tasks ? state.tasks.length : 0,
-    dmCount: state.dmThreads ? state.dmThreads.length : 0
+    dmCount: state.dmThreads ? state.dmThreads.length : 0,
+    spaceCount: state.spaces ? state.spaces.length : 0
   };
+}
+
+/**
+ * Insert or Update a Space in Spaces sheet
+ */
+function upsertSpace(spaceData) {
+  if (!spaceData) return { error: 'No space data provided' };
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName(SHEET_NAMES.SPACES);
+  if (!sheet) {
+    setupInitialDatabase();
+    sheet = ss.getSheetByName(SHEET_NAMES.SPACES);
+  }
+
+  const id = spaceData.id || ('sp_' + Date.now());
+  const formatted = {
+    id: String(id),
+    name: String(spaceData.name || 'Untitled Space'),
+    color: String(spaceData.color || 'from-[#EE3726] to-[#BA1E10]'),
+    description: String(spaceData.description || '')
+  };
+
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  const idIndex = headers.indexOf('id');
+
+  const data = sheet.getDataRange().getValues();
+  let foundRow = -1;
+
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idIndex]) === String(id)) {
+      foundRow = i + 1;
+      break;
+    }
+  }
+
+  if (foundRow > 0) {
+    for (let j = 0; j < headers.length; j++) {
+      const header = headers[j];
+      if (formatted.hasOwnProperty(header)) {
+        sheet.getRange(foundRow, j + 1).setValue(formatted[header]);
+      }
+    }
+  } else {
+    const newRow = [];
+    for (let j = 0; j < headers.length; j++) {
+      const header = headers[j];
+      newRow.push(formatted[header] !== undefined ? formatted[header] : '');
+    }
+    sheet.appendRow(newRow);
+  }
+
+  return { success: true, space: formatted };
+}
+
+/**
+ * Delete a Space from Spaces sheet (Khusus Admin)
+ */
+function deleteSpaceRecord(id, userEmail) {
+  const ss = getSpreadsheet();
+  const sheet = ss.getSheetByName(SHEET_NAMES.SPACES);
+  if (!sheet) return { success: false, message: 'Sheet Spaces tidak ditemukan' };
+
+  const cleanId = String(id || '').trim();
+  if (!cleanId) return { success: false, message: 'ID Space tidak valid' };
+
+  // Validasi Role Admin jika userEmail disertakan
+  const email = String(userEmail || '').toLowerCase().trim();
+  if (email && email !== 'ravizein@itsecacademy.com') {
+    const userSheet = ss.getSheetByName(SHEET_NAMES.USERS);
+    if (userSheet) {
+      const uData = userSheet.getDataRange().getValues();
+      const uHeaders = uData[0];
+      const emailIdx = uHeaders.indexOf('email');
+      const roleIdx = uHeaders.indexOf('role');
+      let isAdmin = false;
+      for (let i = 1; i < uData.length; i++) {
+        if (emailIdx >= 0 && String(uData[i][emailIdx]).toLowerCase().trim() === email) {
+          if (roleIdx >= 0 && String(uData[i][roleIdx]).toLowerCase().trim() === 'admin') {
+            isAdmin = true;
+          }
+          break;
+        }
+      }
+      if (!isAdmin) {
+        return { success: false, unauthorized: true, message: 'Hanya Admin yang memiliki hak menghapus Space' };
+      }
+    }
+  }
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idIndex = headers.indexOf('id');
+  let deletedCount = 0;
+
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][idIndex]).trim() === cleanId) {
+      sheet.deleteRow(i + 1);
+      deletedCount++;
+    }
+  }
+
+  // Lepaskan spaceId dari tugas terkait di sheet Tasks
+  const taskSheet = ss.getSheetByName(SHEET_NAMES.TASKS);
+  if (taskSheet) {
+    const tData = taskSheet.getDataRange().getValues();
+    if (tData.length > 1) {
+      const tHeaders = tData[0];
+      const spaceIdIdx = tHeaders.indexOf('spaceId');
+      if (spaceIdIdx >= 0) {
+        for (let k = 1; k < tData.length; k++) {
+          if (String(tData[k][spaceIdIdx]).trim() === cleanId) {
+            taskSheet.getRange(k + 1, spaceIdIdx + 1).setValue('');
+          }
+        }
+      }
+    }
+  }
+
+  return { success: true, deletedId: cleanId, deletedCount: deletedCount };
 }
 
 /**

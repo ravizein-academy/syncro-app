@@ -12,8 +12,11 @@ interface ServerCacheState {
   usersLastFetch: number;
   dmThreads: any[];
   dmThreadsLastFetch: number;
+  spaces: any[];
+  spacesLastFetch: number;
   isTasksFetching: boolean;
   isUsersFetching: boolean;
+  isSpacesFetching: boolean;
 }
 
 // Global singleton to persist in memory across Next.js invocations
@@ -30,8 +33,11 @@ if (!globalForServerCache.syncroServerCache) {
     usersLastFetch: 0,
     dmThreads: [],
     dmThreadsLastFetch: 0,
+    spaces: [],
+    spacesLastFetch: 0,
     isTasksFetching: false,
     isUsersFetching: false,
+    isSpacesFetching: false,
   };
 }
 
@@ -433,6 +439,111 @@ export function deleteCachedDMThread(threadId: string) {
       }),
     }),
     `deleteDMThread (${threadId})`
+  );
+
+  return true;
+}
+
+// ==========================================
+// SPACES CACHE & REALTIME OPERATIONS
+// ==========================================
+
+export async function getCachedSpaces(forceFresh = false): Promise<any[]> {
+  const now = Date.now();
+  const isStale = now - (serverCache.spacesLastFetch || 0) > CACHE_TTL_MS;
+
+  // Cache hit
+  if (!forceFresh && serverCache.spaces && serverCache.spaces.length > 0 && !isStale) {
+    return serverCache.spaces;
+  }
+
+  if (serverCache.isSpacesFetching && serverCache.spaces && serverCache.spaces.length > 0) {
+    return serverCache.spaces;
+  }
+
+  serverCache.isSpacesFetching = true;
+  try {
+    const res = await fetch(`${APPS_SCRIPT_URL}?action=getSpaces`, {
+      method: 'GET',
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+
+    if (res.ok) {
+      const json = await res.json();
+      const spaces = json?.data?.spaces || json?.spaces || [];
+      if (Array.isArray(spaces)) {
+        serverCache.spaces = spaces;
+        serverCache.spacesLastFetch = Date.now();
+      }
+    }
+  } catch (err) {
+    console.warn('[getCachedSpaces] Apps Script fetch failed, using fallback memory:', err);
+  } finally {
+    serverCache.isSpacesFetching = false;
+  }
+
+  return serverCache.spaces || [];
+}
+
+export function upsertCachedSpace(space: any) {
+  const id = space.id || (`sp_${Date.now()}`);
+  const formatted = {
+    ...space,
+    id,
+  };
+
+  if (!serverCache.spaces) serverCache.spaces = [];
+
+  const idx = serverCache.spaces.findIndex((s) => s.id === id);
+  if (idx !== -1) {
+    serverCache.spaces[idx] = { ...serverCache.spaces[idx], ...formatted };
+    broadcastRealtimeEvent('space_updated', formatted);
+  } else {
+    serverCache.spaces.push(formatted);
+    broadcastRealtimeEvent('space_created', formatted);
+  }
+  serverCache.spacesLastFetch = Date.now();
+
+  // Kirim ke Google Apps Script di background
+  fireAndForget(
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'updateSpace',
+        payload: formatted,
+      }),
+    }),
+    `upsertSpace (${id})`
+  );
+
+  return formatted;
+}
+
+export function deleteCachedSpace(id: string, userEmail?: string) {
+  if (!serverCache.spaces) return false;
+  serverCache.spaces = serverCache.spaces.filter((s) => s.id !== id);
+  serverCache.spacesLastFetch = Date.now();
+
+  // Lepaskan spaceId dari tasks di serverCache
+  if (serverCache.tasks) {
+    serverCache.tasks = serverCache.tasks.map((t) => (t.spaceId === id ? { ...t, spaceId: undefined } : t));
+    serverCache.tasksLastFetch = Date.now();
+  }
+
+  broadcastRealtimeEvent('space_deleted', { id });
+
+  fireAndForget(
+    fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'deleteSpace',
+        payload: { id, userEmail },
+      }),
+    }),
+    `deleteSpace (${id})`
   );
 
   return true;

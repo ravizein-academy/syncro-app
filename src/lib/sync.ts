@@ -267,6 +267,7 @@ export async function performAutoCloudSync(options: { force?: boolean } = {}): P
       body: JSON.stringify({
         tasks: tasksWithUserEmail,
         users: store.users,
+        spaces: store.spaces,
         dmThreads: cleanDMThreads,
         userEmail,
         userName,
