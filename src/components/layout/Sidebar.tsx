@@ -9,7 +9,6 @@ import {
   MessageSquare, 
   Briefcase, 
   Calendar, 
-  CalendarCheck,
   ExternalLink,
   LayoutDashboard,
   Users,
@@ -61,11 +60,6 @@ export function Sidebar() {
       isExternal: true,
       badge: 'Google ↗',
       title: `Buka Google Calendar langsung (${activeGoogleEmail})`
-    },
-    { 
-      name: t.navTeamPlanner || 'Planner Tim', 
-      href: '/planner', 
-      icon: CalendarCheck 
     },
     { name: t.navSpaces, href: '/spaces', icon: Briefcase },
     { name: t.navTeams, href: '/teams', icon: Users },
