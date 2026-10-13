@@ -130,16 +130,16 @@ export default function CalendarPage() {
             <span className="hidden md:inline">{language === "en" ? "Refresh" : "Segarkan"}</span>
           </button>
 
-          {/* Tombol Buka di Tab Baru (Opsional) */}
+          {/* Tombol Buka di Google Calendar */}
           <a
             href="https://calendar.google.com/calendar/u/0/r"
             target="_blank"
             rel="noopener noreferrer"
             className="p-2 rounded-xl border border-border hover:bg-secondary text-muted-foreground hover:text-foreground transition shadow-xs flex items-center gap-1.5 text-xs font-semibold"
-            title={language === "en" ? "Open in new tab (optional)" : "Buka di tab baru (opsional)"}
+            title="Google Calendar"
           >
             <ExternalLink size={14} className="text-[#4285F4]" />
-            <span className="hidden md:inline">{language === "en" ? "New Tab" : "Tab Baru"}</span>
+            <span className="hidden md:inline">Google Calendar</span>
           </a>
         </div>
       </div>
