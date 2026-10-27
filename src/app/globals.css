@@ -1,27 +1,181 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Roboto:ital,wght@0,300;0,400;0,500;0,700;0,900;1,400&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* Light Mode Defaults */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --card-foreground: #0f172a;
+  --border: #e2e8f0;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --primary: #ee3726;
+  --primary-foreground: #ffffff;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Base body styles with Roboto typography - Strictly Light Mode */
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: var(--font-roboto), "Roboto", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: #f8fafc;
+  color: #0f172a;
+  background-image: 
+    radial-gradient(at 100% 0%, rgba(238, 55, 38, 0.04) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(14, 165, 233, 0.04) 0px, transparent 50%);
+  background-attachment: fixed;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Crimson Neon Glow effects inspired by luxury dark mode reference */
+.glow-crimson {
+  box-shadow: 0 0 22px -2px rgba(238, 55, 38, 0.45), 0 0 8px -1px rgba(238, 55, 38, 0.3);
+}
+
+.glow-crimson-border {
+  border: 1px solid rgba(238, 55, 38, 0.5);
+  box-shadow: 0 0 18px rgba(238, 55, 38, 0.28), inset 0 0 12px rgba(238, 55, 38, 0.1);
+}
+
+.glow-crimson-subtle {
+  box-shadow: 0 0 15px rgba(238, 55, 38, 0.18);
+}
+
+/* High-contrast rule: Saat indikator/elemen di darkmode berganti jadi putih, tulisan otomatis menjadi hitam pekat agar terbaca */
+.dark [class*="dark:bg-white"],
+.dark [class*="dark:hover:bg-white"]:hover {
+  color: #000000 !important;
+}
+.dark [class*="dark:bg-white"] *,
+.dark [class*="dark:hover:bg-white"]:hover * {
+  color: #000000 !important;
+}
+
+/* Penyesuaian garis di Dark Mode: Tidak ada garis putih atau abu-abu terang, semua garis dinetralkan ke #333333 */
+.dark .border-white:not([class*="border-brand"]):not([class*="border-emerald"]):not([class*="border-amber"]):not([class*="border-sky"]):not([class*="border-cyan"]):not([class*="border-rose"]):not([class*="dark:border-brand"]),
+.dark [class*="border-white/"]:not([class*="border-brand"]):not([class*="border-emerald"]):not([class*="border-amber"]):not([class*="border-sky"]):not([class*="border-cyan"]):not([class*="border-rose"]):not([class*="dark:border-brand"]),
+.dark .border-slate-100,
+.dark .border-slate-200,
+.dark [class*="border-slate-200/"],
+.dark .border-slate-300,
+.dark .border-slate-400,
+.dark .border-slate-700,
+.dark .border-slate-800,
+.dark [class*="border-slate-800/"],
+.dark .border-slate-850,
+.dark [class*="border-slate-850/"],
+.dark .border-slate-900,
+.dark [class*="dark:border-slate-"],
+.dark .border-gray-100,
+.dark .border-gray-200,
+.dark .border-gray-300,
+.dark .border-zinc-100,
+.dark .border-zinc-200,
+.dark .border-zinc-300,
+.dark .border-zinc-700,
+.dark .border-zinc-800 {
+  border-color: #333333 !important;
+}
+
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-300 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-800 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-slate-850 > :not([hidden]) ~ :not([hidden]),
+.dark [class*="dark:divide-slate-"] > :not([hidden]) ~ :not([hidden]),
+.dark [class*="divide-slate-"] > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]),
+.dark .divide-zinc-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #333333 !important;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.45);
+}
+.light ::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+.light ::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+/* Report Preview & Export Isolation: ensures clean, razor-sharp document appearance */
+.syncro-report-sheet {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.syncro-report-sheet,
+.syncro-report-sheet * {
+  color-scheme: light !important;
+}
+
+.dark .syncro-report-sheet .border-slate-100,
+.dark .syncro-report-sheet .border-slate-200,
+.dark .syncro-report-sheet .border-slate-300 {
+  border-color: #e2e8f0 !important;
+}
+
+.dark .syncro-report-sheet .border-slate-800,
+.dark .syncro-report-sheet .border-slate-900 {
+  border-color: #0f172a !important;
+}
+
+.dark .syncro-report-sheet .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+.dark .syncro-report-sheet .bg-slate-50 {
+  background-color: #f8fafc !important;
+}
+
+.dark .syncro-report-sheet .bg-slate-100 {
+  background-color: #f1f5f9 !important;
+}
+
+.dark .syncro-report-sheet .text-slate-900 {
+  color: #0f172a !important;
+}
+
+.dark .syncro-report-sheet .text-slate-800 {
+  color: #1e293b !important;
+}
+
+.dark .syncro-report-sheet .text-slate-700 {
+  color: #334155 !important;
+}
+
+.dark .syncro-report-sheet .text-slate-600 {
+  color: #475569 !important;
+}
+
+.dark .syncro-report-sheet .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Responsive horizontal no-scrollbar utility */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
