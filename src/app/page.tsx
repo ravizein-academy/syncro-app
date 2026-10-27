@@ -13,6 +13,7 @@ import { TicketingDashboardView } from "@/components/dashboard/TicketingDashboar
 import { TaskItem } from "@/components/tasks/TaskCard";
 import { mockTasks } from "@/lib/mock-data";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -41,8 +42,17 @@ const DEFAULT_PROJECTS = [
 ];
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: session, status } = useSession();
   const { toast } = useToast();
+
+  // Otomatis arahkan ke form login jika pengguna belum login
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.replace("/auth/signin");
+    }
+  }, [status, router]);
+
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<"dashboard" | "kanban" | "list">("dashboard");
   // Initialize with mockTasks so the dashboard is ALWAYS populated immediately

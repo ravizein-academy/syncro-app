@@ -3,9 +3,7 @@
 import React, { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import {
-  ArrowLeft,
   Eye,
   EyeOff,
   AlertCircle,
@@ -137,15 +135,6 @@ function SignInContent() {
 
   return (
     <>
-      {/* Top Left Navigation: Go to Home */}
-      <Link
-        href="/"
-        className="fixed top-4 left-4 sm:top-6 sm:left-8 flex items-center gap-1.5 text-slate-600 hover:text-slate-900 bg-white/90 hover:bg-white backdrop-blur-sm border border-slate-200/80 shadow-xs px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition-all z-30 group"
-      >
-        <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-0.5 text-slate-500 group-hover:text-slate-900" />
-        <span>Go to Home</span>
-      </Link>
-
       {/* Main Responsive Card Container */}
       <div className="w-full max-w-[420px] sm:max-w-[450px] bg-white rounded-2xl sm:rounded-3xl shadow-xl shadow-slate-200/70 border border-slate-200/90 p-6 sm:p-9 relative z-20 text-left transition-all">
         {/* Official Syncro Title Logo centered in the middle of the form */}
