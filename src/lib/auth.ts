@@ -26,60 +26,39 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         // 2. Verifikasi Kredensial via Prisma Database
-        try {
-          const { prisma } = await import("@/lib/prisma");
+        const { prisma } = await import("@/lib/prisma");
 
-          if (
-            process.env.DATABASE_URL &&
-            !process.env.DATABASE_URL.includes("your-subdomain")
-          ) {
-            const user = await prisma.user.findUnique({
-              where: { email },
-            });
-
-            if (!user) {
-              throw new Error("Pengguna belum terdaftar. Silakan lakukan pendaftaran terlebih dahulu.");
-            }
-
-            if (user.password) {
-              const isMatch = await bcrypt.compare(password, user.password);
-              if (!isMatch) {
-                throw new Error("Kata sandi yang Anda masukkan salah.");
-              }
-            }
-
-            return {
-              id: user.id,
-              email: user.email,
-              name: user.name || email.split("@")[0],
-              role: user.role || "USER",
-              image:
-                user.image ||
-                `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
-                  email
-                )}`,
-            };
-          }
-        } catch (dbError: any) {
-          if (
-            dbError.message === "Domain email tidak diizinkan" ||
-            dbError.message === "Kata sandi yang Anda masukkan salah." ||
-            dbError.message.includes("Pengguna belum terdaftar")
-          ) {
-            throw dbError;
-          }
-          console.warn("[Auth] Database verify fallback:", dbError.message);
+        if (!process.env.DATABASE_URL) {
+          throw new Error("Koneksi database belum dikonfigurasi.");
         }
 
-        // Fallback untuk lingkungan demo / offline dengan domain terverifikasi
+        const user = await prisma.user.findUnique({
+          where: { email },
+        });
+
+        if (!user) {
+          throw new Error("Pengguna belum terdaftar. Silakan lakukan pendaftaran akun terlebih dahulu.");
+        }
+
+        if (!user.password) {
+          throw new Error("Akun ini belum memiliki kata sandi.");
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+          throw new Error("Kata sandi yang Anda masukkan salah.");
+        }
+
         return {
-          id: "demo-user-1",
-          email,
-          name: email.split("@")[0].replace(/[._]/g, " ") || "Ravi Zein",
-          role: "ADMIN",
-          image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
-            email
-          )}`,
+          id: user.id,
+          email: user.email,
+          name: user.name || email.split("@")[0],
+          role: user.role || "USER",
+          image:
+            user.image ||
+            `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
+              email
+            )}`,
         };
       },
     }),

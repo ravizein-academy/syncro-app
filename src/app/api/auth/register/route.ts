@@ -45,57 +45,50 @@ export async function POST(request: NextRequest) {
     const displayName =
       name?.trim() || cleanEmail.split("@")[0].replace(/[._]/g, " ");
 
-    // 3. Simpan ke basis data jika database terhubung
-    if (
-      process.env.DATABASE_URL &&
-      !process.env.DATABASE_URL.includes("your-subdomain")
-    ) {
-      const existingUser = await prisma.user.findUnique({
-        where: { email: cleanEmail },
-      });
-
-      if (existingUser) {
-        return NextResponse.json(
-          { error: "Email sudah terdaftar. Silakan masuk menggunakan kata sandi Anda." },
-          { status: 400 }
-        );
-      }
-
-      const newUser = await prisma.user.create({
-        data: {
-          email: cleanEmail,
-          name: displayName,
-          password: hashedPassword,
-          role: "USER",
-          image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
-            cleanEmail
-          )}`,
-        },
-      });
-
+    // 3. Simpan ke basis data Neon PostgreSQL
+    if (!process.env.DATABASE_URL) {
       return NextResponse.json(
-        {
-          success: true,
-          message: "Pendaftaran berhasil. Silakan masuk ke akun Anda.",
-          user: {
-            id: newUser.id,
-            email: newUser.email,
-            name: newUser.name,
-          },
-        },
-        { status: 201 }
+        { error: "Koneksi database belum dikonfigurasi di server." },
+        { status: 500 }
       );
     }
 
-    // Mode fallback jika database offline/mock
+    const existingUser = await prisma.user.findUnique({
+      where: { email: cleanEmail },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "Email sudah terdaftar. Silakan masuk menggunakan kata sandi Anda." },
+        { status: 400 }
+      );
+    }
+
+    // Pengguna pertama otomatis menjadi ADMIN
+    const totalUsers = await prisma.user.count();
+    const assignedRole = totalUsers === 0 ? "ADMIN" : "USER";
+
+    const newUser = await prisma.user.create({
+      data: {
+        email: cleanEmail,
+        name: displayName,
+        password: hashedPassword,
+        role: assignedRole,
+        image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(
+          cleanEmail
+        )}`,
+      },
+    });
+
     return NextResponse.json(
       {
         success: true,
-        message: "Pendaftaran berhasil terverifikasi untuk domain perusahaan.",
+        message: "Pendaftaran berhasil. Silakan masuk menggunakan akun baru Anda.",
         user: {
-          id: `user-${Date.now()}`,
-          email: cleanEmail,
-          name: displayName,
+          id: newUser.id,
+          email: newUser.email,
+          name: newUser.name,
+          role: newUser.role,
         },
       },
       { status: 201 }

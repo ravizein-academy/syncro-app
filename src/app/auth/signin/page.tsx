@@ -11,7 +11,7 @@ import {
   X,
   ShieldCheck,
 } from "lucide-react";
-import { isAllowedCompanyEmail, ALLOWED_COMPANY_DOMAINS } from "@/lib/domain-auth";
+import { isAllowedCompanyEmail } from "@/lib/domain-auth";
 
 function SignInContent() {
   const searchParams = useSearchParams();
@@ -65,7 +65,7 @@ function SignInContent() {
 
       if (res?.error) {
         if (res.error === "CredentialsSignin") {
-          setErrorMessage("Email atau kata sandi tidak sesuai.");
+          setErrorMessage("Email atau kata sandi tidak sesuai. Jika belum memiliki akun, silakan klik tab Daftar di atas.");
         } else {
           setErrorMessage(res.error);
         }

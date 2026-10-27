@@ -1,4 +1,4 @@
-import { PrismaNeon } from '@prisma/adapter-neon';
+import { PrismaNeonHttp } from '@prisma/adapter-neon';
 import { PrismaClient } from '@prisma/client';
 
 declare global {
@@ -12,7 +12,7 @@ function createPrismaClient(): PrismaClient {
   // In production or when DATABASE_URL is available with neon adapter
   if (connectionString && connectionString.startsWith('postgres')) {
     try {
-      const adapter = new PrismaNeon({ connectionString });
+      const adapter = new PrismaNeonHttp(connectionString, {});
       return new PrismaClient({ adapter });
     } catch (err) {
       console.warn('[Prisma] Neon adapter initialization fallback:', err);
