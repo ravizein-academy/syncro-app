@@ -50,20 +50,34 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, color = "#6366f1", createdBy = "system" } = body;
+    const { name, description, color = "#6366f1", createdBy } = body;
 
-    if (!name) {
-      return NextResponse.json({ error: "Project name is required" }, { status: 400 });
+    if (!name || !name.trim()) {
+      return NextResponse.json({ error: "Nama space wajib diisi" }, { status: 400 });
     }
 
     try {
       if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("your-subdomain")) {
+        let validCreatedBy = createdBy;
+        if (createdBy) {
+          const user = await prisma.user.findUnique({ where: { id: createdBy } });
+          if (!user) validCreatedBy = null;
+        }
+        if (!validCreatedBy) {
+          const firstUser = await prisma.user.findFirst();
+          validCreatedBy = firstUser?.id;
+        }
+
+        if (!validCreatedBy) {
+          throw new Error("Pengguna tidak ditemukan di database untuk menjadi pemilik space");
+        }
+
         const newProj = await prisma.project.create({
           data: {
-            name,
-            description,
+            name: name.trim(),
+            description: description || null,
             color,
-            createdBy,
+            createdBy: validCreatedBy,
           },
         });
         return NextResponse.json(newProj, { status: 201 });

@@ -7,6 +7,7 @@ import { KanbanBoard } from "@/components/tasks/KanbanBoard";
 import { ListView } from "@/components/tasks/ListView";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { CreateProjectModal } from "@/components/tasks/CreateProjectModal";
+import { EditProjectModal } from "@/components/tasks/EditProjectModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ExportReportModal } from "@/components/tasks/ExportReportModal";
 import { TicketingDashboardView } from "@/components/dashboard/TicketingDashboardView";
@@ -78,6 +79,8 @@ export default function DashboardPage() {
     "TODO" | "IN_PROGRESS" | "DONE"
   >("TODO");
   const [isCreateProjectOpen, setIsCreateProjectOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<any | null>(null);
+  const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // ClickUp Task Detail Modal state
@@ -304,6 +307,39 @@ export default function DashboardPage() {
     });
   };
 
+  const handleOpenEditProject = (project: any) => {
+    setEditingProject(project);
+    setIsEditProjectOpen(true);
+  };
+
+  const handleProjectUpdated = (updatedProject: any) => {
+    setProjects((prev) =>
+      prev.map((p) => (p.id === updatedProject.id ? { ...p, ...updatedProject } : p))
+    );
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.projectId === updatedProject.id
+          ? {
+              ...t,
+              project: {
+                id: updatedProject.id,
+                name: updatedProject.name,
+                color: updatedProject.color,
+              },
+            }
+          : t
+      )
+    );
+  };
+
+  const handleProjectDeleted = (deletedProjectId: string) => {
+    setProjects((prev) => prev.filter((p) => p.id !== deletedProjectId));
+    setTasks((prev) => prev.filter((t) => t.projectId !== deletedProjectId));
+    if (selectedProjectId === deletedProjectId) {
+      setSelectedProjectId(null);
+    }
+  };
+
   // ClickUp Inline Quick Task Creator
   const handleQuickCreateTask = async (
     title: string,
@@ -402,6 +438,7 @@ export default function DashboardPage() {
         currentView={currentView}
         onSelectView={setCurrentView}
         onOpenCreateProject={() => setIsCreateProjectOpen(true)}
+        onEditProject={handleOpenEditProject}
         onOpenCreateTask={() => {
           setCreateTaskDefaultStatus("TODO");
           setIsCreateTaskOpen(true);
@@ -557,6 +594,15 @@ export default function DashboardPage() {
         isOpen={isCreateProjectOpen}
         onClose={() => setIsCreateProjectOpen(false)}
         onProjectCreated={handleProjectCreated}
+      />
+
+      {/* Edit & Delete Project Modal */}
+      <EditProjectModal
+        isOpen={isEditProjectOpen}
+        onClose={() => setIsEditProjectOpen(false)}
+        project={editingProject}
+        onProjectUpdated={handleProjectUpdated}
+        onProjectDeleted={handleProjectDeleted}
       />
     </div>
   );

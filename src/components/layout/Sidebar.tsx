@@ -9,6 +9,7 @@ import {
   ChevronDown,
   FileSpreadsheet,
   Layers,
+  Settings2,
   X,
 } from "lucide-react";
 import { ItsecLogo } from "@/components/brand/ItsecLogo";
@@ -31,6 +32,7 @@ interface SidebarProps {
   currentView?: "dashboard" | "kanban" | "list";
   onSelectView?: (view: "dashboard" | "kanban" | "list") => void;
   onOpenCreateProject: () => void;
+  onEditProject?: (project: Project) => void;
   onOpenCreateTask?: () => void;
   onOpenExportReport?: () => void;
   installPrompt: any;
@@ -51,6 +53,7 @@ function SidebarInner({
   currentView,
   onSelectView,
   onOpenCreateProject,
+  onEditProject,
   onOpenCreateTask,
   onOpenExportReport,
   installPrompt,
@@ -189,34 +192,54 @@ function SidebarInner({
               {projects.map((proj) => {
                 const isSelected = selectedProjectId === proj.id;
                 return (
-                  <button
+                  <div
                     key={proj.id}
-                    onClick={() => handleAction(() => onSelectProject(proj.id))}
                     className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 group ${
                       isSelected
                         ? "bg-brand-50/80 dark:bg-brand-500/15 text-brand-600 dark:text-white font-bold shadow-xs"
                         : "text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#2c2c2c]"
                     }`}
                   >
-                    <div className="flex items-center gap-2 truncate">
+                    <button
+                      type="button"
+                      onClick={() => handleAction(() => onSelectProject(proj.id))}
+                      className="flex items-center gap-2 truncate flex-1 text-left cursor-pointer focus:outline-none"
+                    >
                       <span
                         className="w-2.5 h-2.5 rounded-md shrink-0 shadow-xs"
                         style={{ backgroundColor: proj.color || "#ee3726" }}
                       />
                       <span className="truncate">{proj.name}</span>
+                    </button>
+
+                    <div className="flex items-center gap-1 shrink-0 ml-1">
+                      {proj._count?.tasks !== undefined && proj._count.tasks > 0 && (
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${
+                            isSelected
+                              ? "bg-white text-black dark:bg-white dark:text-black shadow-xs font-black"
+                              : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-slate-200"
+                          }`}
+                        >
+                          {proj._count.tasks}
+                        </span>
+                      )}
+
+                      {onEditProject && (
+                        <button
+                          type="button"
+                          title="Pengaturan Space"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditProject(proj);
+                          }}
+                          className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 rounded-md text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-[#383838] transition cursor-pointer"
+                        >
+                          <Settings2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
-                    {proj._count?.tasks !== undefined && proj._count.tasks > 0 && (
-                      <span
-                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${
-                          isSelected
-                            ? "bg-white text-black dark:bg-white dark:text-black shadow-xs font-black"
-                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 group-hover:bg-slate-200"
-                        }`}
-                      >
-                        {proj._count.tasks}
-                      </span>
-                    )}
-                  </button>
+                  </div>
                 );
               })}
             </div>
