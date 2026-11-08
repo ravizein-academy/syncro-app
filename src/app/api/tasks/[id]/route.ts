@@ -27,18 +27,71 @@ export async function PATCH(
           dataToUpdate.dueDate = new Date(body.dueDate);
         }
 
-        const updated = await prisma.task.update({
+        await prisma.task.update({
           where: { id },
           data: dataToUpdate,
+        });
+
+        const updated = await prisma.task.findUnique({
+          where: { id },
           include: {
             project: true,
             assignee: true,
           },
         });
+
+        // Buat notifikasi otomatis di database untuk PIC jika ada mutasi status / prioritas / PIC
+        if (updated?.assigneeId) {
+          try {
+            if (body.status) {
+              const statusLabel =
+                body.status === "DONE"
+                  ? "Selesai (Complete)"
+                  : body.status === "IN_PROGRESS"
+                  ? "In Progress"
+                  : "To Do";
+              await prisma.notification.create({
+                data: {
+                  userId: updated.assigneeId,
+                  title: "Status Tugas Anda Diperbarui",
+                  message: `Status tiket "${updated.title}" diubah menjadi ${statusLabel}.`,
+                  type: "status",
+                  taskId: updated.id,
+                  projectId: updated.projectId,
+                },
+              });
+            } else if (body.priority) {
+              await prisma.notification.create({
+                data: {
+                  userId: updated.assigneeId,
+                  title: "Prioritas Tugas Anda Diubah",
+                  message: `Prioritas tiket "${updated.title}" diubah menjadi ${body.priority}.`,
+                  type: "priority",
+                  taskId: updated.id,
+                  projectId: updated.projectId,
+                },
+              });
+            } else if (body.assigneeId) {
+              await prisma.notification.create({
+                data: {
+                  userId: updated.assigneeId,
+                  title: "Tugas Baru Ditugaskan kepada Anda",
+                  message: `Anda telah ditugaskan sebagai PIC pada tiket "${updated.title}".`,
+                  type: "assign",
+                  taskId: updated.id,
+                  projectId: updated.projectId,
+                },
+              });
+            }
+          } catch (notifErr) {
+            console.warn("[Task PATCH] Auto notification note:", notifErr);
+          }
+        }
+
         return NextResponse.json(updated);
       }
     } catch (err) {
-      console.warn("[Task PATCH] Database fallback:", err);
+      console.error("[Task PATCH] Database error:", err);
     }
 
     const taskIndex = mockTasks.findIndex((t) => t.id === id);

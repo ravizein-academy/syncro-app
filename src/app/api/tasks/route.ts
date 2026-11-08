@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const newTask = await prisma.task.create({
+        const created = await prisma.task.create({
           data: {
             title,
             description,
@@ -82,15 +82,38 @@ export async function POST(request: NextRequest) {
             mediaUrls,
             dueDate: dueDate ? new Date(dueDate) : null,
           },
+        });
+
+        const newTask = await prisma.task.findUnique({
+          where: { id: created.id },
           include: {
             project: true,
             assignee: true,
           },
         });
-        return NextResponse.json(newTask, { status: 201 });
+
+        // Buat notifikasi otomatis di database jika tugas ditugaskan ke PIC tertentu
+        if (validAssigneeId) {
+          try {
+            await prisma.notification.create({
+              data: {
+                userId: validAssigneeId,
+                title: "Tugas Baru Ditugaskan kepada Anda",
+                message: `Anda telah ditugaskan pada tugas "${title}".`,
+                type: "assign",
+                taskId: created.id,
+                projectId: validProjectId,
+              },
+            });
+          } catch (notifErr) {
+            console.warn("[Tasks POST] Auto notification error:", notifErr);
+          }
+        }
+
+        return NextResponse.json(newTask || created, { status: 201 });
       }
     } catch (err) {
-      console.warn("[Tasks API POST] Neon DB error, using local fallback:", err);
+      console.error("[Tasks API POST] Neon DB error:", err);
     }
 
     const createdTask = {

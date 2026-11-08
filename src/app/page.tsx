@@ -266,12 +266,7 @@ export default function DashboardPage() {
     }
   };
 
-  // Silently refresh latest tasks & projects in the background
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const [tasksRes, projectsRes] = await Promise.all([
         fetch("/api/tasks"),
@@ -295,7 +290,30 @@ export default function DashboardPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
+
+  // Sinkronisasi tugas & proyek secara real-time antar seluruh pengguna
+  useEffect(() => {
+    fetchData();
+
+    // Polling setiap 4 detik agar perubahan dari pengguna lain langsung sinkron otomatis
+    const interval = setInterval(fetchData, 4000);
+
+    // Sinkronisasi instan saat pengguna kembali ke tab browser Syncro
+    const handleFocus = () => fetchData();
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") fetchData();
+    };
+
+    window.addEventListener("focus", handleFocus);
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [fetchData]);
 
   const handleUpdateStatus = async (
     taskId: string,
@@ -343,6 +361,7 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: newStatus }),
       });
+      fetchData();
     } catch (err) {
       console.error("Failed to update task status:", err);
     }
@@ -384,6 +403,7 @@ export default function DashboardPage() {
 
     try {
       await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
+      fetchData();
     } catch (err) {
       console.error("Failed to delete task:", err);
     }
@@ -431,6 +451,7 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ priority: newPriority }),
       });
+      fetchData();
     } catch (err) {
       console.error("Failed to update task priority:", err);
     }
@@ -510,6 +531,7 @@ export default function DashboardPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ assigneeId: assignee ? assignee.id : null }),
       });
+      fetchData();
     } catch (err) {
       console.error("Failed to update task assignee:", err);
     }
@@ -538,6 +560,7 @@ export default function DashboardPage() {
         { taskId: newTask.id, projectId: newTask.projectId, sendToAll: true }
       );
     }
+    fetchData();
   };
 
   const handleProjectCreated = (newProject: any) => {
@@ -551,8 +574,9 @@ export default function DashboardPage() {
       "Space Baru Dibuat",
       `Space kerja "${newProject.name}" siap digunakan.`,
       "project",
-      { projectId: newProject.id }
+      { projectId: newProject.id, sendToAll: true }
     );
+    fetchData();
   };
 
   const handleOpenEditProject = (project: any) => {
@@ -582,8 +606,9 @@ export default function DashboardPage() {
       "Space Diperbarui",
       `Pengaturan space "${updatedProject.name}" telah diperbarui.`,
       "project",
-      { projectId: updatedProject.id }
+      { projectId: updatedProject.id, sendToAll: true }
     );
+    fetchData();
   };
 
   const handleProjectDeleted = (deletedProjectId: string) => {
@@ -596,8 +621,9 @@ export default function DashboardPage() {
       "Space Dihapus",
       "Space kerja beserta tugas di dalamnya telah dihapus.",
       "project",
-      { projectId: deletedProjectId }
+      { projectId: deletedProjectId, sendToAll: true }
     );
+    fetchData();
   };
 
   // ClickUp Inline Quick Task Creator
@@ -607,6 +633,10 @@ export default function DashboardPage() {
   ) => {
     const targetProjectId = selectedProjectId || projects[0]?.id || "proj-1";
     const projObj = projects.find((p) => p.id === targetProjectId);
+
+    const currentUserId = (session?.user as any)?.id || null;
+    const currentUserName = session?.user?.name || "Pengguna";
+    const currentUserEmail = session?.user?.email || "user@itsecacademy.com";
 
     const newTask: TaskItem = {
       id: `task-${Date.now()}`,
@@ -618,12 +648,14 @@ export default function DashboardPage() {
       mediaUrls: [],
       dueDate: new Date(Date.now() + 86400000 * 3).toISOString(),
       project: projObj,
-      assignee: {
-        id: "user-1",
-        name: "Ravi Zein",
-        email: "ravizein@itsecacademy.com",
-        image: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ravi",
-      },
+      assignee: currentUserId
+        ? {
+            id: currentUserId,
+            name: currentUserName,
+            email: currentUserEmail,
+            image: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(currentUserName)}`,
+          }
+        : undefined,
       createdAt: new Date().toISOString(),
     };
 
@@ -637,7 +669,7 @@ export default function DashboardPage() {
       "Tugas Cepat Ditambahkan",
       `Tugas "${title}" berhasil ditambahkan ke antrean.`,
       "task_create",
-      { taskId: newTask.id, projectId: targetProjectId }
+      { taskId: newTask.id, projectId: targetProjectId, sendToAll: true }
     );
 
     try {
@@ -649,11 +681,12 @@ export default function DashboardPage() {
           projectId: targetProjectId,
           status,
           priority: "MEDIUM",
-          assigneeId: "user-1",
+          assigneeId: currentUserId,
           dueDate: newTask.dueDate,
           mediaUrls: [],
         }),
       });
+      fetchData();
     } catch (e) {
       console.error("Failed to sync quick task:", e);
     }
