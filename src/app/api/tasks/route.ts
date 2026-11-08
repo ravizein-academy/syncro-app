@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { mockTasks } from "@/lib/mock-data";
 
 export const runtime = "edge";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -24,7 +26,13 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
       });
 
-      return NextResponse.json(tasks);
+      return NextResponse.json(tasks, {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      });
     }
   } catch (err) {
     console.warn("[Tasks API] Falling back to memory store:", err);
@@ -35,7 +43,13 @@ export async function GET(request: NextRequest) {
   if (projectId) filtered = filtered.filter((t) => t.projectId === projectId);
   if (status) filtered = filtered.filter((t) => t.status === status);
 
-  return NextResponse.json(filtered);
+  return NextResponse.json(filtered, {
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+      Pragma: "no-cache",
+      Expires: "0",
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {

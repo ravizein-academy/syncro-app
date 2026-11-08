@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "edge";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 const mockProjects: any[] = [];
 
@@ -16,13 +18,25 @@ export async function GET() {
         },
         orderBy: { createdAt: "desc" },
       });
-      return NextResponse.json(projects);
+      return NextResponse.json(projects, {
+        headers: {
+          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      });
     }
   } catch (err) {
     console.warn("[Projects GET] Fallback to mock:", err);
   }
 
-  return NextResponse.json(mockProjects);
+  return NextResponse.json(mockProjects, {
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+      Pragma: "no-cache",
+      Expires: "0",
+    },
+  });
 }
 
 export async function POST(request: NextRequest) {

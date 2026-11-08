@@ -4,6 +4,8 @@ import { auth } from "@/lib/auth";
 import { sendTargetedNotification, sendBatchTargetedNotifications } from "@/lib/notifications";
 
 export const runtime = "edge";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 // GET: Ambil notifikasi khusus untuk pengguna yang sedang login
 export async function GET(request: NextRequest) {
@@ -40,7 +42,13 @@ export async function GET(request: NextRequest) {
       take: 50,
     });
 
-    return NextResponse.json(notifications);
+    return NextResponse.json(notifications, {
+      headers: {
+        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        Pragma: "no-cache",
+        Expires: "0",
+      },
+    });
   } catch (error: any) {
     console.error("[Notifications GET] Error:", error);
     return NextResponse.json({ error: error.message || "Gagal mengambil notifikasi" }, { status: 500 });

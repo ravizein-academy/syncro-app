@@ -86,7 +86,13 @@ export default function DashboardPage() {
   const fetchNotifications = useCallback(async () => {
     if (status !== "authenticated") return;
     try {
-      const res = await fetch("/api/notifications");
+      const res = await fetch(`/api/notifications?_t=${Date.now()}`, {
+        cache: "no-store",
+        headers: {
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
@@ -116,7 +122,7 @@ export default function DashboardPage() {
     // 2. Ambil data notifikasi real-time dari database
     if (status === "authenticated") {
       fetchNotifications();
-      const interval = setInterval(fetchNotifications, 15000);
+      const interval = setInterval(fetchNotifications, 5000);
       return () => clearInterval(interval);
     }
   }, [status, fetchNotifications]);
@@ -268,15 +274,36 @@ export default function DashboardPage() {
 
   const fetchData = useCallback(async () => {
     try {
+      const timestamp = Date.now();
       const [tasksRes, projectsRes] = await Promise.all([
-        fetch("/api/tasks"),
-        fetch("/api/projects"),
+        fetch(`/api/tasks?_t=${timestamp}`, {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+        }),
+        fetch(`/api/projects?_t=${timestamp}`, {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+        }),
       ]);
 
       if (tasksRes.ok) {
         const taskData = await tasksRes.json();
         if (Array.isArray(taskData)) {
           setTasks(taskData);
+          // Jika modal detail sedang membuka tugas yang ternyata sudah dihapus oleh pengguna lain, tutup otomatis
+          setSelectedTaskForDetail((prev) => {
+            if (prev && !taskData.some((t: any) => t.id === prev.id)) {
+              setIsDetailModalOpen(false);
+              return null;
+            }
+            return prev;
+          });
         }
       }
       if (projectsRes.ok) {
@@ -296,8 +323,8 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
 
-    // Polling setiap 4 detik agar perubahan dari pengguna lain langsung sinkron otomatis
-    const interval = setInterval(fetchData, 4000);
+    // Polling setiap 2.5 detik agar perubahan (buat, ubah, hapus tugas) dari pengguna lain langsung sinkron otomatis tanpa refresh
+    const interval = setInterval(fetchData, 2500);
 
     // Sinkronisasi instan saat pengguna kembali ke tab browser Syncro
     const handleFocus = () => fetchData();
