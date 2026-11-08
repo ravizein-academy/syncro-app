@@ -48,12 +48,6 @@ function SignInContent() {
 
     const cleanEmail = email.trim().toLowerCase();
 
-    // Check company domain
-    if (!isAllowedCompanyEmail(cleanEmail)) {
-      setErrorMessage("Domain email tidak diizinkan. Gunakan @itsecacademy.com atau @itsecasia.com.");
-      return;
-    }
-
     setLoading(true);
     try {
       const res = await signIn("credentials", {
@@ -65,7 +59,9 @@ function SignInContent() {
 
       if (res?.error) {
         if (res.error === "CredentialsSignin") {
-          setErrorMessage("Email atau kata sandi tidak sesuai. Jika belum memiliki akun, silakan klik tab Daftar di atas.");
+          setErrorMessage(
+            "Email atau kata sandi tidak sesuai. Jika Anda diundang dengan email umum (seperti @gmail.com), pastikan akun sudah didaftarkan oleh Administrator dan kata sandi benar."
+          );
         } else {
           setErrorMessage(res.error);
         }
@@ -87,9 +83,11 @@ function SignInContent() {
 
     const cleanEmail = registerEmail.trim().toLowerCase();
 
-    // Strict domain check: only @itsecacademy.com & @itsecasia.com
+    // Strict domain check for self-registration: only @itsecacademy.com & @itsecasia.com
     if (!isAllowedCompanyEmail(cleanEmail)) {
-      setErrorMessage("Domain email tidak diizinkan. Gunakan @itsecacademy.com atau @itsecasia.com.");
+      setErrorMessage(
+        "Pendaftaran mandiri (Sign Up) hanya dibuka untuk email resmi perusahaan (@itsecacademy.com atau @itsecasia.com). Untuk email lain (misal @gmail.com), silakan minta Administrator mengundang akun Anda melalui menu Kelola Pengguna, lalu Anda dapat langsung masuk pada tab Login."
+      );
       return;
     }
 
@@ -172,13 +170,15 @@ function SignInContent() {
             <AlertCircle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />
             <div>
               <div className="font-bold">
-                {errorMessage === "Domain email tidak diizinkan. Gunakan @itsecacademy.com atau @itsecasia.com."
-                  ? "Domain email tidak diizinkan"
+                {errorMessage?.includes("Domain")
+                  ? "Domain Email Dibatasi"
                   : "Gagal Autentikasi"}
               </div>
               <div className="text-[11px] mt-0.5 leading-normal">
                 {errorMessage ||
-                  "Akses ditolak: Hanya email resmi perusahaan (@itsecacademy.com atau @itsecasia.com) yang diizinkan."}
+                  (errorParam === "CredentialsSignin"
+                    ? "Email atau kata sandi tidak sesuai. Jika diundang dengan domain umum (misal @gmail.com), pastikan akun telah didaftarkan oleh Administrator dan kata sandi benar."
+                    : "Akses ditolak: Terjadi kesalahan saat autentikasi akun.")}
               </div>
             </div>
           </div>
@@ -197,7 +197,7 @@ function SignInContent() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="eg. nama@itsecacademy.com"
+                placeholder="nama@itsecacademy.com atau email terdaftar"
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition"
               />
             </div>
