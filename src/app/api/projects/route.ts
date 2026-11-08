@@ -3,29 +3,7 @@ import { prisma } from "@/lib/prisma";
 
 export const runtime = "edge";
 
-const mockProjects = [
-  {
-    id: "proj-1",
-    name: "Core Infrastructure",
-    description: "Cloudflare Pages and Neon Database systems",
-    color: "#6366f1",
-    _count: { tasks: 4 },
-  },
-  {
-    id: "proj-2",
-    name: "Client Mobile Experience",
-    description: "PWA serwist offline caching and install prompts",
-    color: "#ec4899",
-    _count: { tasks: 1 },
-  },
-  {
-    id: "proj-3",
-    name: "Product Design & UX",
-    description: "ClickUp inspired Kanban & List views with micro-animations",
-    color: "#10b981",
-    _count: { tasks: 1 },
-  },
-];
+const mockProjects: any[] = [];
 
 export async function GET() {
   try {

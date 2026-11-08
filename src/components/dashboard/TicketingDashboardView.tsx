@@ -42,54 +42,7 @@ export interface ActivityLogItem {
   type: "status" | "assign" | "priority" | "create" | "resolve";
 }
 
-const DEFAULT_ACTIVITIES: ActivityLogItem[] = [
-  {
-    id: "act-1",
-    user: "Ravi Zein",
-    avatarSeed: "Ravi",
-    action: "mengubah status menjadi In Progress pada",
-    targetTitle: "Implement Cloudflare Pages Edge Deployment",
-    targetId: "task-101",
-    timestamp: "10 menit lalu",
-    type: "status",
-  },
-  {
-    id: "act-2",
-    user: "Sarah Chen",
-    avatarSeed: "Sarah",
-    action: "menyelesaikan tiket operasional",
-    targetTitle: "Google Drive OAuth 2.0 Edge Upload REST",
-    targetId: "task-102",
-    timestamp: "35 menit lalu",
-    type: "resolve",
-  },
-  {
-    id: "act-3",
-    user: "Sistem ITSEC",
-    avatarSeed: "ITSEC",
-    action: "menerima tiket masuk baru di antrean Triage",
-    targetTitle: "Vulnerability Report: Potential SSRF in Webhook Ingestion",
-    targetId: "task-107",
-    timestamp: "1 jam lalu",
-    type: "create",
-  },
-  {
-    id: "act-4",
-    user: "Budi Santoso",
-    avatarSeed: "Budi",
-    action: "menugaskan penanggung jawab pada",
-    targetTitle: "Audit Neon PostgreSQL Connection Pool",
-    targetId: "task-106",
-    timestamp: "2 jam lalu",
-    type: "assign",
-  },
-];
-
-const AVAILABLE_PICS = [
-  { id: "user-1", name: "Ravi Zein", email: "ravizein@itsecacademy.com" },
-  { id: "user-2", name: "Sarah Chen", email: "sarah@itsecacademy.com" },
-  { id: "user-3", name: "Budi Santoso", email: "budi@itsecacademy.com" },
-];
+const DEFAULT_ACTIVITIES: ActivityLogItem[] = [];
 
 interface TicketingDashboardViewProps {
   tasks: TaskItem[];
@@ -120,7 +73,44 @@ export function TicketingDashboardView({
   // Tab state: "ALL_ACTIVE" | "MY_TICKETS" | "HIGH_PRIORITY" | "OVERDUE" | "DONE" | "ALL"
   const [activeTab, setActiveTab] = useState<string>("ALL_ACTIVE");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>(DEFAULT_ACTIVITIES);
+  const [activityLogs, setActivityLogs] = useState<ActivityLogItem[]>([]);
+
+  // Team members dynamically fetched from database
+  const [teamMembers, setTeamMembers] = useState<{ id: string; name: string; email: string }[]>([
+    { id: "me", name: currentUserName, email: currentUserEmail },
+  ]);
+
+  useEffect(() => {
+    fetch("/api/users")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setTeamMembers(
+            data.map((u: any) => ({
+              id: u.id,
+              name: u.name || "Member",
+              email: u.email || "",
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Load activity logs from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("syncro_activity_logs");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setActivityLogs(parsed);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
 
   // Dropdown Filter Menu State
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
@@ -179,7 +169,7 @@ export function TicketingDashboardView({
     [tasks]
   );
 
-  // Helper to add activity log
+  // Helper to add activity log and persist
   const pushActivity = (
     action: string,
     targetTitle: string,
@@ -187,7 +177,7 @@ export function TicketingDashboardView({
     type: ActivityLogItem["type"]
   ) => {
     const newLog: ActivityLogItem = {
-      id: `act-${Date.now()}`,
+      id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       user: currentUserName,
       avatarSeed: currentUserName,
       action,
@@ -196,7 +186,34 @@ export function TicketingDashboardView({
       timestamp: "Baru saja",
       type,
     };
-    setActivityLogs((prev) => [newLog, ...prev.slice(0, 15)]);
+    setActivityLogs((prev) => {
+      const updated = [newLog, ...prev.slice(0, 49)];
+      try {
+        localStorage.setItem("syncro_activity_logs", JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  // Delete single activity item
+  const handleDeleteActivity = (logId: string) => {
+    setActivityLogs((prev) => {
+      const updated = prev.filter((item) => item.id !== logId);
+      try {
+        localStorage.setItem("syncro_activity_logs", JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  // Clear all activities from stream
+  const handleClearAllActivities = () => {
+    if (confirm("Bersihkan seluruh riwayat aktivitas di Global Activity Stream?")) {
+      setActivityLogs([]);
+      try {
+        localStorage.removeItem("syncro_activity_logs");
+      } catch (e) {}
+    }
   };
 
   // Inline Handlers
@@ -248,12 +265,17 @@ export function TicketingDashboardView({
   };
 
   const handleAssignToMe = (task: TaskItem) => {
-    const me = AVAILABLE_PICS.find((p) => p.email === currentUserEmail) || {
-      id: "user-1",
+    const me = teamMembers.find((p) => p.email === currentUserEmail) || {
+      id: "me",
       name: currentUserName,
       email: currentUserEmail,
     };
     handleInlineAssignee(task, me);
+  };
+
+  const handleDeleteTaskWithLog = (task: TaskItem) => {
+    onDeleteTask(task.id);
+    pushActivity("menghapus tiket", task.title, task.id, "resolve");
   };
 
   // 2. Filter Table based on active tab and search query
@@ -542,7 +564,7 @@ export function TicketingDashboardView({
                     <div className="relative">
                       <select
                         onChange={(e) => {
-                          const pic = AVAILABLE_PICS.find((p) => p.id === e.target.value);
+                          const pic = teamMembers.find((p) => p.id === e.target.value);
                           if (pic) handleInlineAssignee(t, pic);
                         }}
                         defaultValue=""
@@ -551,7 +573,7 @@ export function TicketingDashboardView({
                         <option value="" disabled>
                           Tugaskan ke...
                         </option>
-                        {AVAILABLE_PICS.map((p) => (
+                        {teamMembers.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name}
                           </option>
@@ -865,7 +887,7 @@ export function TicketingDashboardView({
                                   if (val === "UNASSIGNED") {
                                     handleInlineAssignee(task, null);
                                   } else {
-                                    const pic = AVAILABLE_PICS.find((p) => p.id === val);
+                                    const pic = teamMembers.find((p) => p.id === val);
                                     if (pic) handleInlineAssignee(task, pic);
                                   }
                                 }}
@@ -877,7 +899,7 @@ export function TicketingDashboardView({
                                 title={task.assignee?.name || "Belum Ditugaskan"}
                               >
                                 <option value="UNASSIGNED">Belum Ada</option>
-                                {AVAILABLE_PICS.map((p) => (
+                                {teamMembers.map((p) => (
                                   <option key={p.id} value={p.id}>
                                     {p.name}
                                   </option>
@@ -944,7 +966,7 @@ export function TicketingDashboardView({
 
                               {/* Delete */}
                               <button
-                                onClick={() => onDeleteTask(task.id)}
+                                onClick={() => handleDeleteTaskWithLog(task)}
                                 className="p-1 rounded-md text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition cursor-pointer"
                                 title="Hapus Tiket"
                               >
@@ -1118,7 +1140,7 @@ export function TicketingDashboardView({
                               if (val === "UNASSIGNED") {
                                 handleInlineAssignee(task, null);
                               } else {
-                                const pic = AVAILABLE_PICS.find((p) => p.id === val);
+                                const pic = teamMembers.find((p) => p.id === val);
                                 if (pic) handleInlineAssignee(task, pic);
                               }
                             }}
@@ -1129,7 +1151,7 @@ export function TicketingDashboardView({
                             }`}
                           >
                             <option value="UNASSIGNED">-- Belum Ditugaskan --</option>
-                            {AVAILABLE_PICS.map((p) => (
+                            {teamMembers.map((p) => (
                               <option key={p.id} value={p.id}>
                                 PIC: {p.name}
                               </option>
@@ -1172,7 +1194,7 @@ export function TicketingDashboardView({
                             <ExternalLink className="w-3.5 h-3.5" />
                           </button>
                           <button
-                            onClick={() => onDeleteTask(task.id)}
+                            onClick={() => handleDeleteTaskWithLog(task)}
                             className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition cursor-pointer"
                             title="Hapus Tiket"
                           >
@@ -1217,40 +1239,84 @@ export function TicketingDashboardView({
                   </div>
                 </div>
 
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                <div className="flex items-center gap-2">
+                  {activityLogs.length > 0 && (
+                    <button
+                      onClick={handleClearAllActivities}
+                      className="px-2 py-1 text-[10px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-md transition flex items-center gap-1 cursor-pointer"
+                      title="Bersihkan seluruh riwayat aktivitas"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Bersihkan</span>
+                    </button>
+                  )}
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                </div>
               </div>
 
               {/* Feed List */}
-              <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
-                {activityLogs.map((log) => (
-                  <div
-                    key={log.id}
-                    className="flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-[#2c2c2c] transition"
-                  >
-                    {/* User Initials Avatar */}
-                    <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 shadow-xs">
-                      {log.user.slice(0, 2).toUpperCase()}
-                    </div>
-
-                    <div className="flex-1 min-w-0 text-xs">
-                      <p className="text-slate-700 dark:text-slate-300 leading-snug">
-                        <strong className="text-slate-900 dark:text-white font-bold">
-                          {log.user}
-                        </strong>{" "}
-                        {log.action}{" "}
-                        <span className="font-semibold text-brand-600 dark:text-brand-400">
-                          {log.targetTitle}
-                        </span>
-                      </p>
-                      <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400 font-mono">
-                        <span>{log.timestamp}</span>
-                        <span>&bull;</span>
-                        <span className="uppercase">{log.targetId}</span>
-                      </div>
-                    </div>
+              {activityLogs.length === 0 ? (
+                <div className="py-8 text-center text-slate-400 dark:text-slate-500 space-y-2">
+                  <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-[#303030] flex items-center justify-center mx-auto text-slate-400 dark:text-slate-500">
+                    <Activity className="w-5 h-5 opacity-60" />
                   </div>
-                ))}
-              </div>
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Belum ada aktivitas tercatat
+                    </p>
+                    <p className="text-[10px] text-slate-400 dark:text-slate-500 max-w-[200px] mx-auto leading-relaxed">
+                      Riwayat perubahan status, prioritas, atau penugasan tiket akan muncul otomatis di sini.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1">
+                  {activityLogs.map((log) => (
+                    <div
+                      key={log.id}
+                      className="group relative flex items-start justify-between gap-2.5 p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-[#2c2c2c] transition"
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        {/* User Initials Avatar */}
+                        <div className="w-7 h-7 rounded-full bg-blue-600 text-white font-extrabold text-[10px] flex items-center justify-center shrink-0 shadow-xs">
+                          {log.user ? log.user.slice(0, 2).toUpperCase() : "SY"}
+                        </div>
+
+                        <div className="flex-1 min-w-0 text-xs">
+                          <p className="text-slate-700 dark:text-slate-300 leading-snug">
+                            <strong className="text-slate-900 dark:text-white font-bold">
+                              {log.user}
+                            </strong>{" "}
+                            {log.action}{" "}
+                            <span className="font-semibold text-brand-600 dark:text-brand-400 break-words">
+                              {log.targetTitle}
+                            </span>
+                          </p>
+                          <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400 font-mono">
+                            <span>{log.timestamp}</span>
+                            {log.targetId && (
+                              <>
+                                <span>&bull;</span>
+                                <span className="uppercase">{log.targetId.slice(-8)}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Delete Single Activity Item Button */}
+                      <button
+                        onClick={() => handleDeleteActivity(log.id)}
+                        className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition shrink-0 cursor-pointer"
+                        title="Hapus aktivitas ini"
+                        aria-label="Hapus aktivitas"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Team PIC Workload Widget */}
@@ -1272,7 +1338,7 @@ export function TicketingDashboardView({
               </div>
 
               <div className="space-y-2.5">
-                {AVAILABLE_PICS.map((pic) => {
+                {teamMembers.map((pic) => {
                   const picTasksCount = openActiveTasks.filter(
                     (t) => t.assignee?.id === pic.id || t.assignee?.name === pic.name
                   ).length;

@@ -34,14 +34,7 @@ export function TaskDetailModal({
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState<
     { id: string; user: string; text: string; time: string }[]
-  >([
-    {
-      id: "c-1",
-      user: "Ravi Zein",
-      text: "Tugas telah sinkron dengan Cloudflare Pages Edge dan Google Drive.",
-      time: "10 menit lalu",
-    },
-  ]);
+  >([]);
 
   if (!isOpen || !task) return null;
 

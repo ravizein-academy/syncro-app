@@ -28,9 +28,7 @@ interface CreateTaskModalProps {
 }
 
 const TEAM_MEMBERS = [
-  { id: "user-1", name: "Ravi Zein", email: "ravizein@itsecacademy.com" },
-  { id: "user-2", name: "Sarah Chen", email: "sarah@itsecacademy.com" },
-  { id: "user-3", name: "Budi Santoso", email: "budi@itsecacademy.com" },
+  { id: "cmw76e0mm0000z30nonmudizx", name: "Ravi Zein", email: "ravizein@itsecacademy.com" },
 ];
 
 export function CreateTaskModal({
@@ -61,6 +59,14 @@ export function CreateTaskModal({
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (defaultProjectId) {
+      setProjectId(defaultProjectId);
+    } else if (projects.length > 0 && !projects.some((p) => p.id === projectId)) {
+      setProjectId(projects[0].id);
+    }
+  }, [defaultProjectId, projects, projectId]);
   const [dueDate, setDueDate] = useState("");
   
   // Media uploads to Google Drive

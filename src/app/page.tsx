@@ -17,26 +17,7 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const DEFAULT_PROJECTS = [
-  {
-    id: "proj-1",
-    name: "ITSEC Security Core",
-    description: "Cloudflare Pages and Neon Database systems",
-    color: "#ee3726",
-  },
-  {
-    id: "proj-2",
-    name: "Client Mobile Experience",
-    description: "PWA serwist offline caching and install prompts",
-    color: "#0ea5e9",
-  },
-  {
-    id: "proj-3",
-    name: "Product Design & UX",
-    description: "ClickUp inspired Kanban & List views with micro-animations",
-    color: "#10b981",
-  },
-];
+const DEFAULT_PROJECTS: any[] = [];
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -135,7 +116,7 @@ export default function DashboardPage() {
       }
       if (projectsRes.ok) {
         const projData = await projectsRes.json();
-        if (Array.isArray(projData) && projData.length > 0) {
+        if (Array.isArray(projData)) {
           setProjects(projData);
         }
       }
