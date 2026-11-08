@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
@@ -12,6 +12,7 @@ import { UserManagementModal } from "@/components/admin/UserManagementModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ExportReportModal } from "@/components/tasks/ExportReportModal";
 import { NotificationDrawer, NotificationItem } from "@/components/notifications/NotificationDrawer";
+import { SendNotificationModal } from "@/components/notifications/SendNotificationModal";
 import { TicketingDashboardView } from "@/components/dashboard/TicketingDashboardView";
 import { TaskItem } from "@/components/tasks/TaskCard";
 import { useSession } from "next-auth/react";
@@ -78,10 +79,30 @@ export default function DashboardPage() {
 
   // Pusat Notifikasi & Kegiatan state
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isSendNotificationOpen, setIsSendNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
-  // Muat notifikasi tersimpan dari localStorage saat client mount
+  // Sinkronisasi notifikasi target dari server Neon DB secara berkala
+  const fetchNotifications = useCallback(async () => {
+    if (status !== "authenticated") return;
+    try {
+      const res = await fetch("/api/notifications");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) {
+          setNotifications(data);
+          try {
+            localStorage.setItem("syncro_notifications", JSON.stringify(data));
+          } catch (e) {}
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to fetch notifications:", e);
+    }
+  }, [status]);
+
   useEffect(() => {
+    // 1. Muat cache offline lokal dahulu
     try {
       const saved = localStorage.getItem("syncro_notifications");
       if (saved) {
@@ -90,17 +111,30 @@ export default function DashboardPage() {
           setNotifications(parsed);
         }
       }
-    } catch (e) {
-      // ignore
+    } catch (e) {}
+
+    // 2. Ambil data notifikasi real-time dari database
+    if (status === "authenticated") {
+      fetchNotifications();
+      const interval = setInterval(fetchNotifications, 15000);
+      return () => clearInterval(interval);
     }
-  }, []);
+  }, [status, fetchNotifications]);
 
   const addNotification = (
     title: string,
     message: string,
     type: NotificationItem["type"],
-    extra?: { taskId?: string; projectId?: string; actorName?: string }
+    extra?: {
+      taskId?: string;
+      projectId?: string;
+      actorName?: string;
+      targetUserId?: string;
+      targetUserEmail?: string;
+      sendToAll?: boolean;
+    }
   ) => {
+    const actorName = session?.user?.name || session?.user?.email?.split("@")[0] || "Sistem";
     const newNotif: NotificationItem = {
       id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       title,
@@ -109,8 +143,10 @@ export default function DashboardPage() {
       createdAt: new Date().toISOString(),
       read: false,
       type,
+      actorName,
       ...extra,
     };
+
     setNotifications((prev) => {
       const updated = [newNotif, ...prev.slice(0, 49)];
       try {
@@ -118,6 +154,22 @@ export default function DashboardPage() {
       } catch (e) {}
       return updated;
     });
+
+    // Simpan ke database Neon PostgreSQL agar orang yang dituju menerimanya di feed akun mereka
+    fetch("/api/notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title,
+        message,
+        type,
+        taskId: extra?.taskId,
+        projectId: extra?.projectId,
+        userId: extra?.targetUserId,
+        userEmail: extra?.targetUserEmail,
+        sendToAll: extra?.sendToAll,
+      }),
+    }).catch((err) => console.warn("Failed to persist notification to DB:", err));
   };
 
   const handleMarkAsRead = (id: string) => {
@@ -128,6 +180,10 @@ export default function DashboardPage() {
       } catch (e) {}
       return updated;
     });
+
+    fetch(`/api/notifications/${id}`, {
+      method: "PATCH",
+    }).catch(() => {});
   };
 
   const handleMarkAllAsRead = () => {
@@ -138,6 +194,12 @@ export default function DashboardPage() {
       } catch (e) {}
       return updated;
     });
+
+    fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ markAllAsRead: true }),
+    }).catch(() => {});
   };
 
   const handleDeleteNotification = (id: string) => {
@@ -148,14 +210,22 @@ export default function DashboardPage() {
       } catch (e) {}
       return updated;
     });
+
+    fetch(`/api/notifications?id=${id}`, {
+      method: "DELETE",
+    }).catch(() => {});
   };
 
   const handleClearAllNotifications = () => {
-    if (confirm("Bersihkan seluruh riwayat notifikasi kegiatan?")) {
+    if (confirm("Bersihkan seluruh riwayat notifikasi kegiatan Anda?")) {
       setNotifications([]);
       try {
         localStorage.removeItem("syncro_notifications");
       } catch (e) {}
+
+      fetch("/api/notifications?clearAll=true", {
+        method: "DELETE",
+      }).catch(() => {});
     }
   };
 
@@ -251,12 +321,21 @@ export default function DashboardPage() {
       variant: "success",
     });
 
-    addNotification(
-      "Status Tugas Diperbarui",
-      `Tiket "${taskTitle}" diperbarui menjadi status ${statusLabel}.`,
-      "status",
-      { taskId }
-    );
+    if (currentTask?.assigneeId) {
+      addNotification(
+        "Status Tugas Anda Diperbarui",
+        `Tiket "${taskTitle}" yang Anda pegang telah diubah statusnya menjadi ${statusLabel}.`,
+        "status",
+        { taskId, targetUserId: currentTask.assigneeId }
+      );
+    } else {
+      addNotification(
+        "Status Tugas Diperbarui",
+        `Tiket "${taskTitle}" diperbarui menjadi status ${statusLabel}.`,
+        "status",
+        { taskId, sendToAll: true }
+      );
+    }
 
     try {
       await fetch(`/api/tasks/${taskId}`, {
@@ -287,12 +366,21 @@ export default function DashboardPage() {
       variant: "default",
     });
 
-    addNotification(
-      "Tugas Dihapus",
-      `Tugas "${targetTitle}" telah dihapus dari sistem.`,
-      "task_delete",
-      { taskId }
-    );
+    if (targetTask?.assigneeId) {
+      addNotification(
+        "Tugas Dihapus",
+        `Tugas "${targetTitle}" yang ditugaskan kepada Anda telah dihapus dari sistem.`,
+        "task_delete",
+        { taskId, targetUserId: targetTask.assigneeId }
+      );
+    } else {
+      addNotification(
+        "Tugas Dihapus",
+        `Tugas "${targetTitle}" telah dihapus dari sistem.`,
+        "task_delete",
+        { taskId, sendToAll: true }
+      );
+    }
 
     try {
       await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
@@ -321,12 +409,21 @@ export default function DashboardPage() {
       variant: "success",
     });
 
-    addNotification(
-      "Prioritas Tugas Diubah",
-      `Prioritas tiket "${taskTitle}" diubah menjadi ${newPriority}.`,
-      "priority",
-      { taskId }
-    );
+    if (currentTask?.assigneeId) {
+      addNotification(
+        "Prioritas Tugas Anda Diubah",
+        `Prioritas tiket "${taskTitle}" diubah menjadi ${newPriority}.`,
+        "priority",
+        { taskId, targetUserId: currentTask.assigneeId }
+      );
+    } else {
+      addNotification(
+        "Prioritas Tugas Diubah",
+        `Prioritas tiket "${taskTitle}" diubah menjadi ${newPriority}.`,
+        "priority",
+        { taskId, sendToAll: true }
+      );
+    }
 
     try {
       await fetch(`/api/tasks/${taskId}`, {
@@ -391,14 +488,21 @@ export default function DashboardPage() {
       variant: "success",
     });
 
-    addNotification(
-      "Penugasan PIC Diperbarui",
-      assignee
-        ? `Tugas "${taskTitle}" ditugaskan kepada ${assignee.name}.`
-        : `Penugasan PIC pada tugas "${taskTitle}" dilepas.`,
-      "assign",
-      { taskId }
-    );
+    if (assignee) {
+      addNotification(
+        "Tugas Baru Ditugaskan kepada Anda",
+        `Anda telah ditugaskan sebagai PIC pada tiket "${taskTitle}".`,
+        "assign",
+        { taskId, targetUserId: assignee.id }
+      );
+    } else if (currentTask?.assigneeId) {
+      addNotification(
+        "Penugasan Tugas Dilepas",
+        `Penugasan Anda pada tiket "${taskTitle}" telah dilepas.`,
+        "assign",
+        { taskId, targetUserId: currentTask.assigneeId }
+      );
+    }
 
     try {
       await fetch(`/api/tasks/${taskId}`, {
@@ -418,12 +522,22 @@ export default function DashboardPage() {
       description: `Tugas "${newTask.title}" telah ditambahkan.`,
       variant: "success",
     });
-    addNotification(
-      "Tugas Baru Dibuat",
-      `Tugas "${newTask.title}" berhasil ditambahkan ke antrean kerja.`,
-      "task_create",
-      { taskId: newTask.id, projectId: newTask.projectId }
-    );
+
+    if (newTask.assigneeId) {
+      addNotification(
+        "Tugas Baru Ditugaskan kepada Anda",
+        `Anda ditugaskan pada tugas "${newTask.title}".`,
+        "assign",
+        { taskId: newTask.id, projectId: newTask.projectId, targetUserId: newTask.assigneeId }
+      );
+    } else {
+      addNotification(
+        "Tugas Baru Dibuat",
+        `Tugas "${newTask.title}" berhasil ditambahkan ke antrean kerja.`,
+        "task_create",
+        { taskId: newTask.id, projectId: newTask.projectId, sendToAll: true }
+      );
+    }
   };
 
   const handleProjectCreated = (newProject: any) => {
@@ -729,12 +843,21 @@ export default function DashboardPage() {
         onUpdateStatus={handleUpdateStatus}
         onDeleteTask={handleDeleteTask}
         onCommentAdded={(text, task) => {
-          addNotification(
-            "Komentar Baru",
-            `Komentar ditambahkan pada tiket "${task.title}": "${text.length > 50 ? text.substring(0, 50) + "..." : text}"`,
-            "comment",
-            { taskId: task.id }
-          );
+          if (task.assigneeId) {
+            addNotification(
+              "Komentar Baru pada Tugas Anda",
+              `${session?.user?.name || "Rekan"} berkomentar pada tiket "${task.title}": "${text.length > 60 ? text.substring(0, 60) + "..." : text}"`,
+              "comment",
+              { taskId: task.id, targetUserId: task.assigneeId }
+            );
+          } else {
+            addNotification(
+              "Komentar Baru",
+              `${session?.user?.name || "Rekan"} berkomentar pada tiket "${task.title}": "${text.length > 60 ? text.substring(0, 60) + "..." : text}"`,
+              "comment",
+              { taskId: task.id, sendToAll: true }
+            );
+          }
         }}
       />
 
@@ -783,7 +906,8 @@ export default function DashboardPage() {
             addNotification(
               "Manajemen Pengguna",
               `Administrator ${action}.`,
-              "assign"
+              "assign",
+              { sendToAll: true }
             );
           }}
         />
@@ -799,6 +923,22 @@ export default function DashboardPage() {
         onDeleteNotification={handleDeleteNotification}
         onClearAllNotifications={handleClearAllNotifications}
         onOpenTaskDetail={handleOpenTaskDetailFromNotification}
+        onOpenSendNotification={() => setIsSendNotificationOpen(true)}
+      />
+
+      {/* Modal Kirim Notifikasi Langsung ke Orang Tertentu */}
+      <SendNotificationModal
+        isOpen={isSendNotificationOpen}
+        onClose={() => setIsSendNotificationOpen(false)}
+        currentUserEmail={session?.user?.email || ""}
+        onNotificationSent={(targetName, notifTitle) => {
+          toast({
+            title: "Notifikasi Terkirim",
+            description: `Notifikasi "${notifTitle}" berhasil dikirim kepada ${targetName}.`,
+            variant: "success",
+          });
+          fetchNotifications();
+        }}
       />
     </div>
   );

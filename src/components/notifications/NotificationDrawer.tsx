@@ -17,6 +17,7 @@ import {
   Layers,
   ExternalLink,
   MessageSquare,
+  Send,
 } from "lucide-react";
 
 export interface NotificationItem {
@@ -34,7 +35,10 @@ export interface NotificationItem {
     | "priority"
     | "assign"
     | "project"
-    | "comment";
+    | "comment"
+    | "custom"
+    | "system"
+    | string;
   taskId?: string;
   projectId?: string;
   actorName?: string;
@@ -49,6 +53,7 @@ interface NotificationDrawerProps {
   onDeleteNotification: (id: string) => void;
   onClearAllNotifications: () => void;
   onOpenTaskDetail?: (taskId: string) => void;
+  onOpenSendNotification?: () => void;
 }
 
 export function NotificationDrawer({
@@ -60,6 +65,7 @@ export function NotificationDrawer({
   onDeleteNotification,
   onClearAllNotifications,
   onOpenTaskDetail,
+  onOpenSendNotification,
 }: NotificationDrawerProps) {
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
@@ -190,7 +196,17 @@ export function NotificationDrawer({
             </div>
 
             {/* Quick Actions */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
+              {onOpenSendNotification && (
+                <button
+                  onClick={onOpenSendNotification}
+                  className="px-2 py-1 text-[11px] font-bold bg-brand-600 hover:bg-brand-700 text-white rounded-lg transition flex items-center gap-1 cursor-pointer shadow-xs"
+                  title="Kirim pesan notifikasi ke orang tertentu"
+                >
+                  <Send className="w-3 h-3" />
+                  <span>Kirim Pesan</span>
+                </button>
+              )}
               {unreadCount > 0 && (
                 <button
                   onClick={onMarkAllAsRead}
@@ -271,13 +287,19 @@ export function NotificationDrawer({
                       {notif.message}
                     </p>
 
-                    {/* Action pill if taskId exists */}
-                    {notif.taskId && (
-                      <div className="mt-2 flex items-center gap-1.5 text-[10px] text-brand-600 dark:text-brand-400 font-bold group-hover:underline">
-                        <span>Buka Tiket</span>
-                        <ExternalLink className="w-3 h-3" />
-                      </div>
-                    )}
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                      {notif.actorName && (
+                        <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium bg-slate-100 dark:bg-[#303030] px-1.5 py-0.5 rounded-md">
+                          Dari: <strong className="text-slate-700 dark:text-slate-200">{notif.actorName}</strong>
+                        </span>
+                      )}
+                      {notif.taskId && (
+                        <div className="flex items-center gap-1 text-[10px] text-brand-600 dark:text-brand-400 font-bold group-hover:underline">
+                          <span>Buka Tiket</span>
+                          <ExternalLink className="w-3 h-3" />
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Actions (Delete & Unread indicator) */}
