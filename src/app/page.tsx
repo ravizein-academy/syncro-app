@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Header } from "@/components/layout/Header";
 import { KanbanBoard } from "@/components/tasks/KanbanBoard";
@@ -22,21 +22,18 @@ const DEFAULT_PROJECTS = [
     name: "ITSEC Security Core",
     description: "Cloudflare Pages and Neon Database systems",
     color: "#ee3726",
-    _count: { tasks: 4 },
   },
   {
     id: "proj-2",
     name: "Client Mobile Experience",
     description: "PWA serwist offline caching and install prompts",
     color: "#0ea5e9",
-    _count: { tasks: 1 },
   },
   {
     id: "proj-3",
     name: "Product Design & UX",
     description: "ClickUp inspired Kanban & List views with micro-animations",
     color: "#10b981",
-    _count: { tasks: 1 },
   },
 ];
 
@@ -57,6 +54,17 @@ export default function DashboardPage() {
   // Inisialisasi dengan data kosong agar tugas sinkron murni dari Neon Database
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [projects, setProjects] = useState<any[]>(DEFAULT_PROJECTS);
+
+  // Hitung jumlah task per space/project secara dinamis dan real-time dari array tasks aktif
+  const projectsWithCounts = useMemo(() => {
+    return projects.map((p) => ({
+      ...p,
+      _count: {
+        tasks: tasks.filter((t) => t.projectId === p.id).length,
+      },
+    }));
+  }, [projects, tasks]);
+
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -386,7 +394,7 @@ export default function DashboardPage() {
     <div className="flex h-screen overflow-hidden bg-background font-sans">
       {/* ClickUp Sidebar Navigation */}
       <Sidebar
-        projects={projects}
+        projects={projectsWithCounts}
         selectedProjectId={selectedProjectId}
         onSelectProject={setSelectedProjectId}
         statusFilter={statusFilter}

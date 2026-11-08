@@ -205,7 +205,7 @@ function SidebarInner({
                       />
                       <span className="truncate">{proj.name}</span>
                     </div>
-                    {proj._count?.tasks !== undefined && (
+                    {proj._count?.tasks !== undefined && proj._count.tasks > 0 && (
                       <span
                         className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${
                           isSelected
