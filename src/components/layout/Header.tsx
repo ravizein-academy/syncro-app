@@ -16,6 +16,7 @@ import {
   LogOut,
   ChevronDown,
   Menu,
+  Bell,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 
@@ -28,6 +29,8 @@ interface HeaderProps {
   activeProjectName?: string;
   totalTasks: number;
   onToggleMobileSidebar?: () => void;
+  onOpenNotifications?: () => void;
+  unreadNotificationsCount?: number;
 }
 
 export function Header({
@@ -38,6 +41,8 @@ export function Header({
   activeProjectName = "Semua Tugas",
   totalTasks,
   onToggleMobileSidebar,
+  onOpenNotifications,
+  unreadNotificationsCount = 0,
 }: HeaderProps) {
   const { data: session } = useSession();
 
@@ -123,6 +128,23 @@ export function Header({
             />
           </div>
 
+
+          {/* Notifications Bell Button */}
+          {onOpenNotifications && (
+            <button
+              onClick={onOpenNotifications}
+              className="relative p-2 rounded-xl text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#2c2c2c] transition cursor-pointer select-none"
+              title="Pusat Notifikasi & Kegiatan"
+              aria-label="Buka Notifikasi"
+            >
+              <Bell className="w-4 h-4" />
+              {unreadNotificationsCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-extrabold flex items-center justify-center animate-pulse shadow-xs">
+                  {unreadNotificationsCount > 9 ? "9+" : unreadNotificationsCount}
+                </span>
+              )}
+            </button>
+          )}
 
           {/* ClickUp Style User Profile Avatar Dropdown Menu (RP Badge) */}
           <div className="relative pl-1 sm:pl-2 border-l border-slate-200 dark:border-[#333333]" ref={profileRef}>

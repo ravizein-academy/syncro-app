@@ -10,6 +10,7 @@ import { CreateProjectModal } from "@/components/tasks/CreateProjectModal";
 import { EditProjectModal } from "@/components/tasks/EditProjectModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ExportReportModal } from "@/components/tasks/ExportReportModal";
+import { NotificationDrawer, NotificationItem } from "@/components/notifications/NotificationDrawer";
 import { TicketingDashboardView } from "@/components/dashboard/TicketingDashboardView";
 import { TaskItem } from "@/components/tasks/TaskCard";
 import { useSession } from "next-auth/react";
@@ -67,6 +68,98 @@ export default function DashboardPage() {
   // ClickUp Task Detail Modal state
   const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<TaskItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Pusat Notifikasi & Kegiatan state
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  // Muat notifikasi tersimpan dari localStorage saat client mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("syncro_notifications");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          setNotifications(parsed);
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+  }, []);
+
+  const addNotification = (
+    title: string,
+    message: string,
+    type: NotificationItem["type"],
+    extra?: { taskId?: string; projectId?: string; actorName?: string }
+  ) => {
+    const newNotif: NotificationItem = {
+      id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      title,
+      message,
+      timestamp: "Baru saja",
+      createdAt: new Date().toISOString(),
+      read: false,
+      type,
+      ...extra,
+    };
+    setNotifications((prev) => {
+      const updated = [newNotif, ...prev.slice(0, 49)];
+      try {
+        localStorage.setItem("syncro_notifications", JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    setNotifications((prev) => {
+      const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+      try {
+        localStorage.setItem("syncro_notifications", JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotifications((prev) => {
+      const updated = prev.map((n) => ({ ...n, read: true }));
+      try {
+        localStorage.setItem("syncro_notifications", JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const handleDeleteNotification = (id: string) => {
+    setNotifications((prev) => {
+      const updated = prev.filter((n) => n.id !== id);
+      try {
+        localStorage.setItem("syncro_notifications", JSON.stringify(updated));
+      } catch (e) {}
+      return updated;
+    });
+  };
+
+  const handleClearAllNotifications = () => {
+    if (confirm("Bersihkan seluruh riwayat notifikasi kegiatan?")) {
+      setNotifications([]);
+      try {
+        localStorage.removeItem("syncro_notifications");
+      } catch (e) {}
+    }
+  };
+
+  const handleOpenTaskDetailFromNotification = (taskId: string) => {
+    const found = tasks.find((t) => t.id === taskId);
+    if (found) {
+      setSelectedTaskForDetail(found);
+      setIsDetailModalOpen(true);
+      setIsNotificationOpen(false);
+    }
+  };
 
   // PWA Install Prompt state
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
@@ -140,6 +233,8 @@ export default function DashboardPage() {
       setSelectedTaskForDetail((prev) => (prev ? { ...prev, status: newStatus } : null));
     }
 
+    const currentTask = tasks.find((t) => t.id === taskId);
+    const taskTitle = currentTask?.title || "Tugas";
     const statusLabel =
       newStatus === "DONE" ? "Complete (Selesai)" : newStatus === "IN_PROGRESS" ? "In Progress" : "To Do";
 
@@ -148,6 +243,13 @@ export default function DashboardPage() {
       description: `Status tiket diubah menjadi ${statusLabel}.`,
       variant: "success",
     });
+
+    addNotification(
+      "Status Tugas Diperbarui",
+      `Tiket "${taskTitle}" diperbarui menjadi status ${statusLabel}.`,
+      "status",
+      { taskId }
+    );
 
     try {
       await fetch(`/api/tasks/${taskId}`, {
@@ -163,6 +265,9 @@ export default function DashboardPage() {
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm("Apakah Anda yakin ingin menghapus tugas ini?")) return;
 
+    const targetTask = tasks.find((t) => t.id === taskId);
+    const targetTitle = targetTask?.title || "Tugas";
+
     setTasks((prev) => prev.filter((t) => t.id !== taskId));
     if (selectedTaskForDetail && selectedTaskForDetail.id === taskId) {
       setIsDetailModalOpen(false);
@@ -174,6 +279,13 @@ export default function DashboardPage() {
       description: "Tugas telah dihapus dari sistem.",
       variant: "default",
     });
+
+    addNotification(
+      "Tugas Dihapus",
+      `Tugas "${targetTitle}" telah dihapus dari sistem.`,
+      "task_delete",
+      { taskId }
+    );
 
     try {
       await fetch(`/api/tasks/${taskId}`, { method: "DELETE" });
@@ -193,11 +305,21 @@ export default function DashboardPage() {
       setSelectedTaskForDetail((prev) => (prev ? { ...prev, priority: newPriority } : null));
     }
 
+    const currentTask = tasks.find((t) => t.id === taskId);
+    const taskTitle = currentTask?.title || "Tugas";
+
     toast({
       title: "Prioritas Diperbarui",
       description: `Prioritas tugas telah diatur ke "${newPriority}".`,
       variant: "success",
     });
+
+    addNotification(
+      "Prioritas Tugas Diubah",
+      `Prioritas tiket "${taskTitle}" diubah menjadi ${newPriority}.`,
+      "priority",
+      { taskId }
+    );
 
     try {
       await fetch(`/api/tasks/${taskId}`, {
@@ -253,11 +375,23 @@ export default function DashboardPage() {
       );
     }
 
+    const currentTask = tasks.find((t) => t.id === taskId);
+    const taskTitle = currentTask?.title || "Tugas";
+
     toast({
       title: "Penanggung Jawab Diperbarui",
       description: assignee ? `Tugas ditugaskan kepada ${assignee.name}.` : "Penugasan tugas dibatalkan.",
       variant: "success",
     });
+
+    addNotification(
+      "Penugasan PIC Diperbarui",
+      assignee
+        ? `Tugas "${taskTitle}" ditugaskan kepada ${assignee.name}.`
+        : `Penugasan PIC pada tugas "${taskTitle}" dilepas.`,
+      "assign",
+      { taskId }
+    );
 
     try {
       await fetch(`/api/tasks/${taskId}`, {
@@ -277,6 +411,12 @@ export default function DashboardPage() {
       description: `Tugas "${newTask.title}" telah ditambahkan.`,
       variant: "success",
     });
+    addNotification(
+      "Tugas Baru Dibuat",
+      `Tugas "${newTask.title}" berhasil ditambahkan ke antrean kerja.`,
+      "task_create",
+      { taskId: newTask.id, projectId: newTask.projectId }
+    );
   };
 
   const handleProjectCreated = (newProject: any) => {
@@ -286,6 +426,12 @@ export default function DashboardPage() {
       description: `Space "${newProject.name}" siap digunakan.`,
       variant: "success",
     });
+    addNotification(
+      "Space Baru Dibuat",
+      `Space kerja "${newProject.name}" siap digunakan.`,
+      "project",
+      { projectId: newProject.id }
+    );
   };
 
   const handleOpenEditProject = (project: any) => {
@@ -311,6 +457,12 @@ export default function DashboardPage() {
           : t
       )
     );
+    addNotification(
+      "Space Diperbarui",
+      `Pengaturan space "${updatedProject.name}" telah diperbarui.`,
+      "project",
+      { projectId: updatedProject.id }
+    );
   };
 
   const handleProjectDeleted = (deletedProjectId: string) => {
@@ -319,6 +471,12 @@ export default function DashboardPage() {
     if (selectedProjectId === deletedProjectId) {
       setSelectedProjectId(null);
     }
+    addNotification(
+      "Space Dihapus",
+      "Space kerja beserta tugas di dalamnya telah dihapus.",
+      "project",
+      { projectId: deletedProjectId }
+    );
   };
 
   // ClickUp Inline Quick Task Creator
@@ -354,6 +512,12 @@ export default function DashboardPage() {
       description: `Tugas "${title}" berhasil ditambahkan.`,
       variant: "success",
     });
+    addNotification(
+      "Tugas Cepat Ditambahkan",
+      `Tugas "${title}" berhasil ditambahkan ke antrean.`,
+      "task_create",
+      { taskId: newTask.id, projectId: targetProjectId }
+    );
 
     try {
       await fetch("/api/tasks", {
@@ -425,6 +589,8 @@ export default function DashboardPage() {
           setIsCreateTaskOpen(true);
         }}
         onOpenExportReport={() => setIsExportModalOpen(true)}
+        onOpenNotifications={() => setIsNotificationOpen(true)}
+        unreadNotificationsCount={notifications.filter((n) => !n.read).length}
         installPrompt={deferredPrompt}
         onInstallApp={handleInstallApp}
         isMobileOpen={isMobileSidebarOpen}
@@ -446,6 +612,8 @@ export default function DashboardPage() {
           activeProjectName={activeProject?.name || "Semua Tugas"}
           totalTasks={filteredTasks.length}
           onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
+          onOpenNotifications={() => setIsNotificationOpen(true)}
+          unreadNotificationsCount={notifications.filter((n) => !n.read).length}
         />
 
         {/* View Component (Ticketing Dashboard, Kanban, or ClickUp Grouped List) */}
@@ -549,6 +717,14 @@ export default function DashboardPage() {
         }}
         onUpdateStatus={handleUpdateStatus}
         onDeleteTask={handleDeleteTask}
+        onCommentAdded={(text, task) => {
+          addNotification(
+            "Komentar Baru",
+            `Komentar ditambahkan pada tiket "${task.title}": "${text.length > 50 ? text.substring(0, 50) + "..." : text}"`,
+            "comment",
+            { taskId: task.id }
+          );
+        }}
       />
 
       {/* Export & Preview Report Modal (PDF / Excel / Print) */}
@@ -584,6 +760,18 @@ export default function DashboardPage() {
         project={editingProject}
         onProjectUpdated={handleProjectUpdated}
         onProjectDeleted={handleProjectDeleted}
+      />
+
+      {/* Pusat Notifikasi & Kegiatan Slide-over Drawer */}
+      <NotificationDrawer
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        notifications={notifications}
+        onMarkAsRead={handleMarkAsRead}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onDeleteNotification={handleDeleteNotification}
+        onClearAllNotifications={handleClearAllNotifications}
+        onOpenTaskDetail={handleOpenTaskDetailFromNotification}
       />
     </div>
   );

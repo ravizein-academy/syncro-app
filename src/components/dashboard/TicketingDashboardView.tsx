@@ -16,17 +16,12 @@ import {
   Layers,
   Search,
   Filter,
-  ArrowUpDown,
-  MoreHorizontal,
   ExternalLink,
   Trash2,
   Check,
   Activity,
-  Sparkles,
   Zap,
   ChevronDown,
-  RefreshCw,
-  TrendingUp,
   CircleDot,
 } from "lucide-react";
 import { TaskItem } from "@/components/tasks/TaskCard";
@@ -41,8 +36,6 @@ export interface ActivityLogItem {
   timestamp: string;
   type: "status" | "assign" | "priority" | "create" | "resolve";
 }
-
-const DEFAULT_ACTIVITIES: ActivityLogItem[] = [];
 
 interface TicketingDashboardViewProps {
   tasks: TaskItem[];

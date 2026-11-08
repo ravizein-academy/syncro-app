@@ -22,6 +22,7 @@ interface TaskDetailModalProps {
   onClose: () => void;
   onUpdateStatus: (taskId: string, newStatus: "TODO" | "IN_PROGRESS" | "DONE") => void;
   onDeleteTask: (taskId: string) => void;
+  onCommentAdded?: (commentText: string, task: TaskItem) => void;
 }
 
 export function TaskDetailModal({
@@ -30,6 +31,7 @@ export function TaskDetailModal({
   onClose,
   onUpdateStatus,
   onDeleteTask,
+  onCommentAdded,
 }: TaskDetailModalProps) {
   const [commentText, setCommentText] = useState("");
   const [comments, setComments] = useState<
@@ -41,15 +43,19 @@ export function TaskDetailModal({
   const handleAddComment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!commentText.trim()) return;
+    const text = commentText.trim();
     setComments((prev) => [
       ...prev,
       {
         id: String(Date.now()),
         user: "Ravi Zein",
-        text: commentText,
+        text,
         time: "Baru saja",
       },
     ]);
+    if (onCommentAdded) {
+      onCommentAdded(text, task);
+    }
     setCommentText("");
   };
 

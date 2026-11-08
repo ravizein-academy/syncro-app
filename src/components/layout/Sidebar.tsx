@@ -35,6 +35,8 @@ interface SidebarProps {
   onEditProject?: (project: Project) => void;
   onOpenCreateTask?: () => void;
   onOpenExportReport?: () => void;
+  onOpenNotifications?: () => void;
+  unreadNotificationsCount?: number;
   installPrompt: any;
   onInstallApp: () => void;
   isMobileOpen?: boolean;
@@ -56,6 +58,8 @@ function SidebarInner({
   onEditProject,
   onOpenCreateTask,
   onOpenExportReport,
+  onOpenNotifications,
+  unreadNotificationsCount = 0,
   installPrompt,
   onInstallApp,
   onCloseMobile,
@@ -119,14 +123,30 @@ function SidebarInner({
         </button>
 
         <button
-          onClick={() => alert("Tidak ada notifikasi baru saat ini.")}
+          onClick={() => {
+            if (onOpenNotifications) {
+              handleAction(onOpenNotifications);
+            }
+          }}
           className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#2c2c2c] transition-all duration-200 group cursor-pointer"
+          title="Buka Pusat Notifikasi & Kegiatan"
         >
           <div className="flex items-center gap-2.5">
-            <Bell className="w-4 h-4 text-brand-500" />
+            <div className="relative">
+              <Bell className="w-4 h-4 text-brand-500" />
+              {unreadNotificationsCount > 0 && (
+                <span className="w-2 h-2 rounded-full bg-rose-500 absolute -top-0.5 -right-0.5 animate-pulse" />
+              )}
+            </div>
             <span>Notifikasi</span>
           </div>
-          <span className="w-2 h-2 rounded-full bg-brand-500" />
+          {unreadNotificationsCount > 0 ? (
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-extrabold bg-rose-500 text-white shrink-0 shadow-xs">
+              {unreadNotificationsCount}
+            </span>
+          ) : (
+            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+          )}
         </button>
 
         {onOpenExportReport && (
