@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { sendNotificationEmail } from "@/lib/email";
 
 export interface CreateNotificationParams {
   userId?: string;
@@ -24,7 +25,7 @@ export interface CreateNotificationParams {
 
 /**
  * Mengirim notifikasi ke pengguna yang dituju (berdasarkan userId atau userEmail).
- * Jika userId tidak diberikan, akan mencari pengguna berdasarkan userEmail.
+ * Menyimpan notifikasi di database Neon dan secara otomatis mensinkronkan ke email pengguna.
  */
 export async function sendTargetedNotification(params: CreateNotificationParams) {
   try {
@@ -33,15 +34,27 @@ export async function sendTargetedNotification(params: CreateNotificationParams)
     }
 
     let targetUserId = params.userId;
+    let targetUserEmail = params.userEmail?.trim().toLowerCase();
+    let targetUserName = "";
 
-    // Jika targetUserId belum ada, cari berdasarkan userEmail
-    if (!targetUserId && params.userEmail) {
-      const foundUser = await prisma.user.findUnique({
-        where: { email: params.userEmail.trim().toLowerCase() },
-        select: { id: true },
+    // Dapatkan data user (id, email, name) untuk pengiriman in-app dan email
+    if (targetUserId) {
+      const user = await prisma.user.findUnique({
+        where: { id: targetUserId },
+        select: { id: true, email: true, name: true },
       });
-      if (foundUser) {
-        targetUserId = foundUser.id;
+      if (user) {
+        targetUserEmail = user.email;
+        targetUserName = user.name || "";
+      }
+    } else if (targetUserEmail) {
+      const user = await prisma.user.findUnique({
+        where: { email: targetUserEmail },
+        select: { id: true, email: true, name: true },
+      });
+      if (user) {
+        targetUserId = user.id;
+        targetUserName = user.name || "";
       }
     }
 
@@ -50,6 +63,7 @@ export async function sendTargetedNotification(params: CreateNotificationParams)
       return null;
     }
 
+    // 1. Simpan notifikasi ke database Neon
     const notification = await prisma.notification.create({
       data: {
         userId: targetUserId,
@@ -63,6 +77,22 @@ export async function sendTargetedNotification(params: CreateNotificationParams)
       },
     });
 
+    // 2. Sinkronkan notifikasi ke email pengguna secara otomatis
+    if (targetUserEmail) {
+      sendNotificationEmail({
+        to: targetUserEmail,
+        recipientName: targetUserName || targetUserEmail.split("@")[0],
+        actorName: params.actorName || "Sistem Syncro",
+        title: params.title.trim(),
+        message: params.message.trim(),
+        type: params.type || "info",
+        taskId: params.taskId,
+        projectId: params.projectId,
+      }).catch((emailErr) => {
+        console.warn("[Notifications] Gagal mengirim email sinkronisasi:", emailErr);
+      });
+    }
+
     return notification;
   } catch (error) {
     console.error("[Notifications] Gagal menyimpan notifikasi target:", error);
@@ -71,7 +101,7 @@ export async function sendTargetedNotification(params: CreateNotificationParams)
 }
 
 /**
- * Mengirim notifikasi ke beberapa pengguna target sekaligus.
+ * Mengirim notifikasi ke beberapa pengguna target sekaligus (in-app dan email).
  */
 export async function sendBatchTargetedNotifications(
   userIds: string[],
@@ -83,6 +113,14 @@ export async function sendBatchTargetedNotifications(
     }
 
     const uniqueUserIds = Array.from(new Set(userIds.filter(Boolean)));
+
+    // Dapatkan data email dan nama pengguna untuk pengiriman email
+    const users = await prisma.user.findMany({
+      where: { id: { in: uniqueUserIds } },
+      select: { id: true, email: true, name: true },
+    });
+
+    // 1. Buat notifikasi di database untuk seluruh pengguna
     const promises = uniqueUserIds.map((userId) =>
       prisma.notification.create({
         data: {
@@ -98,7 +136,27 @@ export async function sendBatchTargetedNotifications(
       })
     );
 
-    return await Promise.all(promises);
+    const createdNotifications = await Promise.all(promises);
+
+    // 2. Sinkronkan ke email masing-masing pengguna
+    for (const u of users) {
+      if (u.email) {
+        sendNotificationEmail({
+          to: u.email,
+          recipientName: u.name || u.email.split("@")[0],
+          actorName: notificationData.actorName || "Sistem Syncro",
+          title: notificationData.title.trim(),
+          message: notificationData.message.trim(),
+          type: notificationData.type || "info",
+          taskId: notificationData.taskId,
+          projectId: notificationData.projectId,
+        }).catch((err) => {
+          console.warn(`[Batch Email] Error sending notification to ${u.email}:`, err);
+        });
+      }
+    }
+
+    return createdNotifications;
   } catch (error) {
     console.error("[Notifications] Gagal membuat batch notifikasi:", error);
     return [];

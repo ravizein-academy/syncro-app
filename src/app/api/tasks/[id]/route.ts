@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { mockTasks } from "@/lib/mock-data";
+import { sendTargetedNotification } from "@/lib/notifications";
 
 export const runtime = "edge";
 
@@ -40,7 +41,7 @@ export async function PATCH(
           },
         });
 
-        // Buat notifikasi otomatis di database untuk PIC jika ada mutasi status / prioritas / PIC
+        // Buat notifikasi otomatis di database dan kirim email untuk PIC jika ada mutasi status / prioritas / PIC
         if (updated?.assigneeId) {
           try {
             if (body.status) {
@@ -50,37 +51,31 @@ export async function PATCH(
                   : body.status === "IN_PROGRESS"
                   ? "In Progress"
                   : "To Do";
-              await prisma.notification.create({
-                data: {
-                  userId: updated.assigneeId,
-                  title: "Status Tugas Anda Diperbarui",
-                  message: `Status tiket "${updated.title}" diubah menjadi ${statusLabel}.`,
-                  type: "status",
-                  taskId: updated.id,
-                  projectId: updated.projectId,
-                },
+              await sendTargetedNotification({
+                userId: updated.assigneeId,
+                title: "Status Tugas Anda Diperbarui",
+                message: `Status tiket "${updated.title}" diubah menjadi ${statusLabel}.`,
+                type: "status",
+                taskId: updated.id,
+                projectId: updated.projectId,
               });
             } else if (body.priority) {
-              await prisma.notification.create({
-                data: {
-                  userId: updated.assigneeId,
-                  title: "Prioritas Tugas Anda Diubah",
-                  message: `Prioritas tiket "${updated.title}" diubah menjadi ${body.priority}.`,
-                  type: "priority",
-                  taskId: updated.id,
-                  projectId: updated.projectId,
-                },
+              await sendTargetedNotification({
+                userId: updated.assigneeId,
+                title: "Prioritas Tugas Anda Diubah",
+                message: `Prioritas tiket "${updated.title}" diubah menjadi ${body.priority}.`,
+                type: "priority",
+                taskId: updated.id,
+                projectId: updated.projectId,
               });
             } else if (body.assigneeId) {
-              await prisma.notification.create({
-                data: {
-                  userId: updated.assigneeId,
-                  title: "Tugas Baru Ditugaskan kepada Anda",
-                  message: `Anda telah ditugaskan sebagai PIC pada tiket "${updated.title}".`,
-                  type: "assign",
-                  taskId: updated.id,
-                  projectId: updated.projectId,
-                },
+              await sendTargetedNotification({
+                userId: updated.assigneeId,
+                title: "Tugas Baru Ditugaskan kepada Anda",
+                message: `Anda telah ditugaskan sebagai PIC pada tiket "${updated.title}".`,
+                type: "assign",
+                taskId: updated.id,
+                projectId: updated.projectId,
               });
             }
           } catch (notifErr) {

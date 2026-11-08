@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { mockTasks } from "@/lib/mock-data";
+import { sendTargetedNotification } from "@/lib/notifications";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
@@ -106,18 +107,16 @@ export async function POST(request: NextRequest) {
           },
         });
 
-        // Buat notifikasi otomatis di database jika tugas ditugaskan ke PIC tertentu
+        // Buat notifikasi otomatis di database dan kirim email jika tugas ditugaskan ke PIC tertentu
         if (validAssigneeId) {
           try {
-            await prisma.notification.create({
-              data: {
-                userId: validAssigneeId,
-                title: "Tugas Baru Ditugaskan kepada Anda",
-                message: `Anda telah ditugaskan pada tugas "${title}".`,
-                type: "assign",
-                taskId: created.id,
-                projectId: validProjectId,
-              },
+            await sendTargetedNotification({
+              userId: validAssigneeId,
+              title: "Tugas Baru Ditugaskan kepada Anda",
+              message: `Anda telah ditugaskan pada tugas "${title}".`,
+              type: "assign",
+              taskId: created.id,
+              projectId: validProjectId,
             });
           } catch (notifErr) {
             console.warn("[Tasks POST] Auto notification error:", notifErr);
