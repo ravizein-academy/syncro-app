@@ -11,6 +11,7 @@ import {
   Layers,
   Settings2,
   X,
+  ShieldCheck,
 } from "lucide-react";
 import { ItsecLogo } from "@/components/brand/ItsecLogo";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -37,6 +38,8 @@ interface SidebarProps {
   onOpenExportReport?: () => void;
   onOpenNotifications?: () => void;
   unreadNotificationsCount?: number;
+  isAdmin?: boolean;
+  onOpenUserManagement?: () => void;
   installPrompt: any;
   onInstallApp: () => void;
   isMobileOpen?: boolean;
@@ -60,6 +63,8 @@ function SidebarInner({
   onOpenExportReport,
   onOpenNotifications,
   unreadNotificationsCount = 0,
+  isAdmin = false,
+  onOpenUserManagement,
   installPrompt,
   onInstallApp,
   onCloseMobile,
@@ -159,6 +164,22 @@ function SidebarInner({
               <FileSpreadsheet className="w-4 h-4 text-brand-500" />
               <span>Laporan & Ekspor</span>
             </div>
+          </button>
+        )}
+
+        {isAdmin && onOpenUserManagement && (
+          <button
+            onClick={() => handleAction(onOpenUserManagement)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-500/10 transition-all duration-200 group cursor-pointer"
+            title="Manajemen Pengguna & Akses (Khusus Admin)"
+          >
+            <div className="flex items-center gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-amber-500" />
+              <span>Kelola Pengguna</span>
+            </div>
+            <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              Admin
+            </span>
           </button>
         )}
       </div>

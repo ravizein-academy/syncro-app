@@ -8,6 +8,7 @@ import { ListView } from "@/components/tasks/ListView";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { CreateProjectModal } from "@/components/tasks/CreateProjectModal";
 import { EditProjectModal } from "@/components/tasks/EditProjectModal";
+import { UserManagementModal } from "@/components/admin/UserManagementModal";
 import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ExportReportModal } from "@/components/tasks/ExportReportModal";
 import { NotificationDrawer, NotificationItem } from "@/components/notifications/NotificationDrawer";
@@ -68,6 +69,12 @@ export default function DashboardPage() {
   // ClickUp Task Detail Modal state
   const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<TaskItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  // Admin User Management state
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
+  const isAdmin =
+    (session?.user as any)?.role === "ADMIN" ||
+    session?.user?.email?.toLowerCase().includes("ravizein");
 
   // Pusat Notifikasi & Kegiatan state
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -591,6 +598,8 @@ export default function DashboardPage() {
         onOpenExportReport={() => setIsExportModalOpen(true)}
         onOpenNotifications={() => setIsNotificationOpen(true)}
         unreadNotificationsCount={notifications.filter((n) => !n.read).length}
+        isAdmin={isAdmin}
+        onOpenUserManagement={() => setIsUserManagementOpen(true)}
         installPrompt={deferredPrompt}
         onInstallApp={handleInstallApp}
         isMobileOpen={isMobileSidebarOpen}
@@ -614,6 +623,8 @@ export default function DashboardPage() {
           onToggleMobileSidebar={() => setIsMobileSidebarOpen((prev) => !prev)}
           onOpenNotifications={() => setIsNotificationOpen(true)}
           unreadNotificationsCount={notifications.filter((n) => !n.read).length}
+          isAdmin={isAdmin}
+          onOpenUserManagement={() => setIsUserManagementOpen(true)}
         />
 
         {/* View Component (Ticketing Dashboard, Kanban, or ClickUp Grouped List) */}
@@ -761,6 +772,22 @@ export default function DashboardPage() {
         onProjectUpdated={handleProjectUpdated}
         onProjectDeleted={handleProjectDeleted}
       />
+
+      {/* Admin User Management Modal (Khusus Admin) */}
+      {isAdmin && (
+        <UserManagementModal
+          isOpen={isUserManagementOpen}
+          onClose={() => setIsUserManagementOpen(false)}
+          currentUserEmail={session?.user?.email || "ravizein@itsecacademy.com"}
+          onUserAddedOrUpdated={(action) => {
+            addNotification(
+              "Manajemen Pengguna",
+              `Administrator ${action}.`,
+              "assign"
+            );
+          }}
+        />
+      )}
 
       {/* Pusat Notifikasi & Kegiatan Slide-over Drawer */}
       <NotificationDrawer

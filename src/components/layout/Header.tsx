@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Menu,
   Bell,
+  Users,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
 
@@ -31,6 +32,8 @@ interface HeaderProps {
   onToggleMobileSidebar?: () => void;
   onOpenNotifications?: () => void;
   unreadNotificationsCount?: number;
+  isAdmin?: boolean;
+  onOpenUserManagement?: () => void;
 }
 
 export function Header({
@@ -43,6 +46,8 @@ export function Header({
   onToggleMobileSidebar,
   onOpenNotifications,
   unreadNotificationsCount = 0,
+  isAdmin = false,
+  onOpenUserManagement,
 }: HeaderProps) {
   const { data: session } = useSession();
 
@@ -199,9 +204,31 @@ export function Header({
                   <span>Status</span>
                   <span className="inline-flex items-center gap-1.5 font-bold text-emerald-600 dark:text-emerald-400 text-[10px]">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    Online (Active)
+                    Online ({isAdmin ? "Admin" : "Active"})
                   </span>
                 </div>
+
+                {/* Admin User Management Menu */}
+                {isAdmin && onOpenUserManagement && (
+                  <>
+                    <div className="my-1 border-t border-slate-100 dark:border-[#333333]" />
+                    <button
+                      onClick={() => {
+                        setIsProfileOpen(false);
+                        onOpenUserManagement();
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-amber-500/10 hover:text-amber-600 dark:hover:text-amber-400 transition cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Users className="w-3.5 h-3.5 text-amber-500" />
+                        <span>Kelola Pengguna & Akses</span>
+                      </div>
+                      <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-amber-500 text-white">
+                        Admin
+                      </span>
+                    </button>
+                  </>
+                )}
 
                 {/* Divider */}
                 <div className="my-1 border-t border-slate-100 dark:border-[#333333]" />

@@ -20,12 +20,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const email = String(credentials.email).trim().toLowerCase();
         const password = String(credentials.password);
 
-        // 1. Pemeriksaan Domain Ketat: Tolak email publik (@gmail.com, dll.)
-        if (!isAllowedCompanyEmail(email)) {
-          throw new Error("Domain email tidak diizinkan");
-        }
-
-        // 2. Verifikasi Kredensial via Prisma Database
+        // 1. Verifikasi Kredensial via Prisma Database
         const { prisma } = await import("@/lib/prisma");
 
         if (!process.env.DATABASE_URL) {
@@ -36,7 +31,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           where: { email },
         });
 
+        // Jika user belum terdaftar, lakukan pemeriksaan domain perusahaan
         if (!user) {
+          if (!isAllowedCompanyEmail(email)) {
+            throw new Error(
+              "Domain email tidak diizinkan. Hubungi administrator untuk mendapatkan undangan akun."
+            );
+          }
           throw new Error("Pengguna belum terdaftar. Silakan lakukan pendaftaran akun terlebih dahulu.");
         }
 
@@ -69,14 +70,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async signIn({ user }) {
       if (!user.email) return false;
-      const email = user.email.toLowerCase();
-
-      // Tolak domain yang tidak diizinkan
-      if (!isAllowedCompanyEmail(email)) {
-        console.warn(`[Auth] Ditolak: Domain email ${email} tidak diizinkan.`);
-        return false;
-      }
-
+      // Jika user sudah lolos authorize (terdaftar di database oleh admin atau registrasi resmi), izinkan sign in
       return true;
     },
     async jwt({ token, user }) {
