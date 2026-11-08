@@ -72,18 +72,24 @@ Aplikasi Syncro telah dikonfigurasi 100% kompatibel dengan **Cloudflare Pages & 
    - Di menu sebelah kiri, pilih **Compute (Workers & Pages)** > **Create application** > tab **Pages** > **Connect to Git**.
    - Pilih repository GitHub Anda.
 
-3. **Konfigurasi Build Settings**:
-   - **Project name**: `syncro-workspace` (atau nama pilihan Anda)
-   - **Production branch**: `main` (atau `master`)
-   - **Framework preset**: Pilih **`None`** (atau `Next.js`)
+3. **Konfigurasi Build Settings (PENTING)**:
+   - **Project name**: `syncro-app`
+   - **Production branch**: `main`
+   - **Framework preset**: Pilih **`None`**
    - **Build command**:
      ```bash
      npx @cloudflare/next-on-pages
      ```
+     *(⚠️ Jangan gunakan `npm run build`, harus `npx @cloudflare/next-on-pages` agar output static edge terbuat)*
    - **Build output directory**:
      ```bash
      .vercel/output/static
      ```
+   - **Deploy command** *(jika muncul kolom ini di dashboard Cloudflare Workers/Pages)*:
+     ```bash
+     npx wrangler pages deploy .vercel/output/static
+     ```
+     *(⚠️ Jangan gunakan `npx wrangler deploy` karena perintah itu khusus Cloudflare Workers, bukan Pages)*
 
 4. **Pengaturan Compatibility Flags (Penting!)**:
    - Scroll ke bagian **Environment variables & Compatibility flags**:
