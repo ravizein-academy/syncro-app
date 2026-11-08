@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   X,
   Upload,
@@ -47,7 +47,20 @@ export function CreateTaskModal({
   const [projectId, setProjectId] = useState(defaultProjectId || projects[0]?.id || "proj-1");
   const [status, setStatus] = useState<"TODO" | "IN_PROGRESS" | "DONE">(defaultStatus);
   const [priority, setPriority] = useState<"LOW" | "MEDIUM" | "HIGH" | "URGENT">("MEDIUM");
+  const [teamMembers, setTeamMembers] = useState<any[]>(TEAM_MEMBERS);
   const [assigneeId, setAssigneeId] = useState(TEAM_MEMBERS[0].id);
+
+  useEffect(() => {
+    fetch("/api/users")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setTeamMembers(data);
+          setAssigneeId(data[0].id);
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [dueDate, setDueDate] = useState("");
   
   // Media uploads to Google Drive
@@ -236,7 +249,7 @@ export function CreateTaskModal({
                 onChange={(e) => setAssigneeId(e.target.value)}
                 className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-[#1c1c1c] border border-slate-200 dark:border-[#383838] text-slate-900 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
-                {TEAM_MEMBERS.map((member) => (
+                {teamMembers.map((member) => (
                   <option key={member.id} value={member.id}>
                     {member.name} ({member.email})
                   </option>

@@ -52,14 +52,33 @@ export async function POST(request: NextRequest) {
 
     try {
       if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("your-subdomain")) {
+        // Pastikan assigneeId valid di database untuk menghindari error foreign key
+        let validAssigneeId: string | null = null;
+        if (assigneeId) {
+          const user = await prisma.user.findUnique({ where: { id: assigneeId } });
+          if (user) {
+            validAssigneeId = user.id;
+          }
+        }
+
+        // Pastikan projectId valid di database
+        let validProjectId = projectId;
+        const project = await prisma.project.findUnique({ where: { id: projectId } });
+        if (!project) {
+          const firstProject = await prisma.project.findFirst();
+          if (firstProject) {
+            validProjectId = firstProject.id;
+          }
+        }
+
         const newTask = await prisma.task.create({
           data: {
             title,
             description,
             status,
             priority,
-            projectId,
-            assigneeId: assigneeId || null,
+            projectId: validProjectId,
+            assigneeId: validAssigneeId,
             mediaUrls,
             dueDate: dueDate ? new Date(dueDate) : null,
           },

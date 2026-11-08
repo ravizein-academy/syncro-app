@@ -11,7 +11,6 @@ import { TaskDetailModal } from "@/components/tasks/TaskDetailModal";
 import { ExportReportModal } from "@/components/tasks/ExportReportModal";
 import { TicketingDashboardView } from "@/components/dashboard/TicketingDashboardView";
 import { TaskItem } from "@/components/tasks/TaskCard";
-import { mockTasks } from "@/lib/mock-data";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/components/ui/use-toast";
@@ -55,8 +54,8 @@ export default function DashboardPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<"dashboard" | "kanban" | "list">("dashboard");
-  // Initialize with mockTasks so the dashboard is ALWAYS populated immediately
-  const [tasks, setTasks] = useState<TaskItem[]>(mockTasks as TaskItem[]);
+  // Inisialisasi dengan data kosong agar tugas sinkron murni dari Neon Database
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [projects, setProjects] = useState<any[]>(DEFAULT_PROJECTS);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
@@ -119,7 +118,7 @@ export default function DashboardPage() {
 
       if (tasksRes.ok) {
         const taskData = await tasksRes.json();
-        if (Array.isArray(taskData) && taskData.length > 0) {
+        if (Array.isArray(taskData)) {
           setTasks(taskData);
         }
       }

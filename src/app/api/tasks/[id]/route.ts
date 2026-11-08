@@ -14,12 +14,22 @@ export async function PATCH(
 
     try {
       if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("your-subdomain")) {
+        let dataToUpdate: any = { ...body };
+        if (body.assigneeId !== undefined) {
+          if (body.assigneeId) {
+            const user = await prisma.user.findUnique({ where: { id: body.assigneeId } });
+            dataToUpdate.assigneeId = user ? user.id : null;
+          } else {
+            dataToUpdate.assigneeId = null;
+          }
+        }
+        if (body.dueDate) {
+          dataToUpdate.dueDate = new Date(body.dueDate);
+        }
+
         const updated = await prisma.task.update({
           where: { id },
-          data: {
-            ...body,
-            dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
-          },
+          data: dataToUpdate,
           include: {
             project: true,
             assignee: true,
@@ -61,8 +71,11 @@ export async function DELETE(
         await prisma.task.delete({ where: { id } });
         return NextResponse.json({ success: true });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn("[Task DELETE] Database fallback:", err);
+      if (err.code === "P2025") {
+        return NextResponse.json({ success: true, message: "Task already removed" });
+      }
     }
 
     const index = mockTasks.findIndex((t) => t.id === id);
