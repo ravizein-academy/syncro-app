@@ -25,11 +25,6 @@ export async function PATCH(
             description: description !== undefined ? description : undefined,
             color: color || undefined,
           },
-          include: {
-            _count: {
-              select: { tasks: true },
-            },
-          },
         });
         return NextResponse.json(updated);
       }
@@ -56,9 +51,6 @@ export async function DELETE(
 
     try {
       if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("your-subdomain")) {
-        // Hapus tugas-tugas yang terikat dengan project ini
-        await prisma.task.deleteMany({ where: { projectId: id } });
-        // Hapus project dari database
         await prisma.project.delete({ where: { id } });
         return NextResponse.json({ success: true });
       }
