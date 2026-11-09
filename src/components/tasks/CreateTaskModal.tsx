@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   X,
   Upload,
@@ -77,6 +77,43 @@ export function CreateTaskModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Bersihkan seluruh isian form
+  const resetForm = useCallback(() => {
+    setTitle("");
+    setDescription("");
+    setStatus(defaultStatus || "TODO");
+    setPriority("MEDIUM");
+    setDueDate("");
+    setMediaUrls([]);
+    setUploadError("");
+    setUploadProgressText("");
+    setIsUploading(false);
+    setIsSubmitting(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (defaultProjectId) {
+      setProjectId(defaultProjectId);
+    } else if (projects.length > 0) {
+      setProjectId(projects[0].id);
+    }
+    if (teamMembers.length > 0) {
+      setAssigneeId(teamMembers[0].id);
+    }
+  }, [defaultStatus, defaultProjectId, projects, teamMembers]);
+
+  // Pantau status buka modal: reset seluruh isian form saat baru dibuka
+  const prevIsOpenRef = useRef(false);
+  useEffect(() => {
+    if (isOpen && !prevIsOpenRef.current) {
+      resetForm();
+    }
+    prevIsOpenRef.current = isOpen;
+  }, [isOpen, resetForm]);
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -158,6 +195,7 @@ export function CreateTaskModal({
 
       const created = await res.json();
       onTaskCreated(created);
+      resetForm();
       onClose();
     } catch (err: any) {
       toast({
@@ -171,7 +209,12 @@ export function CreateTaskModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
+    >
       <div className="w-full max-w-xl bg-white dark:bg-[#282828] border border-slate-200 dark:border-[#383838] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[90vh] transition-colors">
         {/* Modal Header */}
         <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-[#383838] flex items-center justify-between">
@@ -189,7 +232,8 @@ export function CreateTaskModal({
             </div>
           </div>
           <button
-            onClick={onClose}
+            type="button"
+            onClick={handleClose}
             className="p-1 rounded-lg text-slate-400 hover:text-slate-800 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -303,7 +347,7 @@ export function CreateTaskModal({
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 dark:text-slate-400 mb-1.5">
-                Batas Waktu
+                Tanggal Request
               </label>
               <input
                 type="date"
@@ -403,7 +447,7 @@ export function CreateTaskModal({
           <div className="pt-4 border-t border-slate-200 dark:border-[#333333] flex items-center justify-end gap-3">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition"
             >
               Batal

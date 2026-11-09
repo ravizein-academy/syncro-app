@@ -130,7 +130,7 @@ export function ExportReportModal({
         "Prioritas",
         "Penanggung Jawab (PIC)",
         "Email PIC",
-        "Tenggat Waktu",
+        "Tanggal Request",
         "Lampiran Drive",
         "Tanggal Dibuat",
       ];
@@ -168,7 +168,7 @@ export function ExportReportModal({
         { wch: 14 }, // Prioritas
         { wch: 24 }, // PIC
         { wch: 30 }, // Email
-        { wch: 16 }, // Batas Waktu
+        { wch: 16 }, // Tanggal Request
         { wch: 16 }, // Lampiran
         { wch: 16 }, // Dibuat
       ];
@@ -462,7 +462,7 @@ export function ExportReportModal({
                     <th className="py-3 px-3">Status</th>
                     <th className="py-3 px-3">Prioritas</th>
                     <th className="py-3 px-4">Penanggung Jawab</th>
-                    <th className="py-3 px-3">Tenggat Waktu</th>
+                    <th className="py-3 px-3">Tanggal Request</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">

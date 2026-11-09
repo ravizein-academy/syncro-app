@@ -168,7 +168,7 @@ export function ListView({
                         <th className="py-2.5 px-4">Nama Tugas</th>
                         <th className="py-2.5 px-4">Space / Project</th>
                         <th className="py-2.5 px-4">Assignee</th>
-                        <th className="py-2.5 px-4">Batas Waktu</th>
+                        <th className="py-2.5 px-4">Tanggal Request</th>
                         <th className="py-2.5 px-4">Prioritas</th>
                         <th className="py-2.5 px-4">Drive Media</th>
                         <th className="py-2.5 px-4 text-right">Aksi</th>

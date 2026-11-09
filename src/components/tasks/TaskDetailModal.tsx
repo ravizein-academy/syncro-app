@@ -297,7 +297,7 @@ export function TaskDetailModal({
             {/* Due Date */}
             <div>
               <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                Batas Waktu (Due Date)
+                Tanggal Request
               </label>
               <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#383838] text-xs font-medium text-slate-700 dark:text-slate-300">
                 <Calendar className="w-4 h-4 text-slate-400" />
@@ -309,7 +309,7 @@ export function TaskDetailModal({
                         month: "long",
                         year: "numeric",
                       })
-                    : "Tidak ada tenggat waktu"}
+                    : "Tidak ada tanggal request"}
                 </span>
               </div>
             </div>

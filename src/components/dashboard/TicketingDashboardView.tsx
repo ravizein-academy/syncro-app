@@ -750,7 +750,7 @@ export function TicketingDashboardView({
                       <th className="py-2.5 px-1.5">Status</th>
                       <th className="py-2.5 px-1.5">Prioritas</th>
                       <th className="py-2.5 px-1.5">PIC</th>
-                      <th className="py-2.5 px-1.5">Tenggat</th>
+                      <th className="py-2.5 px-1.5">Tgl Request</th>
                       <th className="py-2.5 px-3 text-right">Aksi</th>
                     </tr>
                   </thead>
