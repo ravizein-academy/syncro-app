@@ -5,10 +5,7 @@ import {
   LayoutDashboard,
   Kanban,
   List,
-  Plus,
   Search,
-  Calendar,
-  BarChart3,
   Filter,
   Layers,
   Star,
@@ -265,7 +262,7 @@ export function Header({
         </div>
       </div>
 
-      {/* Second Level: ClickUp Views Bar (Dashboard, List, Board, Calendar, Gantt, + View) */}
+      {/* Second Level: Navigation Views Bar (Dashboard, List, Board) */}
       <div className="h-10 px-3 md:px-6 flex items-center justify-between overflow-x-auto no-scrollbar select-none">
         {/* Left: View Tabs */}
         <div className="flex items-center gap-1 h-full shrink-0">
@@ -324,33 +321,6 @@ export function Header({
             >
               {totalTasks}
             </span>
-          </button>
-
-          {/* Calendar View Tab */}
-          <button
-            onClick={() => alert("Fitur Kalender akan menampilkan tugas berdasar dueDate.")}
-            className="hidden sm:flex items-center gap-2 px-3 h-full text-xs font-medium border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Calendar</span>
-          </button>
-
-          {/* Gantt View Tab */}
-          <button
-            onClick={() => alert("Fitur Gantt Timeline sedang dalam roadmap rilis internal.")}
-            className="hidden md:flex items-center gap-2 px-3 h-full text-xs font-medium border-b-2 border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition"
-          >
-            <BarChart3 className="w-3.5 h-3.5" />
-            <span>Gantt</span>
-          </button>
-
-          {/* "+ View" ClickUp button */}
-          <button
-            onClick={() => alert("Anda dapat menambahkan view Tabel, Map, atau Form.")}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
-          >
-            <Plus className="w-3 h-3" />
-            <span>View</span>
           </button>
         </div>
 
