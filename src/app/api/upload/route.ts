@@ -1,7 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadFileToGoogleDrive } from "@/lib/google-drive";
+import { prisma } from "@/lib/prisma";
 
 export const runtime = "edge";
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  if (typeof Buffer !== "undefined") {
+    return Buffer.from(buffer).toString("base64");
+  }
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
+  const chunkSize = 8192;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, i + chunkSize);
+    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
+  }
+  return btoa(binary);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,44 +38,69 @@ export async function POST(request: NextRequest) {
     const mimeType = file.type || "application/octet-stream";
     const fileBytes = await file.arrayBuffer();
 
-    let uploadResult: { id: string; name: string; webViewLink: string; thumbnailLink?: string };
+    let uploadResult: {
+      id: string;
+      name: string;
+      webViewLink: string;
+      thumbnailLink?: string;
+      isDataUrl?: boolean;
+    };
 
-    try {
-      uploadResult = await uploadFileToGoogleDrive({
-        fileName,
-        mimeType,
-        fileBytes,
-        folderId: folderId || undefined,
-      });
-    } catch (driveErr: any) {
-      console.warn("[Upload API] Live Google Drive upload fell back:", driveErr.message);
+    // Periksa apakah Google Drive OAuth nyata telah dikonfigurasi
+    const refreshToken = process.env.GOOGLE_DRIVE_REFRESH_TOKEN;
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const hasDriveConfigured =
+      Boolean(clientId) &&
+      !clientId?.includes("sample-") &&
+      Boolean(refreshToken) &&
+      !refreshToken?.includes("sample-");
 
-      // In development or when credentials are not yet linked to actual Google account,
-      // return a simulated office Drive link so the workflow and UI can be fully tested.
-      const mockId = `mock_drive_${Date.now()}`;
+    if (hasDriveConfigured) {
+      try {
+        const driveResult = await uploadFileToGoogleDrive({
+          fileName,
+          mimeType,
+          fileBytes,
+          folderId: folderId || undefined,
+        });
+        uploadResult = {
+          ...driveResult,
+          isDataUrl: false,
+        };
+      } catch (driveErr: any) {
+        console.warn("[Upload API] Google Drive error, fallback to direct data storage:", driveErr.message);
+        const base64 = arrayBufferToBase64(fileBytes);
+        const dataUrl = `data:${mimeType};base64,${base64}`;
+        uploadResult = {
+          id: `media_${Date.now()}`,
+          name: fileName,
+          webViewLink: dataUrl,
+          thumbnailLink: mimeType.startsWith("image/") ? dataUrl : undefined,
+          isDataUrl: true,
+        };
+      }
+    } else {
+      // Simpan langsung sebagai data URL yang valid dan dapat langsung dibuka/dilihat oleh siapa saja
+      const base64 = arrayBufferToBase64(fileBytes);
+      const dataUrl = `data:${mimeType};base64,${base64}`;
       uploadResult = {
-        id: mockId,
+        id: `media_${Date.now()}`,
         name: fileName,
-        webViewLink: `https://drive.google.com/file/d/${mockId}/view?usp=sharing`,
-        thumbnailLink: file.type.startsWith("image/")
-          ? `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop&q=60`
-          : undefined,
+        webViewLink: dataUrl,
+        thumbnailLink: mimeType.startsWith("image/") ? dataUrl : undefined,
+        isDataUrl: true,
       };
     }
 
-    // If taskId is provided, update task mediaUrls in Prisma if database is connected
+    // Jika taskId disertakan, simpan langsung ke mediaUrls task di Neon DB
     if (taskId) {
       try {
-        const { prisma } = await import("@/lib/prisma");
         if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("your-subdomain")) {
-          await prisma.task.update({
-            where: { id: taskId },
-            data: {
-              mediaUrls: {
-                push: uploadResult.webViewLink,
-              },
-            },
-          });
+          await prisma.$executeRawUnsafe(
+            `UPDATE "tasks" SET "mediaUrls" = array_append("mediaUrls", $1) WHERE "id" = $2`,
+            uploadResult.webViewLink,
+            taskId
+          );
         }
       } catch (dbErr) {
         console.warn("[Upload API] Database task update note:", dbErr);
@@ -73,7 +115,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[Upload API] Error processing upload:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to upload file" },
+      { error: error.message || "Gagal mengunggah file" },
       { status: 500 }
     );
   }

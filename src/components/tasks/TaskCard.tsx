@@ -143,19 +143,24 @@ export function TaskCard({
         <div className="pt-0.5">
           <div className="flex flex-wrap gap-1.5 items-center">
             {task.mediaUrls.map((url, idx) => (
-              <a
+              <button
                 key={idx}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/80 border border-brand-200 dark:border-brand-500/30 text-[10px] text-brand-700 dark:text-brand-300 font-medium transition"
-                title="Buka lampiran di Google Drive"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (url.includes("mock_drive_")) {
+                    alert("Lampiran ini diunggah sebelum sistem penyimpanan berkas aktif. Silakan unggah berkas baru pada tugas.");
+                    return;
+                  }
+                  window.open(url, "_blank");
+                }}
+                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/80 border border-brand-200 dark:border-brand-500/30 text-[10px] text-brand-700 dark:text-brand-300 font-medium transition cursor-pointer"
+                title="Buka lampiran berkas"
               >
                 <FileImage className="w-3 h-3 text-brand-500 shrink-0" />
                 <span className="font-mono">Media #{idx + 1}</span>
                 <ExternalLink className="w-2.5 h-2.5 text-brand-500/80 shrink-0" />
-              </a>
+              </button>
             ))}
           </div>
         </div>

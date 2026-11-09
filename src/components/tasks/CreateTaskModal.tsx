@@ -420,14 +420,22 @@ export function CreateTaskModal({
                     className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-[#1c1c1c] border border-slate-200 dark:border-[#383838] text-xs"
                   >
                     <div className="flex items-center gap-2 truncate">
-                      <FileImage className="w-4 h-4 text-brand-500 shrink-0" />
+                      {url.startsWith("data:image/") ? (
+                        <img
+                          src={url}
+                          alt={`Lampiran ${i + 1}`}
+                          className="w-7 h-7 rounded object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                        />
+                      ) : (
+                        <FileImage className="w-4 h-4 text-brand-500 shrink-0" />
+                      )}
                       <a
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-brand-600 dark:text-brand-300 hover:underline truncate"
+                        className="text-brand-600 dark:text-brand-300 hover:underline truncate font-medium"
                       >
-                        {url}
+                        Lampiran Berkas #{i + 1}
                       </a>
                     </div>
                     <button

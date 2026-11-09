@@ -300,16 +300,21 @@ export function ListView({
                               {task.mediaUrls && task.mediaUrls.length > 0 ? (
                                 <div className="flex items-center gap-1.5">
                                   {task.mediaUrls.map((url, i) => (
-                                    <a
+                                    <button
                                       key={i}
-                                      href={url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="p-1 rounded-md bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/70 dark:hover:bg-brand-900 text-brand-600 dark:text-brand-300 border border-brand-200 dark:border-brand-500/30 transition"
-                                      title="Buka di Google Drive"
+                                      type="button"
+                                      onClick={() => {
+                                        if (url.includes("mock_drive_")) {
+                                          alert("Lampiran ini diunggah sebelum sistem penyimpanan berkas aktif. Silakan unggah berkas baru pada tugas.");
+                                          return;
+                                        }
+                                        window.open(url, "_blank");
+                                      }}
+                                      className="p-1 rounded-md bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/70 dark:hover:bg-brand-900 text-brand-600 dark:text-brand-300 border border-brand-200 dark:border-brand-500/30 transition cursor-pointer"
+                                      title="Buka lampiran berkas"
                                     >
                                       <FileImage className="w-3.5 h-3.5 text-brand-500" />
-                                    </a>
+                                    </button>
                                   ))}
                                   <span className="text-[11px] text-slate-500 font-medium">
                                     {task.mediaUrls.length} berkas

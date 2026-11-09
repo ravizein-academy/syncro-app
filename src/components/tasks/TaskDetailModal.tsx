@@ -13,6 +13,9 @@ import {
   Share2,
   MessageSquare,
   Printer,
+  Eye,
+  Download,
+  AlertCircle,
 } from "lucide-react";
 import { TaskItem } from "./TaskCard";
 
@@ -37,6 +40,7 @@ export function TaskDetailModal({
   const [comments, setComments] = useState<
     { id: string; user: string; text: string; time: string }[]
   >([]);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   if (!isOpen || !task) return null;
 
@@ -158,33 +162,65 @@ export function TaskDetailModal({
               </div>
             </div>
 
-            {/* Google Drive Media Attachments */}
+            {/* Media / Attachment Files */}
             {task.mediaUrls && task.mediaUrls.length > 0 && (
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 flex items-center gap-1.5">
-                  <FileImage className="w-3.5 h-3.5 text-brand-500" />
-                  <span>Lampiran Google Drive ({task.mediaUrls.length})</span>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <FileImage className="w-3.5 h-3.5 text-brand-500" />
+                    <span>Lampiran Berkas ({task.mediaUrls.length})</span>
+                  </div>
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  {task.mediaUrls.map((url, i) => (
-                    <a
-                      key={i}
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center justify-between p-3 rounded-xl bg-slate-50 hover:bg-slate-100 dark:bg-[#1e1e1e] dark:hover:bg-[#252525] border border-slate-200 dark:border-[#383838] group transition shadow-sm"
-                    >
-                      <div className="flex items-center gap-2.5 truncate">
-                        <div className="w-7 h-7 rounded-lg bg-brand-500/10 text-brand-500 flex items-center justify-center shrink-0">
-                          <FileImage className="w-4 h-4" />
+                  {task.mediaUrls.map((url, i) => {
+                    const isMock = url.includes("mock_drive_");
+                    const isDataImage = url.startsWith("data:image/");
+
+                    return (
+                      <div
+                        key={i}
+                        onClick={() => {
+                          if (isMock) {
+                            alert("Lampiran ini dibuat dalam mode simulasi sebelum sistem penyimpanan langsung aktif. Silakan unggah ulang lampiran pada tugas ini.");
+                            return;
+                          }
+                          if (isDataImage) {
+                            setPreviewImage(url);
+                          } else {
+                            window.open(url, "_blank");
+                          }
+                        }}
+                        className={`flex items-center justify-between p-3 rounded-xl border group transition shadow-sm cursor-pointer ${
+                          isMock
+                            ? "bg-rose-50/50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40"
+                            : "bg-slate-50 hover:bg-slate-100 dark:bg-[#1e1e1e] dark:hover:bg-[#252525] border-slate-200 dark:border-[#383838]"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2.5 truncate">
+                          {isDataImage ? (
+                            <img
+                              src={url}
+                              alt={`Lampiran ${i + 1}`}
+                              className="w-8 h-8 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg bg-brand-500/10 text-brand-500 flex items-center justify-center shrink-0">
+                              <FileImage className="w-4 h-4" />
+                            </div>
+                          )}
+                          <div className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-brand-500">
+                            {isMock ? `Tautan Kedaluwarsa #${i + 1}` : `Lampiran Berkas #${i + 1}`}
+                          </div>
                         </div>
-                        <div className="truncate text-xs font-semibold text-slate-800 dark:text-slate-200 group-hover:text-brand-500">
-                          Berkas Media #{i + 1}
+                        <div className="flex items-center gap-1">
+                          {isDataImage && (
+                            <Eye className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-500 shrink-0" />
+                          )}
+                          <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-500 shrink-0 ml-1" />
                         </div>
                       </div>
-                      <ExternalLink className="w-3.5 h-3.5 text-slate-400 group-hover:text-brand-500 shrink-0 ml-2" />
-                    </a>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -337,6 +373,47 @@ export function TaskDetailModal({
           </div>
         </div>
       </div>
+
+      {/* Lightbox Image Preview Modal */}
+      {previewImage && (
+        <div
+          onClick={() => setPreviewImage(null)}
+          className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative max-w-4xl max-h-[90vh] bg-slate-900 border border-slate-700 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+          >
+            <div className="p-3 bg-slate-800/90 border-b border-slate-700 flex items-center justify-between text-white text-xs font-bold">
+              <span>Pratinjau Lampiran Gambar</span>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewImage}
+                  download="lampiran-syncro.png"
+                  className="px-2.5 py-1 rounded-lg bg-brand-600 hover:bg-brand-500 text-white flex items-center gap-1 cursor-pointer transition text-[11px]"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Unduh</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={() => setPreviewImage(null)}
+                  className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 flex items-center justify-center overflow-auto max-h-[80vh] bg-black/40">
+              <img
+                src={previewImage}
+                alt="Pratinjau Penuh"
+                className="max-w-full max-h-[75vh] object-contain rounded-lg"
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

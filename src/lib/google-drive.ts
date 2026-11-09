@@ -126,5 +126,23 @@ export async function uploadFileToGoogleDrive({
   }
 
   const result: GoogleDriveUploadResult = await response.json();
+
+  // Berikan izin baca publik agar berkas dapat dibuka oleh siapa saja yang memiliki link
+  try {
+    await fetch(`https://www.googleapis.com/drive/v3/files/${result.id}/permissions`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        role: "reader",
+        type: "anyone",
+      }),
+    });
+  } catch (permErr) {
+    console.warn("[Google Drive] Set permission warning:", permErr);
+  }
+
   return result;
 }
