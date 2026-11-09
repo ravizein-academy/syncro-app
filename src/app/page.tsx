@@ -96,10 +96,20 @@ export default function DashboardPage() {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data)) {
-          setNotifications(data);
-          try {
-            localStorage.setItem("syncro_notifications", JSON.stringify(data));
-          } catch (e) {}
+          setNotifications((prev) => {
+            // Pertahankan status dibaca lokal agar tidak berkedip atau kembali belum dibaca
+            const locallyReadIds = new Set(
+              prev.filter((n) => n.read).map((n) => n.id)
+            );
+            const merged = data.map((item: any) => ({
+              ...item,
+              read: Boolean(item.read || locallyReadIds.has(item.id)),
+            }));
+            try {
+              localStorage.setItem("syncro_notifications", JSON.stringify(merged));
+            } catch (e) {}
+            return merged;
+          });
         }
       }
     } catch (e) {
@@ -127,7 +137,7 @@ export default function DashboardPage() {
     }
   }, [status, fetchNotifications]);
 
-  const addNotification = (
+  const addNotification = async (
     title: string,
     message: string,
     type: NotificationItem["type"],
@@ -141,6 +151,32 @@ export default function DashboardPage() {
     }
   ) => {
     const actorName = session?.user?.name || session?.user?.email?.split("@")[0] || "Sistem";
+
+    // Simpan ke database Neon PostgreSQL agar orang yang dituju menerimanya di feed akun mereka
+    try {
+      const res = await fetch("/api/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          message,
+          type,
+          taskId: extra?.taskId,
+          projectId: extra?.projectId,
+          userId: extra?.targetUserId,
+          userEmail: extra?.targetUserEmail,
+          sendToAll: extra?.sendToAll,
+        }),
+      });
+
+      if (res.ok) {
+        fetchNotifications();
+        return;
+      }
+    } catch (err) {
+      console.warn("Failed to persist notification to DB:", err);
+    }
+
     const newNotif: NotificationItem = {
       id: `notif-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       title,
@@ -160,25 +196,10 @@ export default function DashboardPage() {
       } catch (e) {}
       return updated;
     });
-
-    // Simpan ke database Neon PostgreSQL agar orang yang dituju menerimanya di feed akun mereka
-    fetch("/api/notifications", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        message,
-        type,
-        taskId: extra?.taskId,
-        projectId: extra?.projectId,
-        userId: extra?.targetUserId,
-        userEmail: extra?.targetUserEmail,
-        sendToAll: extra?.sendToAll,
-      }),
-    }).catch((err) => console.warn("Failed to persist notification to DB:", err));
   };
 
-  const handleMarkAsRead = (id: string) => {
+  const handleMarkAsRead = async (id: string) => {
+    // 1. Optimistic update di UI
     setNotifications((prev) => {
       const updated = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
       try {
@@ -187,12 +208,25 @@ export default function DashboardPage() {
       return updated;
     });
 
-    fetch(`/api/notifications/${id}`, {
-      method: "PATCH",
-    }).catch(() => {});
+    // 2. Simpan permanen ke Neon PostgreSQL
+    try {
+      await fetch(`/api/notifications/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ read: true }),
+      });
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, read: true }),
+      });
+    } catch (err) {
+      console.warn("Gagal memperbarui status dibaca di server:", err);
+    }
   };
 
-  const handleMarkAllAsRead = () => {
+  const handleMarkAllAsRead = async () => {
+    // 1. Optimistic update di UI
     setNotifications((prev) => {
       const updated = prev.map((n) => ({ ...n, read: true }));
       try {
@@ -201,11 +235,16 @@ export default function DashboardPage() {
       return updated;
     });
 
-    fetch("/api/notifications", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ markAllAsRead: true }),
-    }).catch(() => {});
+    // 2. Simpan permanen ke Neon PostgreSQL
+    try {
+      await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ all: true, markAllAsRead: true }),
+      });
+    } catch (err) {
+      console.warn("Gagal menandai semua notifikasi dibaca:", err);
+    }
   };
 
   const handleDeleteNotification = (id: string) => {

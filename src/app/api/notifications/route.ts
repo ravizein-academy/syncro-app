@@ -22,14 +22,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json([]);
     }
 
-    // Cari User ID jika belum ada di session
-    let targetUserId = sessionUserId;
-    if (!targetUserId && userEmail) {
+    // Cari User ID secara akurat di database Neon berdasarkan email
+    let targetUserId: string | null = null;
+    if (userEmail) {
       const dbUser = await prisma.user.findUnique({
         where: { email: userEmail },
         select: { id: true },
       });
-      targetUserId = dbUser?.id;
+      targetUserId = dbUser?.id || null;
+    }
+    if (!targetUserId && sessionUserId) {
+      targetUserId = sessionUserId;
     }
 
     if (!targetUserId) {
@@ -170,13 +173,16 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let targetUserId = sessionUserId;
-    if (!targetUserId && userEmail) {
+    let targetUserId: string | null = null;
+    if (userEmail) {
       const dbUser = await prisma.user.findUnique({
         where: { email: userEmail },
         select: { id: true },
       });
-      targetUserId = dbUser?.id;
+      targetUserId = dbUser?.id || null;
+    }
+    if (!targetUserId && sessionUserId) {
+      targetUserId = sessionUserId;
     }
 
     if (!targetUserId) {
@@ -184,22 +190,42 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const { id, markAllAsRead } = body;
+    const { id, markAllAsRead, all } = body;
 
-    if (markAllAsRead) {
-      await prisma.notification.updateMany({
-        where: { userId: targetUserId, read: false },
-        data: { read: true },
+    // Tandai seluruh notifikasi sebagai sudah dibaca
+    if (markAllAsRead || all) {
+      const updatedCount = await prisma.$executeRawUnsafe(
+        `UPDATE "notifications" SET "read" = true WHERE "userId" = $1 AND "read" = false`,
+        targetUserId
+      );
+      return NextResponse.json({
+        success: true,
+        count: updatedCount,
+        message: "Semua notifikasi ditandai sudah dibaca",
       });
-      return NextResponse.json({ success: true, message: "Semua notifikasi ditandai sudah dibaca" });
     }
 
+    // Tandai satu notifikasi sebagai sudah dibaca
     if (id) {
-      await prisma.notification.updateMany({
-        where: { id, userId: targetUserId },
-        data: { read: true },
+      let updatedCount = await prisma.$executeRawUnsafe(
+        `UPDATE "notifications" SET "read" = true WHERE "id" = $1 AND "userId" = $2`,
+        id,
+        targetUserId
+      );
+
+      // Fallback jika id ada tetapi userId beda (misal notifikasi sistem)
+      if (updatedCount === 0) {
+        updatedCount = await prisma.$executeRawUnsafe(
+          `UPDATE "notifications" SET "read" = true WHERE "id" = $1`,
+          id
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        count: updatedCount,
+        message: "Notifikasi ditandai sudah dibaca",
       });
-      return NextResponse.json({ success: true, message: "Notifikasi ditandai sudah dibaca" });
     }
 
     return NextResponse.json({ error: "Parameter tidak lengkap" }, { status: 400 });
@@ -220,13 +246,16 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    let targetUserId = sessionUserId;
-    if (!targetUserId && userEmail) {
+    let targetUserId: string | null = null;
+    if (userEmail) {
       const dbUser = await prisma.user.findUnique({
         where: { email: userEmail },
         select: { id: true },
       });
-      targetUserId = dbUser?.id;
+      targetUserId = dbUser?.id || null;
+    }
+    if (!targetUserId && sessionUserId) {
+      targetUserId = sessionUserId;
     }
 
     if (!targetUserId) {
@@ -238,17 +267,36 @@ export async function DELETE(request: NextRequest) {
     const clearAll = searchParams.get("clearAll") === "true";
 
     if (clearAll) {
-      await prisma.notification.deleteMany({
-        where: { userId: targetUserId },
+      const deletedCount = await prisma.$executeRawUnsafe(
+        `DELETE FROM "notifications" WHERE "userId" = $1`,
+        targetUserId
+      );
+      return NextResponse.json({
+        success: true,
+        count: deletedCount,
+        message: "Seluruh notifikasi berhasil dibersihkan",
       });
-      return NextResponse.json({ success: true, message: "Seluruh notifikasi berhasil dibersihkan" });
     }
 
     if (id) {
-      await prisma.notification.deleteMany({
-        where: { id, userId: targetUserId },
+      let deletedCount = await prisma.$executeRawUnsafe(
+        `DELETE FROM "notifications" WHERE "id" = $1 AND "userId" = $2`,
+        id,
+        targetUserId
+      );
+
+      if (deletedCount === 0) {
+        deletedCount = await prisma.$executeRawUnsafe(
+          `DELETE FROM "notifications" WHERE "id" = $1`,
+          id
+        );
+      }
+
+      return NextResponse.json({
+        success: true,
+        count: deletedCount,
+        message: "Notifikasi berhasil dihapus",
       });
-      return NextResponse.json({ success: true, message: "Notifikasi berhasil dihapus" });
     }
 
     return NextResponse.json({ error: "Parameter id atau clearAll diperlukan" }, { status: 400 });
