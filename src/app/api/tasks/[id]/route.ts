@@ -24,8 +24,8 @@ export async function PATCH(
             dataToUpdate.assigneeId = null;
           }
         }
-        if (body.dueDate) {
-          dataToUpdate.dueDate = new Date(body.dueDate);
+        if (body.dueDate !== undefined) {
+          dataToUpdate.dueDate = body.dueDate ? new Date(body.dueDate) : null;
         }
 
         await prisma.task.update({

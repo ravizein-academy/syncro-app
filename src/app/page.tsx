@@ -934,6 +934,7 @@ export default function DashboardPage() {
       {/* ClickUp Task Detail Modal */}
       <TaskDetailModal
         task={selectedTaskForDetail}
+        projects={projects}
         isOpen={isDetailModalOpen}
         onClose={() => {
           setIsDetailModalOpen(false);
