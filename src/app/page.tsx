@@ -941,6 +941,12 @@ export default function DashboardPage() {
         }}
         onUpdateStatus={handleUpdateStatus}
         onDeleteTask={handleDeleteTask}
+        onTaskUpdated={(updatedTask) => {
+          setTasks((prev) =>
+            prev.map((t) => (t.id === updatedTask.id ? { ...t, ...updatedTask } : t))
+          );
+          setSelectedTaskForDetail(updatedTask);
+        }}
         onCommentAdded={(text, task) => {
           if (task.assigneeId) {
             addNotification(

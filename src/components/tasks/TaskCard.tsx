@@ -1,13 +1,17 @@
 "use client";
 
 import React from "react";
+import { useSession } from "next-auth/react";
 import {
   Calendar,
   Trash2,
   ExternalLink,
   FileImage,
   Flag,
+  FolderOpen,
+  FileText,
 } from "lucide-react";
+import { identifyMediaLink, openMediaSafely } from "@/lib/google-drive-client";
 
 export interface TaskItem {
   id: string;
@@ -37,6 +41,9 @@ export function TaskCard({
   onDeleteTask,
   onOpenDetail,
 }: TaskCardProps) {
+  const { data: session } = useSession();
+  const userEmail = session?.user?.email || "";
+
   // ClickUp Signature Priority Flags
   const getPriorityStyle = (priority: string) => {
     switch (priority) {
@@ -138,30 +145,43 @@ export function TaskCard({
         )}
       </div>
 
-      {/* Google Drive Media Attachment Preview Pills */}
+      {/* Google Drive & Media Attachment Preview Pills */}
       {task.mediaUrls && task.mediaUrls.length > 0 && (
         <div className="pt-0.5">
           <div className="flex flex-wrap gap-1.5 items-center">
-            {task.mediaUrls.map((url, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (url.includes("mock_drive_")) {
-                    alert("Lampiran ini diunggah sebelum sistem penyimpanan berkas aktif. Silakan unggah berkas baru pada tugas.");
-                    return;
-                  }
-                  window.open(url, "_blank");
-                }}
-                className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/80 border border-brand-200 dark:border-brand-500/30 text-[10px] text-brand-700 dark:text-brand-300 font-medium transition cursor-pointer"
-                title="Buka lampiran berkas"
-              >
-                <FileImage className="w-3 h-3 text-brand-500 shrink-0" />
-                <span className="font-mono">Media #{idx + 1}</span>
-                <ExternalLink className="w-2.5 h-2.5 text-brand-500/80 shrink-0" />
-              </button>
-            ))}
+            {task.mediaUrls.map((url, idx) => {
+              const info = identifyMediaLink(url);
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (url.includes("mock_drive_")) {
+                      alert("Lampiran ini diunggah sebelum sistem penyimpanan berkas aktif. Silakan unggah berkas baru pada tugas.");
+                      return;
+                    }
+                    openMediaSafely(url, userEmail);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-medium transition cursor-pointer ${
+                    info.isDrive
+                      ? "bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/80 border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-300"
+                      : "bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:hover:bg-brand-900/80 border border-brand-200 dark:border-brand-500/30 text-brand-700 dark:text-brand-300"
+                  }`}
+                  title={info.isDrive ? `Buka di Google Drive (${userEmail || "kantor"})` : "Buka lampiran berkas"}
+                >
+                  {info.type === "gfolder" ? (
+                    <FolderOpen className="w-3 h-3 text-blue-500 shrink-0" />
+                  ) : info.type === "gdoc" || info.type === "gsheet" ? (
+                    <FileText className="w-3 h-3 text-blue-500 shrink-0" />
+                  ) : (
+                    <FileImage className="w-3 h-3 text-brand-500 shrink-0" />
+                  )}
+                  <span className="font-mono">{info.isDrive ? "Drive" : "Media"} #{idx + 1}</span>
+                  <ExternalLink className={`w-2.5 h-2.5 shrink-0 ${info.isDrive ? "text-blue-500/80" : "text-brand-500/80"}`} />
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
