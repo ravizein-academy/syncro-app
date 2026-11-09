@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   Plus,
@@ -12,9 +13,11 @@ import {
   Settings2,
   X,
   ShieldCheck,
+  FolderOpen,
 } from "lucide-react";
 import { ItsecLogo } from "@/components/brand/ItsecLogo";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { getSpaceDriveFolderUrl } from "@/lib/google-drive-client";
 
 interface Project {
   id: string;
@@ -70,6 +73,8 @@ function SidebarInner({
   onCloseMobile,
   isMobileView = false,
 }: SidebarInnerProps) {
+  const { data: session } = useSession();
+  const userEmail = session?.user?.email || "";
   const [spacesCollapsed, setSpacesCollapsed] = useState(false);
 
   const handleAction = (callback?: () => void) => {
@@ -211,24 +216,40 @@ function SidebarInner({
 
           {!spacesCollapsed && (
             <div className="space-y-1">
-              <button
-                onClick={() =>
-                  handleAction(() => {
-                    onSelectProject(null);
-                    onSelectStatus?.(null);
-                  })
-                }
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 ${
+              <div
+                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-200 group ${
                   selectedProjectId === null
                     ? "bg-brand-50/80 dark:bg-brand-500/15 text-brand-600 dark:text-white font-bold shadow-xs"
                     : "text-slate-600 dark:text-slate-400 hover:text-brand-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-[#2c2c2c]"
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <Layers className="w-3.5 h-3.5 text-brand-500" />
-                  <span>Semua Spaces</span>
-                </div>
-              </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleAction(() => {
+                      onSelectProject(null);
+                      onSelectStatus?.(null);
+                    })
+                  }
+                  className="flex items-center gap-2 flex-1 text-left cursor-pointer focus:outline-none"
+                >
+                  <Layers className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+                  <span className="truncate">Semua Spaces</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const url = getSpaceDriveFolderUrl("Syncro", userEmail);
+                    window.open(url, "_blank");
+                  }}
+                  title="Buka Folder Utama Syncro di Google Drive"
+                  className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer shrink-0 ml-1"
+                >
+                  <FolderOpen className="w-3.5 h-3.5 text-blue-500" />
+                </button>
+              </div>
 
               {projects.map((proj) => {
                 const isSelected = selectedProjectId === proj.id;
@@ -254,6 +275,20 @@ function SidebarInner({
                     </button>
 
                     <div className="flex items-center gap-1 shrink-0 ml-1">
+                      {/* Buka Google Drive folder untuk space ini */}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const url = getSpaceDriveFolderUrl(proj.name, userEmail);
+                          window.open(url, "_blank");
+                        }}
+                        title={`Buka Google Drive: Syncro / ${proj.name}`}
+                        className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer"
+                      >
+                        <FolderOpen className="w-3.5 h-3.5 text-blue-500" />
+                      </button>
+
                       {proj._count?.tasks !== undefined && proj._count.tasks > 0 && (
                         <span
                           className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full transition-colors ${

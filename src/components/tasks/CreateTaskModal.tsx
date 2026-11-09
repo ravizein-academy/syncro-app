@@ -17,6 +17,7 @@ import {
   Sheet,
   Presentation,
   ExternalLink,
+  Layers,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -25,6 +26,7 @@ import {
   getSavedSharedFolderUrl,
   saveSharedFolderUrl,
   openMediaSafely,
+  getSpaceDriveFolderUrl,
 } from "@/lib/google-drive-client";
 
 interface Project {
@@ -141,9 +143,18 @@ export function CreateTaskModal({
 
   if (!isOpen) return null;
 
+  const selectedProject = projects.find((p) => p.id === projectId);
+  const activeSpaceName = selectedProject?.name || "General";
+
+  // Buka folder Space spesifik di Google Drive (Syncro / Nama Space)
+  const handleOpenSpaceFolder = () => {
+    const targetUrl = getSpaceDriveFolderUrl(activeSpaceName, userEmail);
+    window.open(targetUrl, "_blank");
+  };
+
   // Buka Folder Bersama Google Drive dengan akun email yang login
   const handleOpenSharedFolder = () => {
-    const targetUrl = getSharedFolderAccountUrl(userEmail);
+    const targetUrl = getSpaceDriveFolderUrl("Syncro", userEmail);
     window.open(targetUrl, "_blank");
   };
 
@@ -454,26 +465,34 @@ export function CreateTaskModal({
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5">
-                      <span>Folder Bersama Google Drive</span>
+                      <span>Folder Space: Syncro / {activeSpaceName}</span>
                       <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium">
-                        Shared Folder
+                        Otomatis per Space
                       </span>
                     </div>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                      Buka Google Drive otomatis dengan email <strong className="text-blue-600 dark:text-blue-400 font-mono">{userEmail || "kantor Anda"}</strong>
+                      Buka Google Drive otomatis ke folder <strong className="text-blue-600 dark:text-blue-400 font-mono">{activeSpaceName}</strong> dengan akun <strong className="text-blue-600 dark:text-blue-400 font-mono">{userEmail || "kantor"}</strong>
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <button
                     type="button"
-                    onClick={handleOpenSharedFolder}
+                    onClick={handleOpenSpaceFolder}
                     className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
-                    title="Buka Google Drive dengan akun email yang sedang aktif"
+                    title={`Buka folder ${activeSpaceName} di Google Drive`}
                   >
                     <FolderOpen className="w-3.5 h-3.5" />
-                    <span>Buka Drive</span>
+                    <span>Buka Folder Space</span>
                     <ExternalLink className="w-3 h-3 opacity-80" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleOpenSharedFolder}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-blue-600 hover:bg-white/60 dark:hover:bg-slate-800 transition cursor-pointer"
+                    title="Buka Folder Utama Syncro di Google Drive"
+                  >
+                    <Layers className="w-3.5 h-3.5" />
                   </button>
                   <button
                     type="button"

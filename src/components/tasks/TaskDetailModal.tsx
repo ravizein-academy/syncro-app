@@ -31,6 +31,7 @@ import {
   identifyMediaLink,
   openMediaSafely,
   getSharedFolderAccountUrl,
+  getSpaceDriveFolderUrl,
 } from "@/lib/google-drive-client";
 
 interface TaskDetailModalProps {
@@ -120,9 +121,17 @@ export function TaskDetailModal({
 
   const pStyle = getPriorityStyle(task.priority);
 
+  const spaceName = task.project?.name || "General";
+
+  // Buka Folder Space spesifik di Google Drive (Syncro / Nama Space)
+  const handleOpenSpaceFolder = () => {
+    const targetUrl = getSpaceDriveFolderUrl(spaceName, userEmail);
+    window.open(targetUrl, "_blank");
+  };
+
   // Buka Folder Bersama Google Drive dengan akun email yang login
   const handleOpenSharedFolder = () => {
-    const targetUrl = getSharedFolderAccountUrl(userEmail);
+    const targetUrl = getSpaceDriveFolderUrl("Syncro", userEmail);
     window.open(targetUrl, "_blank");
   };
 
@@ -313,13 +322,22 @@ export function TaskDetailModal({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={handleOpenSharedFolder}
-                    className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/80 border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-300 text-xs font-medium flex items-center gap-1.5 transition cursor-pointer"
-                    title={`Buka Google Drive (${userEmail || "email kantor"})`}
+                    onClick={handleOpenSpaceFolder}
+                    className="px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/80 border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                    title={`Buka Google Drive: Syncro / ${spaceName}`}
                   >
                     <FolderOpen className="w-3.5 h-3.5 text-blue-500" />
-                    <span>Buka Drive</span>
+                    <span>Drive: {spaceName}</span>
                     <ExternalLink className="w-3 h-3 opacity-80" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleOpenSharedFolder}
+                    className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                    title="Buka Folder Utama Syncro di Google Drive"
+                  >
+                    <FolderOpen className="w-3.5 h-3.5" />
                   </button>
 
                   <button

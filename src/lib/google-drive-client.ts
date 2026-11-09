@@ -53,6 +53,28 @@ export function getSharedFolderAccountUrl(userEmail?: string): string {
 }
 
 /**
+ * Dapatkan URL folder Google Drive untuk Space / Project tertentu
+ * Otomatis membuka folder Syncro / <Nama Space> di Google Drive akun email yang login
+ */
+export function getSpaceDriveFolderUrl(spaceName?: string, userEmail?: string): string {
+  const cleanSpace = (spaceName || "").trim();
+  
+  if (!cleanSpace || cleanSpace === "Semua Spaces" || cleanSpace === "Semua Tugas") {
+    // Buka folder utama "Syncro" di Google Drive
+    const targetUrl = `https://drive.google.com/drive/search?q=${encodeURIComponent(
+      "name = 'Syncro' and mimeType = 'application/vnd.google-apps.folder'"
+    )}`;
+    return getGoogleAccountTargetUrl(targetUrl, userEmail);
+  }
+
+  // Buka folder space spesifik (misal: "IT Support Academy" atau "Design for ITSEC Academy Event")
+  const targetUrl = `https://drive.google.com/drive/search?q=${encodeURIComponent(
+    `name = '${cleanSpace}' and mimeType = 'application/vnd.google-apps.folder'`
+  )}`;
+  return getGoogleAccountTargetUrl(targetUrl, userEmail);
+}
+
+/**
  * Identifikasi jenis tautan media (Google Drive, Docs, Sheets, Slides, Folder, Image, File)
  */
 export function identifyMediaLink(url: string): MediaLinkInfo {
@@ -153,3 +175,4 @@ export function openMediaSafely(url: string, userEmail?: string, onPreviewImage?
   // URL standar lainnya
   window.open(url, "_blank");
 }
+

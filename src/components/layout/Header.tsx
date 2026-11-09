@@ -18,8 +18,11 @@ import {
   Menu,
   Bell,
   Users,
+  FolderOpen,
+  ExternalLink,
 } from "lucide-react";
 import { signOut, useSession } from "next-auth/react";
+import { getSpaceDriveFolderUrl } from "@/lib/google-drive-client";
 
 interface HeaderProps {
   currentView: "dashboard" | "kanban" | "list";
@@ -116,6 +119,21 @@ export function Header({
             <span className="text-[10px] sm:text-[11px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full bg-slate-100 dark:bg-[#282828] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-[#383838] shrink-0">
               {totalTasks}
             </span>
+
+            {/* Google Drive Space Folder Button */}
+            <button
+              type="button"
+              onClick={() => {
+                const url = getSpaceDriveFolderUrl(activeProjectName, userEmail);
+                window.open(url, "_blank");
+              }}
+              title={`Buka Google Drive: Syncro / ${activeProjectName}`}
+              className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/60 dark:hover:bg-blue-900/80 border border-blue-200 dark:border-blue-500/30 text-blue-700 dark:text-blue-300 text-[11px] font-semibold transition cursor-pointer shrink-0 ml-1.5"
+            >
+              <FolderOpen className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+              <span>Drive: {activeProjectName}</span>
+              <ExternalLink className="w-2.5 h-2.5 opacity-70" />
+            </button>
           </div>
         </div>
 
