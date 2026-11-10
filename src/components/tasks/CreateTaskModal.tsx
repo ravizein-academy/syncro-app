@@ -27,6 +27,7 @@ import {
   saveSharedFolderUrl,
   openMediaSafely,
   getSpaceDriveFolderUrl,
+  uploadFileHelper,
 } from "@/lib/google-drive-client";
 
 interface Project {
@@ -196,21 +197,9 @@ export function CreateTaskModal({
     setUploadProgressText(`Memproses "${file.name}"...`);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal mengunggah file");
-      }
-
-      if (data.file?.webViewLink) {
-        setMediaUrls((prev) => [...prev, data.file.webViewLink]);
+      const result = await uploadFileHelper(file);
+      if (result.url) {
+        setMediaUrls((prev) => [...prev, result.url]);
         toast({
           title: "Berkas Berhasil Ditambahkan",
           description: `"${file.name}" berhasil dilampirkan ke tugas.`,
@@ -576,7 +565,7 @@ export function CreateTaskModal({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*,video/*,.pdf,.doc,.docx"
+                  accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
                   onChange={handleFileUpload}
                   className="hidden"
                   disabled={isUploading}

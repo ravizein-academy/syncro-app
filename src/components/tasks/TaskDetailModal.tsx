@@ -30,6 +30,7 @@ import {
   identifyMediaLink,
   openMediaSafely,
   getSpaceDriveFolderUrl,
+  uploadFileHelper,
 } from "@/lib/google-drive-client";
 
 const DEFAULT_PROJECTS = [
@@ -264,28 +265,15 @@ export function TaskDetailModal({
   // Upload file lokal langsung ke Google Drive Edge & Task
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || !task) return;
 
     setIsUploading(true);
     setUploadError("");
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("taskId", task.id);
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Gagal mengunggah file");
-      }
-
-      if (data.file?.webViewLink) {
-        const newMediaUrls = [...localMediaUrls, data.file.webViewLink];
+      const result = await uploadFileHelper(file, task.id);
+      if (result.url) {
+        const newMediaUrls = [...localMediaUrls, result.url];
         setLocalMediaUrls(newMediaUrls);
         await handleUpdateField("mediaUrls", newMediaUrls);
       }
@@ -568,7 +556,7 @@ export function TaskDetailModal({
                       <input
                         ref={fileInputRef}
                         type="file"
-                        accept="image/*,video/*,.pdf,.doc,.docx"
+                        accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
                         onChange={handleFileUpload}
                         className="hidden"
                       />

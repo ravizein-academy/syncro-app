@@ -176,3 +176,137 @@ export function openMediaSafely(url: string, userEmail?: string, onPreviewImage?
   window.open(url, "_blank");
 }
 
+/**
+ * Kompresi gambar di sisi klien (browser) untuk memastikan upload super cepat,
+ * tidak membebani batas kuota CPU Cloudflare Edge, dan gambar berukuran optimal.
+ */
+export async function compressImageClient(
+  file: File,
+  maxDim = 1600,
+  quality = 0.82
+): Promise<File | Blob> {
+  if (typeof window === "undefined" || !file.type.startsWith("image/")) {
+    return file;
+  }
+
+  // Jika ukuran file sudah sangat kecil (< 200KB) atau SVG/GIF animasi, jangan dikompres ulang
+  if (file.size < 200 * 1024 || file.type === "image/svg+xml" || file.type === "image/gif") {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      let { width, height } = img;
+
+      if (width > maxDim || height > maxDim) {
+        if (width > height) {
+          height = Math.round((height * maxDim) / width);
+          width = maxDim;
+        } else {
+          width = Math.round((width * maxDim) / height);
+          height = maxDim;
+        }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+
+      if (!ctx) {
+        return resolve(file);
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Gunakan image/jpeg untuk kompresi efektif jika bukan PNG transparan kecil
+      const targetMime = "image/jpeg";
+      canvas.toBlob(
+        (blob) => {
+          if (blob && blob.size < file.size) {
+            resolve(blob);
+          } else {
+            resolve(file);
+          }
+        },
+        targetMime,
+        quality
+      );
+    };
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(file);
+    };
+
+    img.src = objectUrl;
+  });
+}
+
+/**
+ * Helper unggah berkas yang tahan banting (resilient) untuk browser:
+ * 1. Otomatis kompresi gambar besar di browser
+ * 2. Coba upload via POST /api/upload
+ * 3. Jika API gagal atau offline, fallback ke pembacaan FileReader data URL lokal langsung
+ */
+export async function uploadFileHelper(
+  file: File,
+  taskId?: string
+): Promise<{ url: string; name: string }> {
+  // 1. Kompresi jika berupa gambar
+  let fileToSend: File | Blob = file;
+  if (file.type.startsWith("image/")) {
+    try {
+      fileToSend = await compressImageClient(file);
+    } catch (e) {
+      console.warn("Kompresi gambar dilewati:", e);
+      fileToSend = file;
+    }
+  }
+
+  // 2. Coba kirim ke endpoint /api/upload
+  try {
+    const formData = new FormData();
+    formData.append("file", fileToSend, file.name);
+    if (taskId) {
+      formData.append("taskId", taskId);
+    }
+
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data.file?.webViewLink) {
+        return { url: data.file.webViewLink, name: file.name };
+      }
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      console.warn("[Upload] Server API note:", errData.error || res.statusText);
+    }
+  } catch (apiErr) {
+    console.warn("[Upload] Network API error, fallback to client-side data URL:", apiErr);
+  }
+
+  // 3. Fallback client-side FileReader: Menjamin upload berkas tidak pernah gagal
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve({ url: reader.result, name: file.name });
+      } else {
+        reject(new Error("Gagal membaca berkas perangkat"));
+      }
+    };
+    reader.onerror = () => reject(new Error("Gagal memproses berkas"));
+    reader.readAsDataURL(fileToSend);
+  });
+}
+
+

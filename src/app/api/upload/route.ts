@@ -1,23 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { uploadFileToGoogleDrive } from "@/lib/google-drive";
 import { prisma } from "@/lib/prisma";
+import { Buffer } from "node:buffer";
 
 export const runtime = "edge";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 function arrayBufferToBase64(buffer: ArrayBuffer): string {
-  if (typeof Buffer !== "undefined") {
-    return Buffer.from(buffer).toString("base64");
-  }
-  const bytes = new Uint8Array(buffer);
-  let binary = "";
-  const chunkSize = 8192;
-  for (let i = 0; i < bytes.length; i += chunkSize) {
-    const chunk = bytes.subarray(i, i + chunkSize);
-    binary += String.fromCharCode.apply(null, chunk as unknown as number[]);
-  }
-  return btoa(binary);
+  return Buffer.from(buffer).toString("base64");
 }
 
 export async function POST(request: NextRequest) {
@@ -97,7 +88,7 @@ export async function POST(request: NextRequest) {
       try {
         if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("your-subdomain")) {
           await prisma.$executeRawUnsafe(
-            `UPDATE "tasks" SET "mediaUrls" = array_append("mediaUrls", $1) WHERE "id" = $2`,
+            `UPDATE "tasks" SET "mediaUrls" = array_append(COALESCE("mediaUrls", ARRAY[]::text[]), $1) WHERE "id" = $2`,
             uploadResult.webViewLink,
             taskId
           );
