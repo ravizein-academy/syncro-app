@@ -101,16 +101,8 @@ function SidebarInner({
         )}
       </div>
 
-      {/* Quick Navigation Items (Tugas Baru, Dashboard, Notifications, Laporan) */}
+      {/* Quick Navigation Items (Dashboard, Notifications, Laporan) */}
       <div className="px-3 py-2.5 space-y-1 border-b border-slate-100 dark:border-[#2e2e2e] shrink-0">
-        {/* Tombol Tugas Baru */}
-        <button
-          onClick={() => handleAction(onOpenCreateTask)}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 mb-1.5 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-itsec-darkRed hover:from-brand-500 hover:to-brand-600 text-white font-bold text-xs shadow-sm shadow-brand-500/25 active:scale-[0.98] transition-all duration-200 cursor-pointer"
-        >
-          <Plus className="w-3.5 h-3.5 shrink-0" />
-          <span>Tugas Baru</span>
-        </button>
 
         <button
           onClick={() =>
