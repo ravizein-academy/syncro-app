@@ -478,48 +478,19 @@ export function CreateTaskModal({
                     title={`Buka folder ${activeSpaceName} di Google Drive`}
                   >
                     <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-                    <span>Buka Folder</span>
+                    <span>Buka Folder Space</span>
                     <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleOpenSharedFolder}
-                    className="p-1.5 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 dark:hover:bg-[#2c2c2c] transition cursor-pointer"
-                    title="Buka Folder Utama Syncro di Google Drive"
-                  >
-                    <Layers className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditingFolder(!isEditingFolder)}
-                    title="Atur URL Folder Bersama"
-                    className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-[#2c2c2c] transition cursor-pointer"
-                  >
-                    <Settings className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
 
-              {/* Input setting folder bersama jika diaktifkan */}
-              {isEditingFolder && (
-                <div className="pt-2 border-t border-slate-200 dark:border-[#333333] flex items-center gap-2 animate-fade-in">
-                  <input
-                    type="url"
-                    value={tempFolderUrl}
-                    onChange={(e) => setTempFolderUrl(e.target.value)}
-                    placeholder="URL Folder Drive Tim (https://drive.google.com/drive/folders/...)"
-                    className="flex-1 px-3 py-1.5 text-xs rounded-xl bg-white dark:bg-[#181818] border border-blue-300 dark:border-blue-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSaveSharedFolder}
-                    className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold flex items-center gap-1 cursor-pointer transition shrink-0"
-                  >
-                    <Check className="w-3.5 h-3.5" />
-                    <span>Simpan</span>
-                  </button>
-                </div>
-              )}
+              {/* Tips penyimpanan media di Google Drive */}
+              <div className="text-[11px] text-slate-600 dark:text-slate-300 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl p-2.5 flex items-start gap-2">
+                <span className="text-blue-500 text-xs shrink-0">💡</span>
+                <span className="leading-relaxed">
+                  <strong>Penyimpanan Media di Google Drive:</strong> Klik <em>Buka Folder Space</em> untuk menaruh berkas (gambar, video, suara), lalu tempel tautan file di bawah agar tersambung ke tiket tanpa membebani database.
+                </span>
+              </div>
 
               {/* Action Bar: Paste Link or Upload File */}
               <div className="pt-2 border-t border-slate-200 dark:border-[#333333]">

@@ -85,8 +85,9 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // Jika taskId disertakan, simpan langsung ke mediaUrls task di Neon DB
-    if (taskId) {
+    // Jika taskId disertakan dan upload menghasilkan URL Google Drive (bukan base64 data URL),
+    // simpan tautan ke mediaUrls task di Neon DB. Cegah database Neon terbebani file base64 biner!
+    if (taskId && !uploadResult.isDataUrl) {
       try {
         if (process.env.DATABASE_URL && !process.env.DATABASE_URL.includes("your-subdomain")) {
           await prisma.$executeRawUnsafe(

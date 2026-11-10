@@ -500,18 +500,18 @@ export function TaskDetailModal({
                       title={`Buka folder ${spaceName} di Google Drive`}
                     >
                       <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-                      <span>Buka Folder</span>
+                      <span>Buka Folder Space</span>
                       <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={handleOpenSharedFolder}
-                      className="p-1.5 rounded-xl text-slate-400 hover:text-blue-600 hover:bg-slate-200/60 dark:hover:bg-[#2c2c2c] transition cursor-pointer"
-                      title="Buka Folder Utama Syncro di Google Drive"
-                    >
-                      <FolderOpen className="w-3.5 h-3.5" />
-                    </button>
                   </div>
+                </div>
+
+                {/* Tips penyimpanan media Google Drive */}
+                <div className="text-[11px] text-slate-600 dark:text-slate-300 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl p-2.5 flex items-start gap-2">
+                  <span className="text-blue-500 text-xs shrink-0">💡</span>
+                  <span className="leading-relaxed">
+                    <strong>Penyimpanan Media di Google Drive:</strong> Klik <em>Buka Folder Space</em> untuk menaruh berkas (gambar, video, suara), lalu tempel tautan Google Drive di bawah agar tersambung ke tiket tanpa membebani database.
+                  </span>
                 </div>
 
                 {/* Single Clean Action Bar: Paste Drive Link or Upload File */}

@@ -31,24 +31,52 @@ export function saveSharedFolderUrl(url: string): void {
 }
 
 /**
+ * Pemetaan ID Folder Google Drive Resmi untuk setiap Space / Project di Syncro
+ * Semua folder ini berada di dalam root folder "Syncro" di Google Drive kantor.
+ */
+export const SPACE_DRIVE_FOLDER_IDS: Record<string, string> = {
+  // Folder Utama
+  "Syncro": "1C3D3KIUMn9c_HEZ4iYPqXiE7j3QYj666",
+  
+  // Folder per Space
+  "IT Support Academy": "1B_Mg5Jmh3zxtGtOcOHp8chmmdigI_26i",
+  "Design for ITSEC Academy Event": "1MmgnJ-cYw1dEb_5J4pGUsEyhw37AwgdM",
+  "Admin & Ops ITSEC Cyber Academy Project": "1JQRDPSQQ5jOFQfK1p-YDRonpqsD0LzHX",
+  "Preparing Event & Training Classroom": "1FbZw2pnCn9LXZHEUVnuouwvsIxYE6kGv",
+  "GA Maintenance & Repair Problem": "1IhLMsx-aSP6H8n0m47gKyAT0DFcEABO8",
+  "Support Asia": "10D8SOBHTkbU151c6hg-IHAeWdJgQC6zm",
+};
+
+/**
  * Mengarahkan URL Google Drive agar otomatis dibuka dengan akun Google sesuai email login
+ * Menggunakan parameter query authuser=<email> langsung, bukan AccountChooser yang rentan 404
  */
 export function getGoogleAccountTargetUrl(targetUrl: string, userEmail?: string): string {
   if (!userEmail || !userEmail.includes("@")) {
     return targetUrl;
   }
   
-  // Gunakan Google Account Chooser untuk memilih akun secara otomatis
-  return `https://accounts.google.com/AccountChooser?Email=${encodeURIComponent(
-    userEmail
-  )}&continue=${encodeURIComponent(targetUrl)}`;
+  try {
+    const parsed = new URL(targetUrl);
+    // Jika targetUrl adalah Google Drive, Google Docs, Sheets, atau Slides
+    if (parsed.hostname.includes("drive.google.com") || parsed.hostname.includes("docs.google.com")) {
+      parsed.searchParams.set("authuser", userEmail);
+      return parsed.toString();
+    }
+  } catch {
+    // Abaikan jika bukan URL valid
+  }
+
+  // Fallback untuk URL non-Google
+  return targetUrl;
 }
 
 /**
  * Dapatkan URL folder bersama Google Drive yang langsung terkoneksi ke email pengguna
  */
 export function getSharedFolderAccountUrl(userEmail?: string): string {
-  const folderUrl = getSavedSharedFolderUrl();
+  const rootId = SPACE_DRIVE_FOLDER_IDS["Syncro"] || "1C3D3KIUMn9c_HEZ4iYPqXiE7j3QYj666";
+  const folderUrl = `https://drive.google.com/drive/folders/${rootId}`;
   return getGoogleAccountTargetUrl(folderUrl, userEmail);
 }
 
@@ -60,17 +88,14 @@ export function getSpaceDriveFolderUrl(spaceName?: string, userEmail?: string): 
   const cleanSpace = (spaceName || "").trim();
   
   if (!cleanSpace || cleanSpace === "Semua Spaces" || cleanSpace === "Semua Tugas") {
-    // Buka folder utama "Syncro" di Google Drive
-    const targetUrl = `https://drive.google.com/drive/search?q=${encodeURIComponent(
-      "name = 'Syncro' and mimeType = 'application/vnd.google-apps.folder'"
-    )}`;
+    const rootId = SPACE_DRIVE_FOLDER_IDS["Syncro"] || "1C3D3KIUMn9c_HEZ4iYPqXiE7j3QYj666";
+    const targetUrl = `https://drive.google.com/drive/folders/${rootId}`;
     return getGoogleAccountTargetUrl(targetUrl, userEmail);
   }
 
-  // Buka folder space spesifik (misal: "IT Support Academy" atau "Design for ITSEC Academy Event")
-  const targetUrl = `https://drive.google.com/drive/search?q=${encodeURIComponent(
-    `name = '${cleanSpace}' and mimeType = 'application/vnd.google-apps.folder'`
-  )}`;
+  // Cocokkan spaceName dengan pemetaan ID folder Google Drive
+  const folderId = SPACE_DRIVE_FOLDER_IDS[cleanSpace] || SPACE_DRIVE_FOLDER_IDS["Syncro"] || "1C3D3KIUMn9c_HEZ4iYPqXiE7j3QYj666";
+  const targetUrl = `https://drive.google.com/drive/folders/${folderId}`;
   return getGoogleAccountTargetUrl(targetUrl, userEmail);
 }
 
@@ -327,7 +352,14 @@ export async function uploadFileHelper(
     console.warn("[Upload] Network API error, fallback to client-side data URL:", apiErr);
   }
 
-  // 3. Fallback client-side FileReader: Menjamin upload berkas tidak pernah gagal
+  // 3. Fallback client-side FileReader
+  // Catatan: Cegah file video/audio raksasa (> 3MB) menjadi Data URL agar database Neon tidak bengkak
+  if (file.size > 3 * 1024 * 1024 && !file.type.startsWith("image/")) {
+    throw new Error(
+      `Berkas "${file.name}" berukuran besar (${(file.size / (1024 * 1024)).toFixed(1)} MB). Harap letakkan langsung ke folder Google Drive "Syncro / ${spaceName || "Space"}" lalu lampirkan link Drive-nya agar database tetap ringan & cepat.`
+    );
+  }
+
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => {
