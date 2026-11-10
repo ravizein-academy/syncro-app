@@ -59,6 +59,72 @@ export async function getGoogleDriveAccessToken(): Promise<string> {
 }
 
 /**
+ * Cari atau buat folder Space di dalam folder utama Syncro di Google Drive
+ */
+export async function getOrCreateSpaceFolder(
+  spaceName: string,
+  rootFolderId?: string
+): Promise<string> {
+  const accessToken = await getGoogleDriveAccessToken();
+  const targetRoot = rootFolderId || process.env.GOOGLE_DRIVE_FOLDER_ID;
+  const cleanName = (spaceName || "").trim() || "General";
+
+  // 1. Cari apakah folder space sudah ada di Google Drive
+  let query = `name = '${cleanName.replace(/'/g, "\\'")}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+  if (targetRoot && targetRoot !== "sample-folder-id") {
+    query += ` and '${targetRoot}' in parents`;
+  }
+
+  try {
+    const searchUrl = `https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(
+      query
+    )}&fields=files(id,name)`;
+
+    const searchRes = await fetch(searchUrl, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    if (searchRes.ok) {
+      const data = await searchRes.json();
+      if (data.files && data.files.length > 0) {
+        return data.files[0].id;
+      }
+    }
+  } catch (searchErr) {
+    console.warn("[Google Drive Space Folder] Search warning:", searchErr);
+  }
+
+  // 2. Jika belum ada, buat folder baru di Google Drive
+  try {
+    const createMetadata: Record<string, any> = {
+      name: cleanName,
+      mimeType: "application/vnd.google-apps.folder",
+    };
+    if (targetRoot && targetRoot !== "sample-folder-id") {
+      createMetadata.parents = [targetRoot];
+    }
+
+    const createRes = await fetch("https://www.googleapis.com/drive/v3/files?fields=id,name", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(createMetadata),
+    });
+
+    if (createRes.ok) {
+      const newFolder = await createRes.json();
+      return newFolder.id;
+    }
+  } catch (createErr) {
+    console.warn("[Google Drive Space Folder] Create warning:", createErr);
+  }
+
+  return targetRoot || "";
+}
+
+/**
  * Upload a file directly to Google Drive using multipart/related REST API
  * Compatible with Cloudflare Workers / Pages Edge Runtime
  */
@@ -66,15 +132,26 @@ export async function uploadFileToGoogleDrive({
   fileName,
   mimeType,
   fileBytes,
+  spaceName,
   folderId,
 }: {
   fileName: string;
   mimeType: string;
   fileBytes: ArrayBuffer;
+  spaceName?: string;
   folderId?: string;
 }): Promise<GoogleDriveUploadResult> {
   const accessToken = await getGoogleDriveAccessToken();
-  const targetFolderId = folderId || process.env.GOOGLE_DRIVE_FOLDER_ID;
+  
+  // Dapatkan folder ID spesifik sesuai nama space tugas jika ada
+  let targetFolderId = folderId || process.env.GOOGLE_DRIVE_FOLDER_ID;
+  if (spaceName && spaceName.trim()) {
+    try {
+      targetFolderId = await getOrCreateSpaceFolder(spaceName, targetFolderId);
+    } catch (e) {
+      console.warn("[Google Drive Upload] Get space folder fallback:", e);
+    }
+  }
 
   // Metadata object
   const metadata: Record<string, any> = {

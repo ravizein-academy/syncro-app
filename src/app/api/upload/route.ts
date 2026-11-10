@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File | null;
     const taskId = formData.get("taskId") as string | null;
     const folderId = formData.get("folderId") as string | null;
+    const spaceName = (formData.get("spaceName") as string | null) || undefined;
 
     if (!file) {
       return NextResponse.json(
@@ -52,6 +53,7 @@ export async function POST(request: NextRequest) {
           fileName,
           mimeType,
           fileBytes,
+          spaceName,
           folderId: folderId || undefined,
         });
         uploadResult = {

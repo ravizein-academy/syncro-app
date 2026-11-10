@@ -18,6 +18,8 @@ import {
   Presentation,
   ExternalLink,
   Layers,
+  Video,
+  Volume2,
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -197,7 +199,7 @@ export function CreateTaskModal({
     setUploadProgressText(`Memproses "${file.name}"...`);
 
     try {
-      const result = await uploadFileHelper(file);
+      const result = await uploadFileHelper(file, undefined, activeSpaceName);
       if (result.url) {
         setMediaUrls((prev) => [...prev, result.url]);
         toast({
@@ -565,7 +567,7 @@ export function CreateTaskModal({
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
+                  accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip"
                   onChange={handleFileUpload}
                   className="hidden"
                   disabled={isUploading}
@@ -602,6 +604,14 @@ export function CreateTaskModal({
                               alt={`Lampiran ${i + 1}`}
                               className="w-7 h-7 rounded-lg object-cover border border-slate-200 dark:border-slate-700 shrink-0"
                             />
+                          ) : info.type === "video" ? (
+                            <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                              <Video className="w-3.5 h-3.5" />
+                            </div>
+                          ) : info.type === "audio" ? (
+                            <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                              <Volume2 className="w-3.5 h-3.5" />
+                            </div>
                           ) : info.isDrive ? (
                             <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
                               {info.type === "gfolder" && <FolderOpen className="w-3.5 h-3.5" />}
@@ -625,7 +635,13 @@ export function CreateTaskModal({
                               )}
                             </div>
                             <div className="text-[10px] text-slate-400 truncate font-mono">
-                              {url.startsWith("data:") ? "Berkas Gambar" : url}
+                              {url.startsWith("data:image/")
+                                ? "Berkas Gambar"
+                                : url.startsWith("data:video/")
+                                ? "Berkas Video"
+                                : url.startsWith("data:audio/")
+                                ? "Berkas Suara"
+                                : url}
                             </div>
                           </div>
                         </div>

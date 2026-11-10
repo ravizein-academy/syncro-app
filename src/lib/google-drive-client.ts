@@ -4,7 +4,7 @@
  */
 
 export interface MediaLinkInfo {
-  type: 'gdrive' | 'gdoc' | 'gsheet' | 'gslide' | 'gfolder' | 'image' | 'file';
+  type: 'gdrive' | 'gdoc' | 'gsheet' | 'gslide' | 'gfolder' | 'image' | 'video' | 'audio' | 'file';
   label: string;
   isDrive: boolean;
   isDataUrl: boolean;
@@ -84,10 +84,33 @@ export function identifyMediaLink(url: string): MediaLinkInfo {
 
   const isDataUrl = url.startsWith("data:");
   if (isDataUrl) {
-    const isImage = url.startsWith("data:image/");
+    if (url.startsWith("data:image/")) {
+      return {
+        type: 'image',
+        label: 'Gambar Lampiran',
+        isDrive: false,
+        isDataUrl: true,
+      };
+    }
+    if (url.startsWith("data:video/")) {
+      return {
+        type: 'video',
+        label: 'Berkas Video',
+        isDrive: false,
+        isDataUrl: true,
+      };
+    }
+    if (url.startsWith("data:audio/")) {
+      return {
+        type: 'audio',
+        label: 'Rekaman Suara / Audio',
+        isDrive: false,
+        isDataUrl: true,
+      };
+    }
     return {
-      type: isImage ? 'image' : 'file',
-      label: isImage ? 'Gambar Lampiran' : 'Berkas Lampiran',
+      type: 'file',
+      label: 'Berkas Lampiran',
       isDrive: false,
       isDataUrl: true,
     };
@@ -116,6 +139,12 @@ export function identifyMediaLink(url: string): MediaLinkInfo {
 
   if (/\.(jpeg|jpg|gif|png|webp|svg)($|\?)/i.test(url)) {
     return { type: 'image', label: 'Gambar', isDrive: false, isDataUrl: false };
+  }
+  if (/\.(mp4|mov|avi|mkv|webm|m4v)($|\?)/i.test(url)) {
+    return { type: 'video', label: 'Berkas Video', isDrive: false, isDataUrl: false };
+  }
+  if (/\.(mp3|wav|ogg|m4a|aac|flac)($|\?)/i.test(url)) {
+    return { type: 'audio', label: 'Berkas Suara / Audio', isDrive: false, isDataUrl: false };
   }
 
   return { type: 'file', label: 'Tautan Lampiran', isDrive: false, isDataUrl: false };
@@ -255,7 +284,8 @@ export async function compressImageClient(
  */
 export async function uploadFileHelper(
   file: File,
-  taskId?: string
+  taskId?: string,
+  spaceName?: string
 ): Promise<{ url: string; name: string }> {
   // 1. Kompresi jika berupa gambar
   let fileToSend: File | Blob = file;
@@ -274,6 +304,9 @@ export async function uploadFileHelper(
     formData.append("file", fileToSend, file.name);
     if (taskId) {
       formData.append("taskId", taskId);
+    }
+    if (spaceName) {
+      formData.append("spaceName", spaceName);
     }
 
     const res = await fetch("/api/upload", {
