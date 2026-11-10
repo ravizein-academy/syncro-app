@@ -936,6 +936,7 @@ export default function DashboardPage() {
         task={selectedTaskForDetail}
         projects={projects}
         isOpen={isDetailModalOpen}
+        isAdmin={isAdmin}
         onClose={() => {
           setIsDetailModalOpen(false);
           setSelectedTaskForDetail(null);
@@ -984,6 +985,7 @@ export default function DashboardPage() {
         defaultProjectId={selectedProjectId || undefined}
         defaultStatus={createTaskDefaultStatus}
         onTaskCreated={handleTaskCreated}
+        isAdmin={isAdmin}
       />
 
       {/* Create Project Modal */}

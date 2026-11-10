@@ -237,18 +237,20 @@ function SidebarInner({
                   <span className="truncate">Semua Spaces</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const url = getSpaceDriveFolderUrl("Syncro", userEmail);
-                    window.open(url, "_blank");
-                  }}
-                  title="Buka Folder Utama Syncro di Google Drive"
-                  className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer shrink-0 ml-1"
-                >
-                  <FolderOpen className="w-3.5 h-3.5 text-blue-500" />
-                </button>
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const url = getSpaceDriveFolderUrl("Syncro", userEmail);
+                      window.open(url, "_blank");
+                    }}
+                    title="Buka Folder Utama Syncro di Google Drive (Khusus Admin)"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer shrink-0 ml-1"
+                  >
+                    <FolderOpen className="w-3.5 h-3.5 text-blue-500" />
+                  </button>
+                )}
               </div>
 
               {projects.map((proj) => {
@@ -275,19 +277,21 @@ function SidebarInner({
                     </button>
 
                     <div className="flex items-center gap-1 shrink-0 ml-1">
-                      {/* Buka Google Drive folder untuk space ini */}
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const url = getSpaceDriveFolderUrl(proj.name, userEmail);
-                          window.open(url, "_blank");
-                        }}
-                        title={`Buka Google Drive: Syncro / ${proj.name}`}
-                        className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer"
-                      >
-                        <FolderOpen className="w-3.5 h-3.5 text-blue-500" />
-                      </button>
+                      {/* Buka Google Drive folder untuk space ini (Khusus Admin) */}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const url = getSpaceDriveFolderUrl(proj.name, userEmail);
+                            window.open(url, "_blank");
+                          }}
+                          title={`Buka Google Drive: Syncro / ${proj.name} (Khusus Admin)`}
+                          className="opacity-0 group-hover:opacity-100 p-1 rounded-md text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition cursor-pointer"
+                        >
+                          <FolderOpen className="w-3.5 h-3.5 text-blue-500" />
+                        </button>
+                      )}
 
                       {proj._count?.tasks !== undefined && proj._count.tasks > 0 && (
                         <span

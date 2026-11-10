@@ -45,6 +45,7 @@ interface CreateTaskModalProps {
   defaultProjectId?: string;
   defaultStatus?: "TODO" | "IN_PROGRESS" | "DONE";
   onTaskCreated: (newTask: any) => void;
+  isAdmin?: boolean;
 }
 
 const TEAM_MEMBERS = [
@@ -58,10 +59,15 @@ export function CreateTaskModal({
   defaultProjectId,
   defaultStatus = "TODO",
   onTaskCreated,
+  isAdmin,
 }: CreateTaskModalProps) {
   const { toast } = useToast();
   const { data: session } = useSession();
   const userEmail = session?.user?.email || "";
+  const userIsAdmin =
+    isAdmin !== undefined
+      ? isAdmin
+      : (session?.user as any)?.role === "ADMIN" || userEmail === "ravizein@itsecacademy.com";
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -449,48 +455,64 @@ export function CreateTaskModal({
 
             {/* Google Drive Space Card */}
             <div className="p-3.5 rounded-2xl bg-slate-50/80 dark:bg-[#1e1e1e] border border-slate-200 dark:border-[#333333] space-y-3">
-              {/* Space Folder Destination Row */}
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
-                    <FolderOpen className="w-4 h-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                        Syncro / {activeSpaceName}
-                      </span>
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 font-medium shrink-0">
-                        Space
-                      </span>
+              {/* Space Folder Destination Row (Khusus Admin) */}
+              {userIsAdmin ? (
+                <>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <FolderOpen className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                            Syncro / {activeSpaceName}
+                          </span>
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-300 font-semibold shrink-0">
+                            Admin Folder
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                          Folder Google Drive otomatis untuk space ini (Khusus Admin)
+                        </p>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
-                      Folder Google Drive otomatis untuk space ini
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleOpenSpaceFolder}
+                        className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer whitespace-nowrap"
+                        title={`Buka folder ${activeSpaceName} di Google Drive (Khusus Admin)`}
+                      >
+                        <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+                        <span>Buka Folder Space</span>
+                        <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tips penyimpanan media di Google Drive */}
+                  <div className="text-[11px] text-slate-600 dark:text-slate-300 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl p-2.5 flex items-start gap-2">
+                    <span className="text-blue-500 text-xs shrink-0">💡</span>
+                    <span className="leading-relaxed">
+                      <strong>Penyimpanan Media di Google Drive:</strong> Klik <em>Buka Folder Space</em> untuk menaruh berkas (gambar, video, suara), lalu tempel tautan file di bawah agar tersambung ke tiket tanpa membebani database.
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center gap-2.5 text-xs text-slate-600 dark:text-slate-400">
+                  <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-[#252525] text-slate-500 flex items-center justify-center shrink-0">
+                    <LinkIcon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="font-semibold text-slate-800 dark:text-slate-200">Lampiran Berkas & Link</span>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Tempel tautan berkas atau unggah lampiran untuk tugas ini. Semua anggota dapat menghapus lampiran jika diperlukan.
                     </p>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleOpenSpaceFolder}
-                    className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer whitespace-nowrap"
-                    title={`Buka folder ${activeSpaceName} di Google Drive`}
-                  >
-                    <FolderOpen className="w-3.5 h-3.5 shrink-0" />
-                    <span>Buka Folder Space</span>
-                    <ExternalLink className="w-3 h-3 opacity-80 shrink-0" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Tips penyimpanan media di Google Drive */}
-              <div className="text-[11px] text-slate-600 dark:text-slate-300 bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-xl p-2.5 flex items-start gap-2">
-                <span className="text-blue-500 text-xs shrink-0">💡</span>
-                <span className="leading-relaxed">
-                  <strong>Penyimpanan Media di Google Drive:</strong> Klik <em>Buka Folder Space</em> untuk menaruh berkas (gambar, video, suara), lalu tempel tautan file di bawah agar tersambung ke tiket tanpa membebani database.
-                </span>
-              </div>
+              )}
 
               {/* Action Bar: Paste Link or Upload File */}
               <div className="pt-2 border-t border-slate-200 dark:border-[#333333]">
